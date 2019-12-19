@@ -18,8 +18,8 @@ void quadrangulationFromPatches(
     const std::vector<double>& edgeFactor,
     const Parameters& parameters,
     PolyMesh& quadmesh,
-    std::vector<std::vector<size_t>> quadmeshPartitions,
-    std::vector<std::vector<size_t>> quadmeshCorners,
+    std::vector<std::vector<size_t>>& quadmeshPartitions,
+    std::vector<std::vector<size_t>>& quadmeshCorners,
     std::vector<int> ilpResult)
 {
     ChartData chartData;
@@ -56,8 +56,8 @@ void quadrangulationFromPatches(
 template<class TriangleMesh>
 ChartData getChartData(
         TriangleMesh& trimesh,
-        std::vector<std::vector<size_t>> trimeshPartitions,
-        std::vector<std::vector<size_t>> trimeshCorners)
+        const std::vector<std::vector<size_t>>& trimeshPartitions,
+        const std::vector<std::vector<size_t>>& trimeshCorners)
 {
     std::vector<int> faceLabel(trimesh.face.size(), -1);
     for (size_t pId = 0; pId < trimeshPartitions.size(); pId++) {

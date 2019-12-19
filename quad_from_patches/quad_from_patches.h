@@ -14,15 +14,15 @@ void quadrangulationFromPatches(
     const std::vector<double>& avgLength,
     const Parameters& parameters,
     PolyMesh& quadmesh,
-    std::vector<std::vector<size_t>> quadmeshPartitions,
-    std::vector<std::vector<size_t>> quadmeshCorners,
+    std::vector<std::vector<size_t>>& quadmeshPartitions,
+    std::vector<std::vector<size_t>>& quadmeshCorners,
     std::vector<int> ilpResult);
 
 template<class TriangleMesh>
 ChartData getChartData(
         TriangleMesh& trimesh,
-        std::vector<std::vector<size_t>> trimeshPartitions,
-        std::vector<std::vector<size_t>> trimeshCorners);
+        const std::vector<std::vector<size_t>>& trimeshPartitions,
+        const std::vector<std::vector<size_t>>& trimeshCorners);
 
 std::vector<int> findSubdivisions(
         const ChartData& chartData,
