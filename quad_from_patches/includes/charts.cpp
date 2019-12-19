@@ -194,6 +194,8 @@ ChartData getPatchDecompositionChartData(
                 size_t subSideId = chartData.subSides.size();
                 ChartSubSide currentSubSide;
 
+                currentSubSide.isFixed = false;
+
                 //Get edge
                 std::pair<size_t, size_t> edge(vCurrentId, vNextId);
                 if (edge.first > edge.second) {

@@ -130,10 +130,10 @@ void quadrangulate(
 
     std::vector<std::vector<size_t>> vertexSubsideMap(chartData.subSides.size());
     std::vector<int> cornerVertices(trimesh.vert.size(), -1);
-    std::vector<size_t> borderOfCharts;
+    std::vector<size_t> fixedVertices;
 
     quadmeshPartitions.resize(chartData.charts.size());
-    quadmeshCorners.resize(chartData.charts.size());
+    quadmeshCorners.resize(chartData.charts.size());   
 
     //Fill fixed vertices (subsides corners)
     for (const ChartSubSide& subside : chartData.subSides) {
@@ -146,7 +146,7 @@ void quadrangulate(
                         quadmesh,
                         trimesh.vert.at(vStart).P());
 
-            borderOfCharts.push_back(cornerVertices[vStart]);
+            fixedVertices.push_back(cornerVertices[vStart]);
         }
 
         if (cornerVertices[vEnd] == -1) {
@@ -155,10 +155,41 @@ void quadrangulate(
                         quadmesh,
                         trimesh.vert.at(vEnd).P());
 
-            borderOfCharts.push_back(cornerVertices[vEnd]);
+            fixedVertices.push_back(cornerVertices[vEnd]);
         }
     }
 
+    //Fill subside map for fixed borders
+    std::set<size_t> finalMeshBorders;
+    for (size_t i = 0; i < chartData.subSides.size(); i++) {
+        const ChartSubSide& subside = chartData.subSides[i];
+        if (subside.isFixed) {
+            for (size_t k = 0; k < subside.vertices.size(); k++) {
+                const size_t& vId = subside.vertices.at(k);
+
+                size_t newVertexId;
+
+                if (cornerVertices[vId] == -1) {
+                    assert(k > 0 && k < subside.vertices.size() - 1);
+
+                    newVertexId = quadmesh.vert.size();
+                    vcg::tri::Allocator<PolyMesh>::AddVertex(
+                                quadmesh,
+                                trimesh.vert.at(vId).P());
+
+                    fixedVertices.push_back(newVertexId);
+                }
+                else {
+                    newVertexId = cornerVertices[vId];
+                    assert(newVertexId >= 0);
+                }
+
+                finalMeshBorders.insert(newVertexId);
+
+                vertexSubsideMap[i].push_back(newVertexId);
+            }
+        }
+    }
 
 
     //For each chart
@@ -325,7 +356,7 @@ void quadrangulate(
                             const typename PolyMesh::CoordType& coord = quadrangulatedChartMesh.vert[patchSideVId].P();
                             vcg::tri::Allocator<PolyMesh>::AddVertex(quadmesh, coord);
 
-                            borderOfCharts.push_back(newVertexId);
+                            fixedVertices.push_back(newVertexId);
 
                             currentVertexMap[patchSideVId] = newVertexId;
 
@@ -359,7 +390,7 @@ void quadrangulate(
                         size_t existingVertexId = currentVertexMap[patchSideVId];
 
                         //If it is not a corner
-                        if (k > 0 && k < ilpResult[subSideId]) {
+                        if (!subside.isFixed && k > 0 && k < ilpResult[subSideId]) {
                             //Average
                             const typename PolyMesh::CoordType& coord = quadrangulatedChartMesh.vert[patchSideVId].P();
                             quadmesh.vert.at(existingVertexId).P() = (coord + quadmesh.vert.at(existingVertexId).P())/2;
@@ -449,7 +480,7 @@ void quadrangulate(
 
     if (quadrangulationSmoothingIterations > 0) {
         vcg::tri::UpdateSelection<PolyMesh>::VertexAll(quadmesh);
-        for (const size_t& borderVertexId : borderOfCharts) {
+        for (const size_t& borderVertexId : fixedVertices) {
             quadmesh.vert[borderVertexId].ClearS();
         }
         vcg::PolygonalAlgorithm<PolyMesh>::template LaplacianReproject<TriangleMesh>(quadmesh, trimesh, quadrangulationSmoothingIterations, 0.7, 0.7, true);
