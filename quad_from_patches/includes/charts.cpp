@@ -52,7 +52,7 @@ ChartData getPatchDecompositionChartData(
 
         std::unordered_set<size_t> cornerSet(corners[pId].begin(), corners[pId].end());
 
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
         if (cornerSet.size() < 3 || cornerSet.size() > 6) {
             std::cout << "Warning 3: Given as input for " << pId << ": " << chart.chartSides.size() << " sides." << std::endl;
         }
@@ -63,7 +63,7 @@ ChartData getPatchDecompositionChartData(
 
         std::set<size_t> remainingVertices;
 
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
         vcg::tri::UpdateSelection<TriangleMesh>::FaceClear(mesh);
         for (const size_t& fId : chart.faces) {
             mesh.face[fId].SetS();
@@ -170,13 +170,13 @@ ChartData getPatchDecompositionChartData(
                 firstCornerIterations++;
             } while (!isCorner && vCurrentId != vStartId && firstCornerIterations < MAXITERATIONS);
 
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
             if (firstCornerIterations >= MAXITERATIONS) {
                 std::cout << "Errore: error iterating! Cannot find the first corner or get back to the start vertex." << std::endl;
             }
 #endif
 
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
             if (vCurrentId == vStartId) {
                 std::cout << "Warning 1: input mesh is not well-defined: no corners!" << std::endl;
             }
@@ -266,12 +266,12 @@ ChartData getPatchDecompositionChartData(
                         lastEdgeVec = currentEdgeVec;
                     }
                 } while (!isCorner && !isAdjCorner && currentLabel == adjChartLabel && vCurrentId != vSubSideStartId && iterations < MAXITERATIONS);
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
                 if (iterations >= MAXITERATIONS) {
                     std::cout << "Error: error iterating! Cannot find a corner or get back to the start vertex." << std::endl;
                 }
 #endif
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
                 if (vCurrentId == vSubSideStartId) {
                     std::cout << "Warning 2: input mesh is not well-defined: single border chart with no corners!" << std::endl;
                 }
@@ -365,7 +365,7 @@ ChartData getPatchDecompositionChartData(
 
             } while (vCurrentId != vStartId);
 
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
             if (!isCorner) {
                 std::cout << "Warning 4: Chart has no final corner!" << std::endl;
             }
@@ -373,7 +373,7 @@ ChartData getPatchDecompositionChartData(
 
         } while (!remainingVertices.empty());
 
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
         if (chart.chartSides.size() < 3 || chart.chartSides.size() > 6) {
             std::cout << "Warning 3: Chart " << pId << " has " << chart.chartSides.size() << " sides." << std::endl;
         }

@@ -89,7 +89,7 @@ void computeQuadrangulation(
         //Get the UV map with all fixed border
         uvMapV = bc;
 
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
         std::cout << "No fixed border! UVMap setted as bc." << std::endl;
 #endif
     }
@@ -208,7 +208,7 @@ Eigen::VectorXd pointToBarycentric(
     baryc(1) = ((t3.y() - t1.y()) * (p.x() - t3.x()) + (t1.x() - t3.x()) * (p.y() - t3.y())) / det;
 
     if (baryc(0) > 1.0 + eps || baryc(1) > 1.0 + eps || baryc(0) < 0.0 - eps || baryc(1) < 0.0 - eps) {
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
         std::cout << "Degenerate triangle." << std::endl;
 #endif
         vcg::Point3d t1vcg(t1.x(), t1.y(), 0);
@@ -272,7 +272,7 @@ Eigen::VectorXd pointToBarycentric(
 //            baryc(0) = 1 - paramT.x();
 //            baryc(1) = paramT.x();
 //            baryc(2) = 0;
-//#ifndef NDEBUG
+//#ifdef SAVEMESHESFORDEBUG
 //            std::cout << "Segment interpolation done.";
 //#endif
 //        }
@@ -280,7 +280,7 @@ Eigen::VectorXd pointToBarycentric(
 //            baryc(0) = 0;
 //            baryc(1) = 1 - paramT.x();
 //            baryc(2) = paramT.x();
-//#ifndef NDEBUG
+//#ifdef SAVEMESHESFORDEBUG
 //            std::cout << "Segment interpolation done.";
 //#endif
 //        }
@@ -288,17 +288,17 @@ Eigen::VectorXd pointToBarycentric(
 //            baryc(0) = paramT.x();
 //            baryc(1) = 0;
 //            baryc(2) = 1 - paramT.x();
-//#ifndef NDEBUG
+//#ifdef SAVEMESHESFORDEBUG
 //            std::cout << "Segment interpolation done.";
 //#endif
 //        }
 //        else {
 //            baryc(0) = baryc(1) = baryc(2) = 1.0/3.0;
-//#ifndef NDEBUG
+//#ifdef SAVEMESHESFORDEBUG
 //            std::cout << "Segment interpolation NOT done." ;
 //#endif
 //        }
-//#ifndef NDEBUG
+//#ifdef SAVEMESHESFORDEBUG
 //        std::cout << std::endl;
 //#endif
     }
@@ -397,7 +397,7 @@ std::vector<std::vector<size_t>> getPatchSides(
     } while (!foundSolution && startCornerId < corners.size());
 
     if (!foundSolution) {
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
       std::cout << "Found a no counter-clockwise path in patch. Reversed patch." << std::endl;
 #endif
 

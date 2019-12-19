@@ -270,7 +270,7 @@ void quadrangulate(
         qfp::computePattern(l, patchV, patchF, patchBorders, patchCorners);
 
 
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
         igl::writeOBJ(std::string("res/") + std::to_string(cId) + std::string("_patch.obj"), patchV, patchF);
 #endif
 
@@ -279,7 +279,7 @@ void quadrangulate(
         assert(chartSides.size() == patchCorners.size());
         assert(chartSides.size() == patchEigenSides.size());
 
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
         igl::writeOBJ(std::string("res/") + std::to_string(cId) + std::string("_chart.obj"), chartV, chartF);
 #endif
 
@@ -290,7 +290,7 @@ void quadrangulate(
         Eigen::MatrixXi quadrangulationF;
         qfp::computeQuadrangulation(chartV, chartF, patchV, patchF, chartEigenSides, chartSideLength, patchEigenSides, uvMapV, uvMapF, quadrangulationV, quadrangulationF);
 
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
         Eigen::MatrixXd uvMesh(uvMapV.rows(), 3);
         for (int i = 0; i < uvMapV.rows(); i++) {
             uvMesh(i, 0) = uvMapV(i, 0);
@@ -307,7 +307,7 @@ void quadrangulate(
         PolyMesh quadrangulatedChartMesh;
         eigenToVCG(quadrangulationV, quadrangulationF, quadrangulatedChartMesh, 4);
 
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
         igl::writeOBJ(std::string("res/") + std::to_string(cId) + std::string("_quadrangulation.obj"), quadrangulationV, quadrangulationF);
 #endif
 

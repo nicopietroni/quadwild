@@ -11,7 +11,6 @@ SOURCES +=  \
     includes/utils.cpp \
     load_save.cpp \
     main.cpp \
-    $$VCGLIBPATH/wrap/ply/plylib.cpp \
     quad_from_patches.cpp
 
 HEADERS += \
@@ -27,6 +26,7 @@ HEADERS += \
     mesh_types.h \
     quad_from_patches.h
 
+#DEFINES += SAVEMESHESFORDEBUG
 
 ############################ TARGET ############################
 

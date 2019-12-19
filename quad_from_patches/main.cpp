@@ -24,6 +24,8 @@ int main(int argc, char *argv[])
     std::vector<int> ilpResult;
 
     qfp::Parameters parameters;
+    parameters.alpha = 0.01;
+//    parameters.ilpMethod = qfp::ILPMethod::ABS;
 
     if(argc<2)
     {
@@ -36,7 +38,7 @@ int main(int argc, char *argv[])
     std::string meshFilename = std::string(argv[1]);
     int mask;
     vcg::tri::io::ImporterOBJ<TriangleMesh>::LoadMask(meshFilename.c_str(), mask);
-    int err=vcg::tri::io::ImporterOBJ<TriangleMesh>::Open(trimesh, meshFilename.c_str(), mask);
+    int err = vcg::tri::io::ImporterOBJ<TriangleMesh>::Open(trimesh, meshFilename.c_str(), mask);
 
     if ((err!=0)&&(err!=5))
     {
@@ -77,7 +79,7 @@ int main(int argc, char *argv[])
             quadmesh.face[fId].C() = partitionColor;
         }
     }
-    vcg::tri::io::ExporterPLY<PolyMesh>::Save(quadmesh,"quadrangulation.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+    vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, "quadrangulation.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
 
 
 }

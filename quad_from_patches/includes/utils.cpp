@@ -71,7 +71,7 @@ std::vector<std::vector<size_t>> findConnectedComponents(
         }
     }
 
-#ifndef NDEBUG
+#ifdef SAVEMESHESFORDEBUG
     //Check unique faces in components
     for (size_t i = 0; i < components.size(); i++)
     {
