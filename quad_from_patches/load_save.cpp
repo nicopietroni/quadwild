@@ -34,7 +34,7 @@ std::vector<std::vector<size_t>> loadPatches(const std::string& filename)
 
     partitions.clear();
     partitions.resize(static_cast<size_t>(maxPartitionId+1));
-    for(size_t i=0;i<facePartition.size();i++)
+    for(size_t i = 0; i < facePartition.size(); i++)
     {
         int currentPartition = facePartition[i];
         assert(currentPartition >= 0);
