@@ -47,8 +47,6 @@ inline std::vector<int> solveILP(
 
             //If it is not a border (free)
             if (!subside.isFixed) {
-                assert(subside.incidentCharts[0] >= 0 && subside.incidentCharts[1] >= 0);
-
                 vars[i] = model.addVar(MINSIDEVALUE, GRB_INFINITY, 0.0, GRB_INTEGER, "s" + to_string(i));
             }
         }

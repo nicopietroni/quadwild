@@ -16,7 +16,7 @@ void quadrangulationFromPatches(
     PolyMesh& quadmesh,
     std::vector<std::vector<size_t>>& quadmeshPartitions,
     std::vector<std::vector<size_t>>& quadmeshCorners,
-    std::vector<int> ilpResult);
+    std::vector<int>& ilpResult);
 
 template<class TriangleMesh>
 ChartData getChartData(
