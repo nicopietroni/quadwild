@@ -24,8 +24,9 @@ int main(int argc, char *argv[])
     std::vector<int> ilpResult;
 
     qfp::Parameters parameters;
-    parameters.alpha = 0.01;
-//    parameters.ilpMethod = qfp::ILPMethod::ABS;
+    parameters.alpha = 0.5;
+    parameters.ilpMethod = qfp::ILPMethod::LEASTSQUARES;
+    parameters.timeLimit = 5 * 60; //5 minutes
 
     if(argc<2)
     {
@@ -72,14 +73,17 @@ int main(int argc, char *argv[])
     vcg::tri::UpdateColor<PolyMesh>::PerFaceConstant(quadmesh);
     for(size_t i = 0; i < quadmeshPartitions.size(); i++)
     {
-        vcg::Color4b partitionColor = vcg::Color4b::Scatter(quadmeshPartitions.size(),i);
+        vcg::Color4b partitionColor = vcg::Color4b::Scatter(static_cast<int>(quadmeshPartitions.size()), static_cast<int>(i));
         for(size_t j = 0; j < quadmeshPartitions[i].size(); j++)
         {
             size_t fId = quadmeshPartitions[i][j];
             quadmesh.face[fId].C() = partitionColor;
         }
     }
-    vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, "quadrangulation.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
 
-
+    //SAVE OUTPUT
+    std::string outputFilename = meshFilename;
+    outputFilename.erase(partitionFilename.find_last_of("."));
+    outputFilename.append("_quadrangulation.obj");
+    vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, outputFilename.c_str(), vcg::tri::io::Mask::IOM_FACECOLOR);
 }

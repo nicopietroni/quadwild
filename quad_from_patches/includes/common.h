@@ -5,10 +5,11 @@
 
 #define DEFAULTILPMETHOD qfp::ILPMethod::LEASTSQUARES
 #define DEFAULTALPHA 0.5
-#define DEFAULTTIMELIMIT 10 * 60
+#define DEFAULTTIMELIMIT 60 //1 minute
 #define DEFAULTGAPLIMIT 0.1
 #define DEFAULTCHARTSMOOTHINGITERATIONS 5
 #define DEFAULTQUADRANGULATIONSMOOTHINGITERATIONS 5
+#define DEFAULTREGULARITYFORNONQUADRILATERAL true
 
 namespace qfp {
 
@@ -22,6 +23,7 @@ struct Parameters {
     bool finalSmoothing;
     int chartSmoothingIterations;
     int quadrangulationSmoothingIterations;
+    bool regularityForNonQuadrilaterals;
 
     Parameters() {
         ilpMethod = DEFAULTILPMETHOD;
@@ -30,6 +32,7 @@ struct Parameters {
         quadrangulationSmoothingIterations = DEFAULTQUADRANGULATIONSMOOTHINGITERATIONS;
         timeLimit = DEFAULTTIMELIMIT;
         gapLimit = DEFAULTGAPLIMIT;
+        regularityForNonQuadrilaterals = DEFAULTREGULARITYFORNONQUADRILATERAL;
     }
 };
 
