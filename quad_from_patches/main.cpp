@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 
     //COMPUTE QUADRANGULATION
     qfp::updateAllMeshAttributes(trimesh);
-    const std::vector<double> edgeFactor(trimeshPartitions.size(), trimesh.bbox.Diag() / 100);
+    const std::vector<double> edgeFactor(trimeshPartitions.size(), trimesh.bbox.Diag() / 200);
     qfp::quadrangulationFromPatches(trimesh, trimeshPartitions, trimeshCorners, edgeFactor, parameters, quadmesh, quadmeshPartitions, quadmeshCorners, ilpResult);
 
     //COLOR AND SAVE QUADRANGULATION

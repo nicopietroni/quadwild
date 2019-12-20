@@ -14,7 +14,7 @@ else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/pa
 else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/patterns/ktmethod/lp_solve/debug/lpsolve55.lib
 else:unix: PRE_TARGETDEPS += $$PWD/patterns/ktmethod/lp_solve/liblpsolve55.a
 
-LIBS += -ldl -lm -lmpfr -llpsolve55
+LIBS += -ldl -lm -llpsolve55
 INCLUDEPATH += $$LPSOLVER_PATH $$EIGEN_PATH
 
 QMAKE_CXXFLAGS += -std=c++11 -fpermissive
