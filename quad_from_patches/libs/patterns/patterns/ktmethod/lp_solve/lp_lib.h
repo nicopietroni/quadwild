@@ -192,7 +192,7 @@
 #define MAJORVERSION             5
 #define MINORVERSION             5
 #define RELEASE                  2
-#define BUILD                    0
+#define BUILD                    5
 #define BFPVERSION              12       /* Checked against bfp_compatible() */
 #define XLIVERSION              12       /* Checked against xli_compatible() */
 /* Note that both BFPVERSION and XLIVERSION typically have to be incremented
@@ -556,6 +556,7 @@
 #define TIMEOUT                  7
 #define RUNNING                  8
 #define PRESOLVED                9
+#define ACCURACYERROR           25
 
 /* Branch & Bound and Lagrangean extra status values (internal) */
 #define PROCFAIL                10
@@ -1566,8 +1567,11 @@ struct _lprec
   REAL      *lag_rhs;           /* Array of Lagrangean rhs vector */
   int       *lag_con_type;      /* Array of GT, LT or EQ */
   REAL      *lambda;            /* Lambda values (Lagrangean multipliers) */
-  REAL      lag_bound;          /* The Lagrangian lower OF bound */
-  REAL      lag_accept;         /* The Lagrangian convergence criterion */
+  /* REAL      lag_bound; */         /* The Lagrangian lower OF bound */
+  /* REAL      lag_accept; */   /* The Lagrangian convergence criterion */
+
+  REAL      accuracy;
+  REAL      accuracy_error;
 
   /* Solver thresholds */
   REAL      infinite;           /* Limit for dynamic range */
@@ -1910,6 +1914,11 @@ MYBOOL __EXPORT_TYPE __WINAPI is_feasible(lprec *lp, REAL *values, REAL threshol
 
 int __EXPORT_TYPE __WINAPI solve(lprec *lp);
 /* Solve the problem */
+
+REAL __EXPORT_TYPE __WINAPI get_accuracy(lprec *lp);
+
+void __EXPORT_TYPE __WINAPI set_break_numeric_accuracy(lprec *lp, REAL accuracy);
+REAL __EXPORT_TYPE __WINAPI get_break_numeric_accuracy(lprec *lp);
 
 REAL __EXPORT_TYPE __WINAPI time_elapsed(lprec *lp);
 /* Return the number of seconds since start of solution process */
