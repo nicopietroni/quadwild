@@ -27,6 +27,9 @@ int main(int argc, char *argv[])
     parameters.alpha = 0.5;
     parameters.ilpMethod = qfp::ILPMethod::LEASTSQUARES;
     parameters.timeLimit = 5 * 60; //5 minutes
+    parameters.regularityForNonQuadrilaterals = true;
+    parameters.chartSmoothingIterations = 10;
+    parameters.quadrangulationSmoothingIterations = 0; //Fixed borders of the patches
 
     if(argc<2)
     {
