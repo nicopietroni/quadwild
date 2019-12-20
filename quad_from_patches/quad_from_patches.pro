@@ -28,10 +28,11 @@ HEADERS += \
 
 #DEFINES += SAVEMESHESFORDEBUG
 
+
 ############################ TARGET ############################
 
 #App config
-TARGET = quadmixer
+TARGET = quad_from_patches
 
 TEMPLATE        = app
 CONFIG         += c++11
@@ -77,9 +78,6 @@ DEFINES += NOCOMISO
 
 #eigen
 INCLUDEPATH += $$EIGENPATH
-
-#boost
-INCLUDEPATH += $$BOOSTPATH
 
 #gurobi
 INCLUDEPATH += $$GUROBIPATH/include
