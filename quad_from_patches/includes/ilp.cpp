@@ -64,7 +64,7 @@ inline std::vector<int> solveILP(
                 //If it is not a border (free)
                 if (!subside.isFixed) {
                     size_t nIncidents = 0;
-                    double incidentChartAverageLength;
+                    double incidentChartAverageLength=0;
 
                     if (subside.incidentCharts[0] >= 0) {
                         assert(edgeFactor[subside.incidentCharts[0]] > 0);
