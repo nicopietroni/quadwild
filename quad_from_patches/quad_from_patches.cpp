@@ -38,6 +38,7 @@ void quadrangulationFromPatches(
             edgeFactor,
             parameters.alpha,
             parameters.regularityForNonQuadrilaterals,
+            parameters.nonQuadrilateralSimilarityFactor,
             parameters.timeLimit,
             parameters.gapLimit,
             parameters.ilpMethod);
@@ -77,6 +78,7 @@ inline std::vector<int> findSubdivisions(
         const std::vector<double>& edgeFactor,
         const double alpha,
         const bool regularityForNonQuadrilaterals,
+        const double nonQuadrilateralSimilarityFactor,
         const double timeLimit,
         const double gapLimit,
         const ILPMethod& method)
@@ -88,7 +90,7 @@ inline std::vector<int> findSubdivisions(
     ILPStatus status;
 
     //Solve ILP to find the best patches
-    std::vector<int> ilpResult = solveILP(chartData, edgeFactor, alpha, method, true, regularityForNonQuadrilaterals, timeLimit, gap, status);
+    std::vector<int> ilpResult = solveILP(chartData, edgeFactor, alpha, method, true, regularityForNonQuadrilaterals, nonQuadrilateralSimilarityFactor, timeLimit, gap, status);
 
     if (status == ILPStatus::SOLUTIONFOUND && gap < gapLimit) {
         std::cout << "Solution found! Gap: " << gap << std::endl;
@@ -98,13 +100,13 @@ inline std::vector<int> findSubdivisions(
             std::cout << "Error! Model was infeasible or time limit exceeded!" << std::endl;
         }
         else {
-            ilpResult = solveILP(chartData, edgeFactor,alpha, ILPMethod::ABS, true, regularityForNonQuadrilaterals, timeLimit*2, gap, status);
+            ilpResult = solveILP(chartData, edgeFactor,alpha, ILPMethod::ABS, true, regularityForNonQuadrilaterals, nonQuadrilateralSimilarityFactor, timeLimit*2, gap, status);
 
             if (status == ILPStatus::SOLUTIONFOUND) {
                 std::cout << "Solution found (ABS)! Gap: " << gap << std::endl;
             }
             else {
-                ilpResult = solveILP(chartData, edgeFactor, alpha, ILPMethod::ABS, false, false, timeLimit*4, gap, status);
+                ilpResult = solveILP(chartData, edgeFactor, alpha, ILPMethod::ABS, false, false, nonQuadrilateralSimilarityFactor, timeLimit*4, gap, status);
                 std::cout << "Solution found? (ABS without regularity)! Gap: " << gap << std::endl;
             }
         }

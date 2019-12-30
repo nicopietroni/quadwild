@@ -24,12 +24,13 @@ int main(int argc, char *argv[])
     std::vector<int> ilpResult;
 
     qfp::Parameters parameters;
-    parameters.alpha = 0.5;
+    parameters.alpha = 0.3;
     parameters.ilpMethod = qfp::ILPMethod::LEASTSQUARES;
     parameters.timeLimit = 5 * 60; //5 minutes
     parameters.gapLimit = 0.1;
     parameters.regularityForNonQuadrilaterals = true;
-    parameters.chartSmoothingIterations = 10;
+    parameters.nonQuadrilateralSimilarityFactor = 1.2;
+    parameters.chartSmoothingIterations = 0;
     parameters.quadrangulationSmoothingIterations = 0; //Fixed borders of the patches
 
     if(argc<2)
@@ -70,7 +71,7 @@ int main(int argc, char *argv[])
 
     //COMPUTE QUADRANGULATION
     qfp::updateAllMeshAttributes(trimesh);
-    const std::vector<double> edgeFactor(trimeshPartitions.size(), trimesh.bbox.Diag() / 200);
+    const std::vector<double> edgeFactor(trimeshPartitions.size(), trimesh.bbox.Diag() / 100);
     qfp::quadrangulationFromPatches(trimesh, trimeshPartitions, trimeshCorners, edgeFactor, parameters, quadmesh, quadmeshPartitions, quadmeshCorners, ilpResult);
 
     //COLOR AND SAVE QUADRANGULATION

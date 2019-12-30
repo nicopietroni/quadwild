@@ -17,6 +17,7 @@ inline std::vector<int> solveILP(
         const ILPMethod& method,
         const bool isometry,
         const bool regularityForNonQuadrilaterals,
+        const double nonQuadrilateralSimilarityFactor,
         const double timeLimit,
         double& gap,
         ILPStatus& status)
@@ -64,7 +65,7 @@ inline std::vector<int> solveILP(
                 //If it is not a border (free)
                 if (!subside.isFixed) {
                     size_t nIncidents = 0;
-                    double incidentChartAverageLength=0;
+                    double incidentChartAverageLength = 0;
 
                     if (subside.incidentCharts[0] >= 0) {
                         assert(edgeFactor[subside.incidentCharts[0]] > 0);
@@ -85,8 +86,14 @@ inline std::vector<int> solveILP(
                     size_t dId = diff.size();
                     size_t aId = abs.size();
 
+                    double normalizationMultiplier = 2;
+
+                    if (subside.isOnBorder) {
+                        normalizationMultiplier = 1;
+                    }
+
                     if (method == LEASTSQUARES) {
-                        isoExpr += (vars[i] - sideSubdivision) * (vars[i] - sideSubdivision);
+                        isoExpr += ((vars[i] - sideSubdivision) * (vars[i] - sideSubdivision)) * normalizationMultiplier;
                     }
                     else {
                         diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
@@ -95,7 +102,7 @@ inline std::vector<int> solveILP(
                         model.addConstr(diff[dId] == vars[i] - sideSubdivision, "dc" + to_string(dId));
                         model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
 
-                        isoExpr += abs[aId];
+                        isoExpr += abs[aId] * normalizationMultiplier;
                     }
                 }
             }
@@ -164,25 +171,49 @@ inline std::vector<int> solveILP(
                 }
             }
 
-            if (!regularityForNonQuadrilaterals) {
+            if (regularityForNonQuadrilaterals) {
                 for (size_t i = 0; i < chartData.charts.size(); i++) {
                     const Chart& chart = chartData.charts[i];
                     if (chart.faces.size() > 0) {
                         size_t nSides = chart.chartSides.size();
 
+                        bool lengthSimilar = true;
+                        for (size_t j = 0; j < nSides; j++) {
+                            for (size_t k = j + 1; k < nSides; k++) {
+
+                                const ChartSide& side1 = chart.chartSides[j];
+                                const ChartSide& side2 = chart.chartSides[k];
+
+                                double length1 = 0;
+                                double length2 = 0;
+
+                                for (const size_t& subSideId : side1.subsides) {
+                                    const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                    length1 += subSide.length;
+                                }
+                                for (const size_t& subSideId : side2.subsides) {
+                                    const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                    length2 += subSide.length;
+                                }
+
+                                double factor = std::max(length1, length2) / std::min(length1, length2);
+                                assert(factor >= 1);
+
+                                if (factor > nonQuadrilateralSimilarityFactor)
+                                    lengthSimilar = false;
+                            }
+                        }
+
                         //Non-quad case
-                        if (nSides != 4) {
+                        if (nSides != 4 && lengthSimilar) {
 
                             for (size_t j = 0; j < nSides; j++) {
                                 bool areFixed = true;
 
-                                for (size_t k = 0; k < nSides; k++) {
+                                for (size_t k = j + 1; k < nSides; k++) {
 
                                     const ChartSide& side1 = chart.chartSides[j];
                                     const ChartSide& side2 = chart.chartSides[k];
-
-                                    if (j == k)
-                                        continue;
 
                                     GRBLinExpr subSide1Sum = 0;
                                     for (const size_t& subSideId : side1.subsides) {
@@ -207,10 +238,11 @@ inline std::vector<int> solveILP(
                                         }
                                     }
 
+                                    const double numberOfTerms = nSides - j - 1;
 
                                     if (!areFixed) {
                                         if (method == LEASTSQUARES) {
-                                            regExpr += (subSide1Sum - subSide2Sum) * (subSide1Sum - subSide2Sum);
+                                            regExpr += ((subSide1Sum - subSide2Sum) * (subSide1Sum - subSide2Sum)) / numberOfTerms;
                                         }
                                         else {
                                             size_t dId = diff.size();
@@ -222,7 +254,7 @@ inline std::vector<int> solveILP(
                                             model.addConstr(diff[dId] == subSide1Sum - subSide2Sum, "dc" + to_string(dId));
                                             model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
 
-                                            regExpr += abs[aId];
+                                            regExpr += abs[aId] / numberOfTerms;
                                         }
                                     }
 

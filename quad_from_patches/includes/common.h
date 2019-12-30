@@ -10,6 +10,7 @@
 #define DEFAULTCHARTSMOOTHINGITERATIONS 5
 #define DEFAULTQUADRANGULATIONSMOOTHINGITERATIONS 5
 #define DEFAULTREGULARITYFORNONQUADRILATERAL true
+#define DEFAULTNONQUADRILATERALSIMILARITYFACTOR 1.2
 
 namespace qfp {
 
@@ -24,6 +25,7 @@ struct Parameters {
     int chartSmoothingIterations;
     int quadrangulationSmoothingIterations;
     bool regularityForNonQuadrilaterals;
+    double nonQuadrilateralSimilarityFactor;
 
     Parameters() {
         ilpMethod = DEFAULTILPMETHOD;
@@ -33,6 +35,7 @@ struct Parameters {
         timeLimit = DEFAULTTIMELIMIT;
         gapLimit = DEFAULTGAPLIMIT;
         regularityForNonQuadrilaterals = DEFAULTREGULARITYFORNONQUADRILATERAL;
+        nonQuadrilateralSimilarityFactor = DEFAULTNONQUADRILATERALSIMILARITYFACTOR;
     }
 };
 

@@ -15,6 +15,7 @@ std::vector<int> solveILP(
         const ILPMethod& method,
         const bool regularity,
         const bool regularityForNonQuadrilaterals,
+        const double nonQuadrilateralSimilarityFactor,
         const double timeLimit,
         double& gap,
         ILPStatus& status);

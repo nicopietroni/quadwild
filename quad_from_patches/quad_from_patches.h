@@ -29,6 +29,7 @@ std::vector<int> findSubdivisions(
         const std::vector<double>& edgeFactor,
         const double alpha,
         const bool regularityForNonQuadrilaterals,
+        const double nonQuadrilateralSimilarityFactor,
         const double timeLimit,
         const double gapLimit,
         const ILPMethod& method);
