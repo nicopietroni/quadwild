@@ -53,7 +53,7 @@ std::vector<std::vector<size_t>> loadCorners(const std::string& filename)
     input.open(filename.c_str());
     if (!input.is_open())
     {
-        std::cout<<"ERROR LOADING PATCH FILE"<<std::endl;
+        std::cout<<"ERROR LOADING CORNERS FILE"<<std::endl;
         exit(0);
     }
 
@@ -75,4 +75,31 @@ std::vector<std::vector<size_t>> loadCorners(const std::string& filename)
     input.close();
 
     return corners;
+}
+
+
+std::vector<std::pair<size_t,size_t> > LoadFeatures(const std::string &filename)
+{
+    std::vector<std::pair<size_t,size_t> > features;
+    FILE *f=NULL;
+    f=fopen(filename.c_str(),"rt");
+    if (f==NULL)
+    {
+        std::cout<<"ERROR LOADING FEATURES FILE"<<std::endl;
+        exit(0);
+    }
+
+    int numFeatures;
+    fscanf(f,"%d\n",&numFeatures);
+
+    for (size_t i=0;i<numFeatures;i++)
+    {
+        int FIndex,EIndex;
+        fscanf(f,"%d,%d\n",&FIndex,&EIndex);
+
+        features.push_back(std::pair<size_t,size_t>(FIndex,EIndex));
+    }
+    fclose(f);
+
+    return features;
 }
