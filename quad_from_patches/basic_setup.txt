@@ -7,4 +7,5 @@ isometry 1
 regularityForQuadrilaterals 1
 regularityForNonQuadrilaterals 0
 nonQuadrilateralSimilarityFactor 1.2
+hardParityConstraint 0
 scaleFact 2
