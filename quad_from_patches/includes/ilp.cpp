@@ -13,12 +13,15 @@ namespace qfp {
 inline std::vector<int> solveILP(
         const ChartData& chartData,
         const std::vector<double>& edgeFactor,
-        const double alpha,
         const ILPMethod& method,
+        const double alpha,
         const bool isometry,
+        const bool regularityForQuadrilaterals,
         const bool regularityForNonQuadrilaterals,
         const double nonQuadrilateralSimilarityFactor,
+        const bool hardParityConstraint,
         const double timeLimit,
+        const double minimumGap,
         double& gap,
         ILPStatus& status)
 {
@@ -34,6 +37,7 @@ inline std::vector<int> solveILP(
 //        model.set(GRB_IntParam_OutputFlag, 0);
 
         model.set(GRB_DoubleParam_TimeLimit, timeLimit);
+        model.set(GRB_DoubleParam_MIPGap, minimumGap);
 
         // Create variables
         GRBQuadExpr obj = 0;
@@ -58,7 +62,8 @@ inline std::vector<int> solveILP(
         if (isometry) {
             GRBQuadExpr isoExpr = 0;
             const double isoCost = alpha;
-            //Regularity
+
+            //Isometry
             for (size_t i = 0; i < chartData.subSides.size(); i++) {
                 const ChartSubSide& subside = chartData.subSides[i];
 
@@ -110,63 +115,66 @@ inline std::vector<int> solveILP(
         }
 
         GRBQuadExpr regExpr = 0;
-        const double regCost = (1-alpha);
+        const double regCost = (1 - alpha);
 
-        for (size_t i = 0; i < chartData.charts.size(); i++) {
-            const Chart& chart = chartData.charts[i];
-            if (chart.faces.size() > 0) {
-                size_t nSides = chart.chartSides.size();
 
-                //Quad case
-                if (nSides == 4) {
+        if (regularityForQuadrilaterals) {
+            for (size_t i = 0; i < chartData.charts.size(); i++) {
+                const Chart& chart = chartData.charts[i];
+                if (chart.faces.size() > 0) {
+                    size_t nSides = chart.chartSides.size();
 
-                    for (size_t j = 0; j <= 1; j++) {
-                        bool areFixed = true;
+                    //Quad case
+                    if (nSides == 4) {
 
-                        const ChartSide& side1 = chart.chartSides[j];
-                        const ChartSide& side2 = chart.chartSides[(j+2)%4];
+                        for (size_t j = 0; j <= 1; j++) {
+                            bool areFixed = true;
 
-                        GRBLinExpr subSide1Sum = 0;
-                        for (const size_t& subSideId : side1.subsides) {
-                            const ChartSubSide& subSide = chartData.subSides[subSideId];
-                            if (subSide.isFixed) {
-                                subSide1Sum += subSide.size;
+                            const ChartSide& side1 = chart.chartSides[j];
+                            const ChartSide& side2 = chart.chartSides[(j+2)%4];
+
+                            GRBLinExpr subSide1Sum = 0;
+                            for (const size_t& subSideId : side1.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide1Sum += subSide.size;
+                                }
+                                else {
+                                    subSide1Sum += vars[subSideId];
+                                    areFixed = false;
+                                }
                             }
-                            else {
-                                subSide1Sum += vars[subSideId];
-                                areFixed = false;
+                            GRBLinExpr subSide2Sum = 0;
+                            for (const size_t& subSideId : side2.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide2Sum += subSide.size;
+                                }
+                                else {
+                                    subSide2Sum += vars[subSideId];
+                                    areFixed = false;
+                                }
                             }
+
+                            if (!areFixed) {
+                                if (method == LEASTSQUARES) {
+                                    regExpr += (subSide1Sum - subSide2Sum) * (subSide1Sum - subSide2Sum);
+                                }
+                                else {
+                                    size_t dId = diff.size();
+                                    size_t aId = abs.size();
+
+                                    diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
+                                    abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
+
+                                    model.addConstr(diff[dId] == subSide1Sum - subSide2Sum, "dc" + to_string(dId));
+                                    model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
+
+                                    regExpr += abs[aId];
+                                }
+                            }
+
                         }
-                        GRBLinExpr subSide2Sum = 0;
-                        for (const size_t& subSideId : side2.subsides) {
-                            const ChartSubSide& subSide = chartData.subSides[subSideId];
-                            if (subSide.isFixed) {
-                                subSide2Sum += subSide.size;
-                            }
-                            else {
-                                subSide2Sum += vars[subSideId];
-                                areFixed = false;
-                            }
-                        }
-
-                        if (!areFixed) {
-                            if (method == LEASTSQUARES) {
-                                regExpr += (subSide1Sum - subSide2Sum) * (subSide1Sum - subSide2Sum);
-                            }
-                            else {
-                                size_t dId = diff.size();
-                                size_t aId = abs.size();
-
-                                diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
-                                abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
-
-                                model.addConstr(diff[dId] == subSide1Sum - subSide2Sum, "dc" + to_string(dId));
-                                model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
-
-                                regExpr += abs[aId];
-                            }
-                        }
-
                     }
                 }
             }
@@ -177,47 +185,24 @@ inline std::vector<int> solveILP(
                     if (chart.faces.size() > 0) {
                         size_t nSides = chart.chartSides.size();
 
-                        bool lengthSimilar = true;
-                        for (size_t j = 0; j < nSides; j++) {
-                            for (size_t k = j + 1; k < nSides; k++) {
-
-                                const ChartSide& side1 = chart.chartSides[j];
-                                const ChartSide& side2 = chart.chartSides[k];
-
-                                double length1 = 0;
-                                double length2 = 0;
-
-                                for (const size_t& subSideId : side1.subsides) {
-                                    const ChartSubSide& subSide = chartData.subSides[subSideId];
-                                    length1 += subSide.length;
-                                }
-                                for (const size_t& subSideId : side2.subsides) {
-                                    const ChartSubSide& subSide = chartData.subSides[subSideId];
-                                    length2 += subSide.length;
-                                }
-
-                                double factor = std::max(length1, length2) / std::min(length1, length2);
-                                assert(factor >= 1);
-
-                                if (factor > nonQuadrilateralSimilarityFactor)
-                                    lengthSimilar = false;
-                            }
-                        }
-
                         //Non-quad case
-                        if (nSides != 4 && lengthSimilar) {
-
+                        if (nSides != 4) {
                             for (size_t j = 0; j < nSides; j++) {
                                 bool areFixed = true;
 
                                 for (size_t k = j + 1; k < nSides; k++) {
-
                                     const ChartSide& side1 = chart.chartSides[j];
                                     const ChartSide& side2 = chart.chartSides[k];
+
+                                    double length1 = 0;
+                                    double length2 = 0;
 
                                     GRBLinExpr subSide1Sum = 0;
                                     for (const size_t& subSideId : side1.subsides) {
                                         const ChartSubSide& subSide = chartData.subSides[subSideId];
+
+                                        length1 += subSide.length;
+
                                         if (subSide.isFixed) {
                                             subSide1Sum += subSide.size;
                                         }
@@ -229,6 +214,9 @@ inline std::vector<int> solveILP(
                                     GRBLinExpr subSide2Sum = 0;
                                     for (const size_t& subSideId : side2.subsides) {
                                         const ChartSubSide& subSide = chartData.subSides[subSideId];
+
+                                        length2 += subSide.length;
+
                                         if (subSide.isFixed) {
                                             subSide2Sum += subSide.size;
                                         }
@@ -238,23 +226,28 @@ inline std::vector<int> solveILP(
                                         }
                                     }
 
-                                    const double numberOfTerms = nSides - j - 1;
+                                    double factor = std::max(length1, length2) / std::min(length1, length2);
+                                    assert(factor >= 1);
 
-                                    if (!areFixed) {
-                                        if (method == LEASTSQUARES) {
-                                            regExpr += ((subSide1Sum - subSide2Sum) * (subSide1Sum - subSide2Sum)) / numberOfTerms;
-                                        }
-                                        else {
-                                            size_t dId = diff.size();
-                                            size_t aId = abs.size();
+                                    if (factor < nonQuadrilateralSimilarityFactor) {
+                                        const double numberOfTerms = nSides - j - 1;
 
-                                            diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
-                                            abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
+                                        if (!areFixed) {
+                                            if (method == LEASTSQUARES) {
+                                                regExpr += ((subSide1Sum - subSide2Sum) * (subSide1Sum - subSide2Sum)) / numberOfTerms;
+                                            }
+                                            else {
+                                                size_t dId = diff.size();
+                                                size_t aId = abs.size();
 
-                                            model.addConstr(diff[dId] == subSide1Sum - subSide2Sum, "dc" + to_string(dId));
-                                            model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
+                                                diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
+                                                abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
 
-                                            regExpr += abs[aId] / numberOfTerms;
+                                                model.addConstr(diff[dId] == subSide1Sum - subSide2Sum, "dc" + to_string(dId));
+                                                model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
+
+                                                regExpr += abs[aId] / numberOfTerms;
+                                            }
                                         }
                                     }
 
@@ -265,38 +258,75 @@ inline std::vector<int> solveILP(
                 }
             }
 
-            //Even side size sum constraint in a chart
-            for (size_t i = 0; i < chartData.charts.size(); i++) {
-                const Chart& chart = chartData.charts[i];
-                if (chart.faces.size() > 0) {
-                    if (chart.chartSides.size() < 3 || chart.chartSides.size() > 6) {
-                        std::cout << "Chart " << i << " has " << chart.chartSides.size() << " sides." << std::endl;
-                        continue;
-                    }
+            if (hardParityConstraint) {
+                //Even side size sum constraint in a chart
+                for (size_t i = 0; i < chartData.charts.size(); i++) {
+                    const Chart& chart = chartData.charts[i];
+                    if (chart.faces.size() > 0) {
+                        if (chart.chartSides.size() < 3 || chart.chartSides.size() > 6) {
+                            std::cout << "Chart " << i << " has " << chart.chartSides.size() << " sides." << std::endl;
+                            continue;
+                        }
 
-                    GRBLinExpr sumExp = 0;
-                    for (const size_t& subSideId : chart.chartSubSides) {
-                        const ChartSubSide& subSide = chartData.subSides[subSideId];
-                        if (subSide.isFixed) {
-                            sumExp += subSide.size;
+                        GRBLinExpr sumExp = 0;
+                        for (const size_t& subSideId : chart.chartSubSides) {
+                            const ChartSubSide& subSide = chartData.subSides[subSideId];
+                            if (subSide.isFixed) {
+                                sumExp += subSide.size;
+                            }
+                            else {
+                                sumExp += vars[subSideId];
+                            }
                         }
-                        else {
-                            sumExp += vars[subSideId];
-                        }
+                        free[i] = model.addVar(2, GRB_INFINITY, 0.0, GRB_INTEGER, "f" + to_string(i));
+                        model.addConstr(free[i]*2 == sumExp);
                     }
-                    free[i] = model.addVar(2, GRB_INFINITY, 0.0, GRB_INTEGER, "f" + to_string(i));
-                    model.addConstr(free[i]*2 == sumExp);
+                }
+            }
+            else {
+                //Even side size sum constraint in a chart
+                for (size_t i = 0; i < chartData.charts.size(); i++) {
+                    const Chart& chart = chartData.charts[i];
+                    if (chart.faces.size() > 0) {
+                        if (chart.chartSides.size() < 3 || chart.chartSides.size() > 6) {
+                            std::cout << "Chart " << i << " has " << chart.chartSides.size() << " sides." << std::endl;
+                            continue;
+                        }
+
+                        GRBLinExpr sumExp = 0;
+                        for (const size_t& subSideId : chart.chartSubSides) {
+                            const ChartSubSide& subSide = chartData.subSides[subSideId];
+                            if (subSide.isFixed) {
+                                sumExp += subSide.size;
+                            }
+                            else {
+                                sumExp += vars[subSideId];
+                            }
+                        }
+
+                        size_t dId = diff.size();
+                        size_t aId = abs.size();
+
+                        free[i] = model.addVar(2, GRB_INFINITY, 0.0, GRB_INTEGER, "f" + to_string(i));
+
+                        diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
+                        abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
+
+                        model.addConstr(diff[dId] == free[i]*2 - sumExp, "dc" + to_string(dId));
+                        model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
+
+                        obj += abs[aId] * MAXCOST;
+                    }
                 }
             }
         }
-        obj += regCost * regExpr;
 
+        obj += regCost * regExpr;
 
 //        model.update();
 
         //Set objective function
         model.setObjective(obj, GRB_MINIMIZE);
-
 
 //        model.write("out.lp");
 

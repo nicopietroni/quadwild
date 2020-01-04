@@ -27,12 +27,16 @@ ChartData getChartData(
 std::vector<int> findSubdivisions(
         const ChartData& chartData,
         const std::vector<double>& edgeFactor,
+        const ILPMethod& method,
         const double alpha,
+        const bool isometry,
+        const bool regularityForQuadrilaterals,
         const bool regularityForNonQuadrilaterals,
         const double nonQuadrilateralSimilarityFactor,
+        const bool hardParityConstraint,
         const double timeLimit,
         const double gapLimit,
-        const ILPMethod& method);
+        const double minimumGap);
 
 template<class TriangleMesh, class PolyMesh>
 void quadrangulate(

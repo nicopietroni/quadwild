@@ -24,14 +24,17 @@ int main(int argc, char *argv[])
     std::vector<int> ilpResult;
 
     qfp::Parameters parameters;
-    parameters.alpha = 0.3;
-    parameters.ilpMethod = qfp::ILPMethod::LEASTSQUARES;
-    parameters.timeLimit = 5 * 60; //5 minutes
-    parameters.gapLimit = 0.1;
-    parameters.regularityForNonQuadrilaterals = true;
-    parameters.nonQuadrilateralSimilarityFactor = 1.2;
-    parameters.chartSmoothingIterations = 0;
-    parameters.quadrangulationSmoothingIterations = 0; //Fixed borders of the patches
+    parameters.alpha = 0.3; //Alpha: blends between regularity (alpha) and isometry (1-alpha)
+    parameters.ilpMethod = qfp::ILPMethod::LEASTSQUARES; //ILP method
+    parameters.timeLimit = 5 * 60; //Time limit in seconds
+    parameters.gapLimit = 0.1; //When it reaches this gap value, optimization stops
+    parameters.minimumGap = 0.25; //Optimization has to reach at least this minimum gap, otherwise faster methods are performed
+    parameters.isometry = true; //Activate isometry
+    parameters.regularityForQuadrilaterals = true; //Activate regularity for quadrilaterals
+    parameters.regularityForNonQuadrilaterals = true; //Activate regularity for non-quadrilaterals
+    parameters.nonQuadrilateralSimilarityFactor = 1.2; //Similarity factor to match sides on non-quad patches
+    parameters.chartSmoothingIterations = 0; //Smooth tessellation in the internal of the charts
+    parameters.quadrangulationSmoothingIterations = 0; //Smooth all quadrangulation: borders of the patches are fixed
 
     if(argc<2)
     {
