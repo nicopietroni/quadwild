@@ -89,9 +89,7 @@ void computeQuadrangulation(
         //Get the UV map with all fixed border
         uvMapV = bc;
 
-#ifdef SAVEMESHESFORDEBUG
         std::cout << "No fixed border! UVMap setted as bc." << std::endl;
-#endif
     }
 
     uvMapF = chartF;
@@ -207,10 +205,9 @@ Eigen::VectorXd pointToBarycentric(
     baryc(0) = ((t2.y() - t3.y()) * (p.x() - t3.x()) + (t3.x() - t2.x()) * (p.y() - t3.y())) / det;
     baryc(1) = ((t3.y() - t1.y()) * (p.x() - t3.x()) + (t1.x() - t3.x()) * (p.y() - t3.y())) / det;
 
-    if (baryc(0) > 1.0 + eps || baryc(1) > 1.0 + eps || baryc(0) < 0.0 - eps || baryc(1) < 0.0 - eps) {
-#ifdef SAVEMESHESFORDEBUG
-        std::cout << "Degenerate triangle." << std::endl;
-#endif
+    if (baryc(0) > 1.0 || baryc(1) > 1.0 || baryc(0) < 0.0 || baryc(1) < 0.0) {
+        std::cout << "Barycentric coordinates not between 0 and 1. Fixing it." << std::endl;
+
         vcg::Point3d t1vcg(t1.x(), t1.y(), 0);
         vcg::Point3d t2vcg(t2.x(), t2.y(), 0);
         vcg::Point3d t3vcg(t3.x(), t3.y(), 0);
@@ -382,9 +379,7 @@ std::vector<std::vector<size_t>> getPatchSides(
 
             if (side.size() != l(sId)) {
                 foundSolution = false;
-#ifdef NDEBUG
-                    break;
-#endif
+                break;
             }
 
             side.push_back(corners[cId]);
@@ -397,9 +392,7 @@ std::vector<std::vector<size_t>> getPatchSides(
     } while (!foundSolution && startCornerId < corners.size());
 
     if (!foundSolution) {
-#ifdef SAVEMESHESFORDEBUG
-      std::cout << "Found a no counter-clockwise path in patch. Reversed patch." << std::endl;
-#endif
+        std::cout << "Found a no counter-clockwise path in patch. Reversed patch." << std::endl;
 
         for (int i = 0; i < patchV.rows(); i++) {
             for (int j = 0; j < patchV.cols(); j++) {
@@ -445,9 +438,7 @@ std::vector<std::vector<size_t>> getPatchSides(
 
                 if (side.size() != l(sId)) {
                     foundSolution = false;
-#ifdef NDEBUG
                     break;
-#endif
                 }
 
                 side.push_back(corners[cId]);
