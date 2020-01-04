@@ -142,7 +142,9 @@ enum VType{Internal,Feature,Corner};
 
 
 template <class PolyMeshType,class TriangleMeshType>
-void GetVertType(const TriangleMeshType &tri_mesh,
+void GetVertType(const BasicMesh &edge_mesh,
+                 const typename PolyMeshType::ScalarType &AvEdge,
+                 const TriangleMeshType &tri_mesh,
                  const PolyMeshType &poly_mesh,
                  const std::vector<std::pair<size_t,size_t> > FeatureEdges,
                  const std::vector<size_t> &tri_face_partition,
@@ -212,6 +214,15 @@ void GetVertType(const TriangleMeshType &tri_mesh,
     for (size_t i=0;i<SharpVal.size();i++)
     {
         if (SharpVal[i]==0)continue;
+
+        size_t IndexE;
+        BasicMesh::ScalarType t,MinD;
+        BasicMesh::CoordType Clos;
+
+        ClosestPointEMesh(poly_mesh.vert[i].cP(),edge_mesh,IndexE,t,MinD,Clos);
+
+        if (MinD>AvEdge/10)continue;
+
         if (SharpVal[i]==4)
             VertTypes[i]=Feature;
         else
@@ -229,8 +240,9 @@ void SmoothWithFeatures(TriangleMeshType &tri_mesh,
                         const std::vector<size_t> &tri_face_partition,
                         const std::vector<size_t> &quad_face_partition,
                         SmoothType SType,
-                        size_t Steps=10,
-                        typename PolyMeshType::ScalarType Damp=0.5)
+                        size_t Steps,
+                        typename PolyMeshType::ScalarType Damp,
+                        typename PolyMeshType::ScalarType AvEdge)
 {
     typedef typename TriangleMeshType::FaceType TriFaceType;
     typedef typename TriangleMeshType::ScalarType TriScalarType;
@@ -243,7 +255,7 @@ void SmoothWithFeatures(TriangleMeshType &tri_mesh,
 
     std::vector<std::vector<bool> > IsSharp;
     std::vector<VType> VertTypes;
-    GetVertType(tri_mesh,poly_mesh,features,tri_face_partition,quad_face_partition,IsSharp,VertTypes);
+    GetVertType(EdgeMesh,AvEdge,tri_mesh,poly_mesh,features,tri_face_partition,quad_face_partition,IsSharp,VertTypes);
 
     vcg::GridStaticPtr<TriFaceType,TriScalarType> TriGrid;
     TriGrid.Set(tri_mesh.face.begin(),tri_mesh.face.end());
