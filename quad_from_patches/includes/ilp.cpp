@@ -67,7 +67,7 @@ inline std::vector<int> solveILP(
             for (size_t i = 0; i < chartData.subSides.size(); i++) {
                 const ChartSubSide& subside = chartData.subSides[i];
 
-                //If it is not a border (free)
+                //If it is not fixed (free)
                 if (!subside.isFixed) {
                     size_t nIncidents = 0;
                     double incidentChartAverageLength = 0;
@@ -116,7 +116,6 @@ inline std::vector<int> solveILP(
 
         GRBQuadExpr regExpr = 0;
         const double regCost = (1 - alpha);
-
 
         if (regularityForQuadrilaterals) {
             for (size_t i = 0; i < chartData.charts.size(); i++) {
@@ -185,37 +184,60 @@ inline std::vector<int> solveILP(
                     if (chart.faces.size() > 0) {
                         size_t nSides = chart.chartSides.size();
 
+                        std::vector<std::vector<size_t>> similarLengthSides(nSides);
+
+                        for (size_t j = 0; j < nSides; j++) {
+                            const ChartSide& side1 = chart.chartSides[j];
+
+                            double length1 = 0;
+                            for (const size_t& subSideId : side1.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                length1 += subSide.length;
+                            }
+
+                            for (size_t k = j + 1; k < nSides; k++) {
+                                const ChartSide& side2 = chart.chartSides[k];
+
+                                double length2 = 0;
+                                for (const size_t& subSideId : side2.subsides) {
+                                    const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                    length2 += subSide.length;
+                                }
+
+                                double factor = std::max(length1, length2) / std::min(length1, length2);
+                                assert(factor >= 1);
+
+                                if (factor <= nonQuadrilateralSimilarityFactor) {
+                                    similarLengthSides[j].push_back(k);
+                                }
+                            }
+                        }
+
                         //Non-quad case
                         if (nSides != 4) {
                             for (size_t j = 0; j < nSides; j++) {
                                 bool areFixed = true;
 
-                                for (size_t k = j + 1; k < nSides; k++) {
-                                    const ChartSide& side1 = chart.chartSides[j];
+                                const ChartSide& side1 = chart.chartSides[j];
+
+                                GRBLinExpr subSide1Sum = 0;
+                                for (const size_t& subSideId : side1.subsides) {
+                                    const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                    if (subSide.isFixed) {
+                                        subSide1Sum += subSide.size;
+                                    }
+                                    else {
+                                        subSide1Sum += vars[subSideId];
+                                        areFixed = false;
+                                    }
+                                }
+
+                                for (size_t k : similarLengthSides[j]) {
                                     const ChartSide& side2 = chart.chartSides[k];
 
-                                    double length1 = 0;
-                                    double length2 = 0;
-
-                                    GRBLinExpr subSide1Sum = 0;
-                                    for (const size_t& subSideId : side1.subsides) {
-                                        const ChartSubSide& subSide = chartData.subSides[subSideId];
-
-                                        length1 += subSide.length;
-
-                                        if (subSide.isFixed) {
-                                            subSide1Sum += subSide.size;
-                                        }
-                                        else {
-                                            subSide1Sum += vars[subSideId];
-                                            areFixed = false;
-                                        }
-                                    }
                                     GRBLinExpr subSide2Sum = 0;
                                     for (const size_t& subSideId : side2.subsides) {
                                         const ChartSubSide& subSide = chartData.subSides[subSideId];
-
-                                        length2 += subSide.length;
 
                                         if (subSide.isFixed) {
                                             subSide2Sum += subSide.size;
@@ -226,31 +248,25 @@ inline std::vector<int> solveILP(
                                         }
                                     }
 
-                                    double factor = std::max(length1, length2) / std::min(length1, length2);
-                                    assert(factor >= 1);
+                                    const double numberOfTerms = similarLengthSides[j].size();
 
-                                    if (factor < nonQuadrilateralSimilarityFactor) {
-                                        const double numberOfTerms = nSides - j - 1;
+                                    if (!areFixed) {
+                                        if (method == LEASTSQUARES) {
+                                            regExpr += ((subSide1Sum - subSide2Sum) * (subSide1Sum - subSide2Sum)) / numberOfTerms;
+                                        }
+                                        else {
+                                            size_t dId = diff.size();
+                                            size_t aId = abs.size();
 
-                                        if (!areFixed) {
-                                            if (method == LEASTSQUARES) {
-                                                regExpr += ((subSide1Sum - subSide2Sum) * (subSide1Sum - subSide2Sum)) / numberOfTerms;
-                                            }
-                                            else {
-                                                size_t dId = diff.size();
-                                                size_t aId = abs.size();
+                                            diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
+                                            abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
 
-                                                diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
-                                                abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
+                                            model.addConstr(diff[dId] == subSide1Sum - subSide2Sum, "dc" + to_string(dId));
+                                            model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
 
-                                                model.addConstr(diff[dId] == subSide1Sum - subSide2Sum, "dc" + to_string(dId));
-                                                model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
-
-                                                regExpr += abs[aId] / numberOfTerms;
-                                            }
+                                            regExpr += abs[aId] / numberOfTerms;
                                         }
                                     }
-
                                 }
                             }
                         }

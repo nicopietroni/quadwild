@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     std::vector<int> ilpResult;
 
     qfp::Parameters parameters;
-    parameters.alpha = 0.3; //Alpha: blends between regularity (alpha) and isometry (1-alpha)
+    parameters.alpha = 0.05; //Alpha: blends between isometry (alpha) and regularity (1-alpha)
     parameters.ilpMethod = qfp::ILPMethod::LEASTSQUARES; //ILP method
     parameters.timeLimit = 5 * 60; //Time limit in seconds
     parameters.gapLimit = 0.1; //When it reaches this gap value, optimization stops

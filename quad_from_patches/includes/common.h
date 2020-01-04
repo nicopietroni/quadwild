@@ -13,7 +13,7 @@
 #define DEFAULTHARDPARITYCONSTRAINT false
 
 #define DEFAULTTIMELIMIT 60 //1 minute
-#define DEFAULTGAPLIMIT 0.0
+#define DEFAULTGAPLIMIT 0.0 //Optimal
 #define DEFAULTMINIMUMGAP 0.2
 
 #define DEFAULTCHARTSMOOTHINGITERATIONS 5
@@ -53,6 +53,9 @@ struct Parameters {
         timeLimit = DEFAULTTIMELIMIT;
         gapLimit = DEFAULTGAPLIMIT;
         minimumGap = DEFAULTMINIMUMGAP;
+
+        chartSmoothingIterations = DEFAULTCHARTSMOOTHINGITERATIONS;
+        quadrangulationSmoothingIterations = DEFAULTQUADRANGULATIONSMOOTHINGITERATIONS;
     }
 };
 
