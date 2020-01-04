@@ -12,9 +12,7 @@
 #include "smooth_mesh.h"
 #include "quad_from_patches.h"
 
-
 typename TriangleMesh::ScalarType avgEdge(const TriangleMesh& trimesh);
-
 void loadSetupFile(const std::string& path, qfp::Parameters& parameters, float& scaleFactor);
 
 int main(int argc, char *argv[])
