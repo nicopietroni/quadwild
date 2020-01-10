@@ -103,3 +103,29 @@ std::vector<std::pair<size_t,size_t> > LoadFeatures(const std::string &filename)
 
     return features;
 }
+
+std::vector<size_t> loadFeatureCorners(const std::string &filename)
+{
+    std::vector<size_t> featureCorners;
+    FILE *f=NULL;
+    f=fopen(filename.c_str(),"rt");
+    if (f==NULL)
+    {
+        std::cout<<"ERROR LOADING FEATURES FILE"<<std::endl;
+        exit(0);
+    }
+
+    int numFeaturesC;
+    fscanf(f,"%d\n",&numFeaturesC);
+
+    for (size_t i=0;i<numFeaturesC;i++)
+    {
+        int VIndex;
+        fscanf(f,"%d\n",&VIndex);
+
+        featureCorners.push_back(VIndex);
+    }
+    fclose(f);
+
+    return featureCorners;
+}

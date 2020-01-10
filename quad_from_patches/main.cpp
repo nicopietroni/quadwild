@@ -21,6 +21,7 @@ int main(int argc, char *argv[])
     std::vector<std::vector<size_t>> trimeshPartitions;
     std::vector<std::vector<size_t>> trimeshCorners;
     std::vector<std::pair<size_t,size_t> > trimeshFeatures;
+    std::vector<size_t> trimeshFeaturesC;
 
     PolyMesh quadmesh;
     std::vector<std::vector<size_t>> quadmeshPartitions;
@@ -90,6 +91,14 @@ int main(int argc, char *argv[])
     trimeshFeatures = LoadFeatures(featureFilename);
     std::cout<<"Loaded "<<trimeshFeatures.size()<<" features"<<std::endl;
 
+    //FEATURE CORNERS
+    std::string featureCFilename = meshFilename;
+    featureCFilename.erase(featureCFilename.find_last_of("."));
+    featureCFilename.append(".c_feature");
+    trimeshFeaturesC = loadFeatureCorners(featureCFilename);
+    std::cout<<"Loaded "<<featureCFilename.size()<<" corner features"<<std::endl;
+    loadFeatureCorners(featureCFilename);
+
     //COMPUTE QUADRANGULATION
     qfp::updateAllMeshAttributes(trimesh);
     double EdgeSize=avgEdge(trimesh)*scaleFactor;
@@ -125,15 +134,29 @@ int main(int argc, char *argv[])
         for (size_t j=0;j<trimeshPartitions[i].size();j++)
             TriPart[trimeshPartitions[i][j]]=i;
 
-    SmoothWithFeatures(trimesh,quadmesh,trimeshFeatures,TriPart,QuadPart,Laplacian,10,0.5,EdgeSize);
+    //SmoothWithFeatures(trimesh,quadmesh,trimeshFeatures,TriPart,QuadPart,Laplacian,100,0.5,EdgeSize);
 
-    //SmoothWithFeatures(trimesh,quadmesh,trimeshFeatures,TriPart,QuadPart,TemplateFit,10,0.5,EdgeSize);
+    std::vector<size_t> QuadCornersVect;
+    for (size_t i=0;i<quadmeshCorners.size();i++)
+        for (size_t j=0;j<quadmeshCorners[i].size();j++)
+            QuadCornersVect.push_back(quadmeshCorners[i][j]);
+    std::sort(QuadCornersVect.begin(),QuadCornersVect.end());
+    auto last=std::unique(QuadCornersVect.begin(),QuadCornersVect.end());
+    QuadCornersVect.erase(last, QuadCornersVect.end());
+
+    SmoothWithFeatures(trimesh,quadmesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,Laplacian,100,0.5,EdgeSize);
 
     //SAVE OUTPUT
     outputFilename = meshFilename;
     outputFilename.erase(partitionFilename.find_last_of("."));
     outputFilename.append("_quadrangulation_smooth.obj");
     vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, outputFilename.c_str(), vcg::tri::io::Mask::IOM_FACECOLOR);
+
+    for(size_t i=0;i<trimesh.face.size();i++)
+        trimesh.face[i].C()=vcg::Color4b::Scatter(trimeshPartitions.size(),TriPart[i]);
+
+   vcg::tri::io::ExporterOBJ<TriangleMesh>::Save(trimesh,"test_tri.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+
 }
 
 
