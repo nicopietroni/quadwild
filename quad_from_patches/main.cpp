@@ -3,6 +3,8 @@
 #include <vcg/complex/algorithms/update/topology.h>
 #include <vcg/complex/algorithms/update/bounding.h>
 #include <stdio.h>
+#include <QFileInfo>
+#include <QDir>
 
 #include "load_save.h"
 #include "mesh_types.h"
@@ -14,9 +16,13 @@
 
 typename TriangleMesh::ScalarType avgEdge(const TriangleMesh& trimesh);
 void loadSetupFile(const std::string& path, qfp::Parameters& parameters, float& scaleFactor);
+void SaveSetupFile(const std::string& path, qfp::Parameters& parameters, float& scaleFactor);
+//int FindCurrentNum(std::string &pathProject);
 
 int main(int argc, char *argv[])
 {
+    int CurrNum=0;
+
     TriangleMesh trimesh;
     std::vector<std::vector<size_t>> trimeshPartitions;
     std::vector<std::vector<size_t>> trimeshCorners;
@@ -55,6 +61,10 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
+    if (argc>2)
+    {
+        CurrNum=atoi(argv[2]);
+    }
     //MESH LOAD
     std::string meshFilename = std::string(argv[1]);
     int mask;
@@ -117,10 +127,12 @@ int main(int argc, char *argv[])
         }
     }
 
+//    size_t CurrNum=FindCurrentNum(meshFilename);
+
     //SAVE OUTPUT
     std::string outputFilename = meshFilename;
     outputFilename.erase(partitionFilename.find_last_of("."));
-    outputFilename.append("_quadrangulation.obj");
+    outputFilename+=std::string("_quadrangulation")+std::to_string(CurrNum)+std::string(".obj");
     vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, outputFilename.c_str(), vcg::tri::io::Mask::IOM_FACECOLOR);
 
     //SMOOTH
@@ -149,7 +161,9 @@ int main(int argc, char *argv[])
     //SAVE OUTPUT
     outputFilename = meshFilename;
     outputFilename.erase(partitionFilename.find_last_of("."));
-    outputFilename.append("_quadrangulation_smooth.obj");
+    //outputFilename.append("_quadrangulation_smooth.obj");
+    outputFilename+=std::string("_quadrangulation_smooth")+std::to_string(CurrNum)+std::string(".obj");
+
     vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, outputFilename.c_str(), vcg::tri::io::Mask::IOM_FACECOLOR);
 
     for(size_t i=0;i<trimesh.face.size();i++)
@@ -157,6 +171,12 @@ int main(int argc, char *argv[])
 
    vcg::tri::io::ExporterOBJ<TriangleMesh>::Save(trimesh,"test_tri.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
 
+   std::string setupFilename = meshFilename;
+   setupFilename.erase(partitionFilename.find_last_of("."));
+   //setupFilename.append("_quadrangulation_setup.txt");
+   setupFilename+=std::string("_quadrangulation_setup")+std::to_string(CurrNum)+std::string(".txt");
+
+   SaveSetupFile(setupFilename, parameters, scaleFactor);
 }
 
 
@@ -238,3 +258,83 @@ void loadSetupFile(const std::string& path, qfp::Parameters& parameters, float& 
 
     fclose(f);
 }
+
+void SaveSetupFile(const std::string& path, qfp::Parameters& parameters, float& scaleFactor)
+{
+    FILE *f=fopen(path.c_str(),"wt");
+    assert(f!=NULL);
+
+    fprintf(f,"alpha %f\n",&parameters.alpha);
+
+    int IntVar=0;
+    fscanf(f,"ilpMethod %d\n",&IntVar);
+    if (parameters.ilpMethod==qfp::ILPMethod::ABS)
+        fprintf(f,"ilpMethod 0\n");
+    else
+        fprintf(f,"ilpMethod 1\n");
+
+    fprintf(f,"timeLimit %f\n",&parameters.timeLimit);
+
+    fprintf(f,"gapLimit %f\n",&parameters.gapLimit);
+
+    fprintf(f,"minimumGap %f\n",&parameters.minimumGap);
+
+    if (parameters.isometry)
+        fprintf(f,"isometry 1\n");
+    else
+         fprintf(f,"isometry 0\n");
+
+    if (parameters.regularityForQuadrilaterals)
+        fprintf(f,"regularityForQuadrilaterals 1\n");
+    else
+       fprintf(f,"regularityForQuadrilaterals 0\n");
+
+    if (parameters.regularityForNonQuadrilaterals)
+        fprintf(f,"regularityForNonQuadrilaterals 1\n");
+    else
+       fprintf(f,"regularityForNonQuadrilaterals 1\n");
+
+    fprintf(f,"nonQuadrilateralSimilarityFactor %f\n",parameters.nonQuadrilateralSimilarityFactor);
+
+    if (parameters.hardParityConstraint)
+        fprintf(f,"hardParityConstraint 1\n");
+    else
+        fprintf(f,"hardParityConstraint 0\n");
+
+    fprintf(f,"scaleFact %f\n",scaleFactor);
+
+    fclose(f);
+}
+
+//int FindCurrentNum(std::string &pathProject)
+//{
+//    int CurrNum=0;
+//    std::string BasePath=pathProject;
+//    BasePath.resize(BasePath.find_last_of("/")+1);
+//    BasePath="."+BasePath;
+//    std::cout<<"basepath "<<BasePath.c_str()<<std::endl;
+//    QDir directory(BasePath.c_str());
+
+//    QFile f(pathProject.c_str());
+//    QFileInfo fileInfo(f.fileName());
+//    QString filename(fileInfo.fileName());
+//    std::string NameFile=filename.toStdString();
+//    std::cout<<"namefile "<<NameFile.c_str()<<std::endl;
+//    NameFile.resize(NameFile.find_last_of("."));
+//    std::string Filter=NameFile+"_quadrangulation_smooth*.obj";
+//    std::cout<<"filter "<<Filter.c_str()<<std::endl;
+
+////    TestPath+="*.obj";
+//  // QStringList projectFiles = directory.entryList(QStringList() <<Filter.c_str(),QDir::Files);
+//    QStringList projectFiles = directory.entryList(QStringList(),QDir::Files);
+//    CurrNum=0;
+
+//    foreach(QString filename, projectFiles) {
+//        int Num;
+//        std::string TestScan=NameFile+"%d.obj";
+//        sscanf (filename.toStdString().c_str(),TestScan.c_str(),&Num);
+//        CurrNum=std::max(CurrNum,(Num+1));
+//        std::cout<<"test "<<Num<<std::endl;
+//    }
+//    return CurrNum;
+//}
