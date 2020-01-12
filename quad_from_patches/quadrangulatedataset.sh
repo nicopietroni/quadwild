@@ -1,6 +1,6 @@
 #USAGE: command dataset_path test_number
 #
-#EXAMPLE: ./quadrangulatedataset.sh /mnt/OS/Workspace/Progetti/supercaprettolation/build-quad_from_patches-Desktop_Qt_5_13_1_GCC_64bit-Release/quad_from_patches /mnt/OS/Workspace/Dataset/quadrangulation/ 0
+#EXAMPLE: ./quadrangulatedataset.sh /mnt/OS/Workspace/Progetti/supercaprettolation/build-quad_from_patches-Desktop_Qt_5_13_1_GCC_64bit-Release/quad_from_patches /mnt/OS/Workspace/Dataset/quadrangulation 0 > /mnt/OS/Workspace/Dataset/quadrangulation/log0.txt
 
 executable="$1"
 datasetpath="$2"
