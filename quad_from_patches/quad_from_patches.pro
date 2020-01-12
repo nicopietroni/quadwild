@@ -84,3 +84,9 @@ INCLUDEPATH += $$GUROBIPATH/include
 LIBS += -L$$GUROBIPATH/lib -lgurobi_g++5.2 -lgurobi81
 DEFINES += GUROBI_DEFINED
 
+#lpsolve
+LIBS += -llpsolve55
+LIBS += -lm -ldl
+INCLUDEPATH += $$LPSOLVEPATH
+HEADERS += \
+    $$LPSOLVEPATH/lp_lib.h \
