@@ -112,6 +112,7 @@ int main(int argc, char *argv[])
     //COMPUTE QUADRANGULATION
     qfp::updateAllMeshAttributes(trimesh);
     double EdgeSize=avgEdge(trimesh)*scaleFactor;
+    std::cout<<"Edge Size "<<EdgeSize<<std::endl;
     const std::vector<double> edgeFactor(trimeshPartitions.size(), EdgeSize);
     qfp::quadrangulationFromPatches(trimesh, trimeshPartitions, trimeshCorners, edgeFactor, parameters, quadmesh, quadmeshPartitions, quadmeshCorners, ilpResult);
 
