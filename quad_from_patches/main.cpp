@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
     //SAVE OUTPUT
     std::string outputFilename = meshFilename;
     outputFilename.erase(partitionFilename.find_last_of("."));
-    outputFilename+=std::string("_quadrangulation")+std::to_string(CurrNum)+std::string(".obj");
+    outputFilename+=std::string("_")+std::to_string(CurrNum)+std::string("_quadrangulation")+std::string(".obj");
     vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, outputFilename.c_str(), vcg::tri::io::Mask::IOM_FACECOLOR);
 
     //SMOOTH
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
     outputFilename = meshFilename;
     outputFilename.erase(partitionFilename.find_last_of("."));
     //outputFilename.append("_quadrangulation_smooth.obj");
-    outputFilename+=std::string("_quadrangulation_smooth")+std::to_string(CurrNum)+std::string(".obj");
+    outputFilename+=std::string("_")+std::to_string(CurrNum)+std::string("_quadrangulation_smooth")+std::string(".obj");
 
     vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, outputFilename.c_str(), vcg::tri::io::Mask::IOM_FACECOLOR);
 
@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
    std::string setupFilename = meshFilename;
    setupFilename.erase(partitionFilename.find_last_of("."));
    //setupFilename.append("_quadrangulation_setup.txt");
-   setupFilename+=std::string("_quadrangulation_setup")+std::to_string(CurrNum)+std::string(".txt");
+   setupFilename+=std::string("_")+std::to_string(CurrNum)+std::string("_quadrangulation_setup")+std::string(".txt");
 
    SaveSetupFile(setupFilename, parameters, scaleFactor);
 }
@@ -264,7 +264,7 @@ void SaveSetupFile(const std::string& path, qfp::Parameters& parameters, float& 
     FILE *f=fopen(path.c_str(),"wt");
     assert(f!=NULL);
 
-    fprintf(f,"alpha %f\n",&parameters.alpha);
+    fprintf(f,"alpha %f\n", parameters.alpha);
 
     int IntVar=0;
     fscanf(f,"ilpMethod %d\n",&IntVar);
@@ -273,26 +273,26 @@ void SaveSetupFile(const std::string& path, qfp::Parameters& parameters, float& 
     else
         fprintf(f,"ilpMethod 1\n");
 
-    fprintf(f,"timeLimit %f\n",&parameters.timeLimit);
+    fprintf(f,"timeLimit %f\n", parameters.timeLimit);
 
-    fprintf(f,"gapLimit %f\n",&parameters.gapLimit);
+    fprintf(f,"gapLimit %f\n", parameters.gapLimit);
 
-    fprintf(f,"minimumGap %f\n",&parameters.minimumGap);
+    fprintf(f,"minimumGap %f\n", parameters.minimumGap);
 
     if (parameters.isometry)
         fprintf(f,"isometry 1\n");
     else
-         fprintf(f,"isometry 0\n");
+        fprintf(f,"isometry 0\n");
 
     if (parameters.regularityForQuadrilaterals)
         fprintf(f,"regularityForQuadrilaterals 1\n");
     else
-       fprintf(f,"regularityForQuadrilaterals 0\n");
+        fprintf(f,"regularityForQuadrilaterals 0\n");
 
     if (parameters.regularityForNonQuadrilaterals)
         fprintf(f,"regularityForNonQuadrilaterals 1\n");
     else
-       fprintf(f,"regularityForNonQuadrilaterals 1\n");
+        fprintf(f,"regularityForNonQuadrilaterals 0\n");
 
     fprintf(f,"nonQuadrilateralSimilarityFactor %f\n",parameters.nonQuadrilateralSimilarityFactor);
 

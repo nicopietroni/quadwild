@@ -48,12 +48,44 @@ inline std::vector<int> solveILP(
 
         vector<GRBVar> free(chartData.charts.size());
 
+        //Calculate ideal size
+        std::vector<double> idealSize(chartData.subSides.size(), 0.0);
+        std::vector<size_t> numberTerms(chartData.subSides.size(), 0);
+        for (size_t cId = 0; cId < chartData.charts.size(); cId++) {
+            const Chart& chart = chartData.charts[cId];
+            if (chart.faces.size() > 0) {
+                for (size_t i = 0; i < chart.chartSubSides.size(); i++) {
+                    const size_t subsideId = chart.chartSubSides[i];
+                    const ChartSubSide& subside = chartData.subSides[subsideId];
+
+                    //If it is not fixed (free)
+                    if (!subside.isFixed) {
+                        double edgeLength = edgeFactor[cId];
+
+                        double sideSubdivision = subside.length / edgeLength;
+
+                        idealSize[subsideId] += sideSubdivision;
+                        numberTerms[subsideId]++;
+                    }
+                }
+            }
+        }
+        for (size_t i = 0; i < chartData.subSides.size(); i++) {
+            idealSize[i] = idealSize[i] / numberTerms[i];
+        }
+
         for (size_t i = 0; i < chartData.subSides.size(); i++) {
             const ChartSubSide& subside = chartData.subSides[i];
 
+//            size_t minValue = MINSIDEVALUE;
+//            size_t maxValue = GRB_INFINITY;
+
+            size_t minValue = std::max(static_cast<size_t>(MINSIDEVALUE), static_cast<size_t>(std::round(idealSize[i] / 2)));
+            size_t maxValue = std::min(std::max(static_cast<size_t>(4), static_cast<size_t>(std::round(idealSize[i] * 2))), minValue + 4);
+
             //If it is not a border (free)
             if (!subside.isFixed) {
-                vars[i] = model.addVar(MINSIDEVALUE, GRB_INFINITY, 0.0, GRB_INTEGER, "s" + to_string(i));
+                vars[i] = model.addVar(minValue, maxValue, 0.0, GRB_INTEGER, "s" + to_string(i));
             }
         }
 
@@ -73,7 +105,6 @@ inline std::vector<int> solveILP(
 
                 GRBQuadExpr regExpr = 0;
                 GRBQuadExpr isoExpr = 0;
-
 
                 //Isometry
                 if (isometry) {

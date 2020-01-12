@@ -2,19 +2,20 @@ LPSOLVER_PATH = $$PWD/patterns/ktmethod/lp_solve
 LPSOLVER_PATH0 = $$PWD/patterns/ktmethod/lp_solve/bfp/
 LPSOLVER_PATH1 = $$PWD/patterns/ktmethod/lp_solve/colamd/
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/patterns/ktmethod/lp_solve/release/ -llpsolve55
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/patterns/ktmethod/lp_solve/debug/ -llpsolve55
-else:unix: LIBS += -L$$PWD/patterns/ktmethod/lp_solve/ -llpsolve55
+win32:CONFIG(release, debug|release): LIBS += -L$$LPSOLVER_PATH/release/ -llpsolve55
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$LPSOLVER_PATH/debug/ -llpsolve55
+else:unix: LIBS += -L$$LPSOLVER_PATH/ -llpsolve55
 
-DEPENDPATH += $$PWD/patterns/ktmethod/lp_solve
+DEPENDPATH += $$LPSOLVER_PATH
 
-win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/patterns/ktmethod/lp_solve/release/liblpsolve55.a
-else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/patterns/ktmethod/lp_solve/debug/liblpsolve55.a
-else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/patterns/ktmethod/lp_solve/release/lpsolve55.lib
-else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/patterns/ktmethod/lp_solve/debug/lpsolve55.lib
-else:unix: PRE_TARGETDEPS += $$PWD/patterns/ktmethod/lp_solve/liblpsolve55.a
+win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$LPSOLVER_PATH/release/liblpsolve55.a
+else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$LPSOLVER_PATH/debug/liblpsolve55.a
+else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$LPSOLVER_PATH/release/lpsolve55.lib
+else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$LPSOLVER_PATH/debug/lpsolve55.lib
+else:unix: PRE_TARGETDEPS += $$LPSOLVER_PATH/liblpsolve55.a
 
-LIBS += -ldl -lm -llpsolve55
+LIBS += -ldl -lm
+LIBS += -L$$LPSOLVER_PATH -llpsolve55
 INCLUDEPATH += $$LPSOLVER_PATH $$EIGEN_PATH
 
 QMAKE_CXXFLAGS += -std=c++11 -fpermissive
@@ -27,11 +28,11 @@ SOURCES += \
     $$PWD/patterns/ktmethod/patchgen/extradefinition.cpp
 
 HEADERS += \
+    $$LPSOLVER_PATH/lp_lib.h \
     $$PWD/patterns/laplacianreconstruction.h \
     $$PWD/patterns/meshtypes.h \
     $$PWD/patterns/myutils.h \
     $$PWD/patterns/patchg.h \
-    $$PWD/patterns/ktmethod/lp_solve/lp_lib.h \
     $$PWD/patterns/ktmethod/patchgen/Permutation.h \
     $$PWD/patterns/ktmethod/patchgen/Pattern_all.h \
     $$PWD/patterns/ktmethod/patchgen/Pattern_6_3.h \

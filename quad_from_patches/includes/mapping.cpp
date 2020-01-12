@@ -206,7 +206,7 @@ Eigen::VectorXd pointToBarycentric(
     baryc(1) = ((t3.y() - t1.y()) * (p.x() - t3.x()) + (t1.x() - t3.x()) * (p.y() - t3.y())) / det;
 
     if (baryc(0) > 1.0 || baryc(1) > 1.0 || baryc(0) < 0.0 || baryc(1) < 0.0) {
-        std::cout << "Barycentric coordinates not between 0 and 1. Fixing it." << std::endl;
+//        std::cout << "Barycentric coordinates not between 0 and 1. Fixing it." << std::endl;
 
         vcg::Point3d t1vcg(t1.x(), t1.y(), 0);
         vcg::Point3d t2vcg(t2.x(), t2.y(), 0);
