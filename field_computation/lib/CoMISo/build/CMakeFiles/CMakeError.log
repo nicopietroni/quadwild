@@ -1,0 +1,102 @@
+Determining if the Q_WS_X11 exist failed with the following output:
+Change Dir: /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec2145445443/fast"
+/Applications/Xcode.app/Contents/Developer/usr/bin/make -f CMakeFiles/cmTryCompileExec2145445443.dir/build.make CMakeFiles/cmTryCompileExec2145445443.dir/build
+/opt/local/bin/cmake -E cmake_progress_report /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec2145445443.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk -I/opt/local/include    -o CMakeFiles/cmTryCompileExec2145445443.dir/CheckSymbolExists.c.o   -c /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+In file included from /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:2:
+/opt/local/include/QtCore/qglobal.h:331:6: warning: "This version of Mac OS X is unsupported" [-W#warnings]
+#    warning "This version of Mac OS X is unsupported"
+     ^
+/Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:8:19: error: use of undeclared identifier 'Q_WS_X11'
+  return ((int*)(&Q_WS_X11))[argc];
+                  ^
+1 warning and 1 error generated.
+make[1]: *** [CMakeFiles/cmTryCompileExec2145445443.dir/CheckSymbolExists.c.o] Error 1
+make: *** [cmTryCompileExec2145445443/fast] Error 2
+
+File /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <QtCore/qglobal.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef Q_WS_X11
+  return ((int*)(&Q_WS_X11))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the Q_WS_WIN exist failed with the following output:
+Change Dir: /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec3821454573/fast"
+/Applications/Xcode.app/Contents/Developer/usr/bin/make -f CMakeFiles/cmTryCompileExec3821454573.dir/build.make CMakeFiles/cmTryCompileExec3821454573.dir/build
+/opt/local/bin/cmake -E cmake_progress_report /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec3821454573.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk -I/opt/local/include    -o CMakeFiles/cmTryCompileExec3821454573.dir/CheckSymbolExists.c.o   -c /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+In file included from /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:2:
+/opt/local/include/QtCore/qglobal.h:331:6: warning: "This version of Mac OS X is unsupported" [-W#warnings]
+#    warning "This version of Mac OS X is unsupported"
+     ^
+/Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:8:19: error: use of undeclared identifier 'Q_WS_WIN'
+  return ((int*)(&Q_WS_WIN))[argc];
+                  ^
+1 warning and 1 error generated.
+make[1]: *** [CMakeFiles/cmTryCompileExec3821454573.dir/CheckSymbolExists.c.o] Error 1
+make: *** [cmTryCompileExec3821454573/fast] Error 2
+
+File /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <QtCore/qglobal.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef Q_WS_WIN
+  return ((int*)(&Q_WS_WIN))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the Q_WS_QWS exist failed with the following output:
+Change Dir: /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec422516226/fast"
+/Applications/Xcode.app/Contents/Developer/usr/bin/make -f CMakeFiles/cmTryCompileExec422516226.dir/build.make CMakeFiles/cmTryCompileExec422516226.dir/build
+/opt/local/bin/cmake -E cmake_progress_report /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec422516226.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk -I/opt/local/include    -o CMakeFiles/cmTryCompileExec422516226.dir/CheckSymbolExists.c.o   -c /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+In file included from /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:2:
+/opt/local/include/QtCore/qglobal.h:331:6: warning: "This version of Mac OS X is unsupported" [-W#warnings]
+#    warning "This version of Mac OS X is unsupported"
+     ^
+/Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:8:19: error: use of undeclared identifier 'Q_WS_QWS'
+  return ((int*)(&Q_WS_QWS))[argc];
+                  ^
+1 warning and 1 error generated.
+make[1]: *** [CMakeFiles/cmTryCompileExec422516226.dir/CheckSymbolExists.c.o] Error 1
+make: *** [cmTryCompileExec422516226/fast] Error 2
+
+File /Users/nicopietroni/Desktop/comiso/CoMISo/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <QtCore/qglobal.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef Q_WS_QWS
+  return ((int*)(&Q_WS_QWS))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
