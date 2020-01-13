@@ -1,11 +1,11 @@
 alpha 0.05
 ilpMethod 1
-timeLimit 1000
+timeLimit 300
 gapLimit 0.0
-minimumGap 0.3
+minimumGap 0.9
 isometry 1
 regularityForQuadrilaterals 1
 regularityForNonQuadrilaterals 1
 nonQuadrilateralSimilarityFactor 1.5
-hardParityConstraint 1
-scaleFact 2
+hardParityConstraint 0
+scaleFact 1.5

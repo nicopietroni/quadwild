@@ -74,11 +74,11 @@ inline std::vector<int> solveILP(
         for (size_t i = 0; i < chartData.subSides.size(); i++) {
             const ChartSubSide& subside = chartData.subSides[i];
 
-            size_t minValue = MINSIDEVALUE;
-            size_t maxValue = GRB_INFINITY;
+            double minValue = MINSIDEVALUE;
+            double maxValue = GRB_INFINITY;
 
-//            size_t minValue = std::max(static_cast<size_t>(MINSIDEVALUE), static_cast<size_t>(std::round(idealMinSize[i] / 4)));
-//            size_t maxValue = std::min(std::max(static_cast<size_t>(4), static_cast<size_t>(std::round(idealMaxSize[i] * 4))), minValue + 4);
+//            size_t minValue = std::max(static_cast<size_t>(MINSIDEVALUE), static_cast<size_t>(std::round(idealMinSize[i] / 2)));
+//            size_t maxValue = std::min(std::max(static_cast<size_t>(4), static_cast<size_t>(std::round(idealMaxSize[i] * 2))), minValue + 2);
 
             //If it is not a border (free)
             if (!subside.isFixed) {
@@ -115,7 +115,11 @@ inline std::vector<int> solveILP(
 
                             double edgeLength = edgeFactor[cId];
 
-                            int sideSubdivision = static_cast<int>(std::round(subside.length / edgeLength));
+                            double sideSubdivision = subside.length / edgeLength;
+                            if (!hardParityConstraint)
+                                sideSubdivision /= 2.0;
+
+                            sideSubdivision = std::max(static_cast<double>(MINSIDEVALUE), sideSubdivision);
 
                             size_t dId = diff.size();
                             size_t aId = abs.size();
@@ -124,8 +128,8 @@ inline std::vector<int> solveILP(
                                 isoExpr += ((vars[subsideId] - sideSubdivision) * (vars[subsideId] - sideSubdivision));
                             }
                             else {
-                                diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
-                                abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
+                                diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "d" + to_string(dId)));
+                                abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "a" + to_string(aId)));
 
                                 model.addConstr(diff[dId] == vars[subsideId] - sideSubdivision, "dc" + to_string(dId));
                                 model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
@@ -270,34 +274,20 @@ inline std::vector<int> solveILP(
                     continue;
                 }
 
-                GRBLinExpr sumExp = 0;
-                for (const size_t& subSideId : chart.chartSubSides) {
-                    const ChartSubSide& subSide = chartData.subSides[subSideId];
-                    if (subSide.isFixed) {
-                        sumExp += subSide.size;
-                    }
-                    else {
-                        sumExp += vars[subSideId];
-                    }
-                }
-
                 if (hardParityConstraint) {
+                    GRBLinExpr sumExp = 0;
+                    for (const size_t& subSideId : chart.chartSubSides) {
+                        const ChartSubSide& subSide = chartData.subSides[subSideId];
+                        if (subSide.isFixed) {
+                            sumExp += subSide.size;
+                        }
+                        else {
+                            sumExp += vars[subSideId];
+                        }
+                    }
+
                     free[cId] = model.addVar(2, GRB_INFINITY, 0.0, GRB_INTEGER, "f" + to_string(cId));
                     model.addConstr(free[cId]*2 == sumExp);
-                }
-                else {
-                    size_t dId = diff.size();
-                    size_t aId = abs.size();
-
-                    free[cId] = model.addVar(2, GRB_INFINITY, 0.0, GRB_INTEGER, "f" + to_string(cId));
-
-                    diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
-                    abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
-
-                    model.addConstr(diff[dId] == free[cId]*2 - sumExp, "dc" + to_string(dId));
-                    model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
-
-                    obj += abs[aId] * MAXCOST;
                 }
 
             }
@@ -320,6 +310,9 @@ inline std::vector<int> solveILP(
             }
             else {
                 result[i] = static_cast<int>(std::round(vars[i].get(GRB_DoubleAttr_X)));
+                if (!hardParityConstraint) {
+                    result[i] *= 2;
+                }
             }
         }
 
