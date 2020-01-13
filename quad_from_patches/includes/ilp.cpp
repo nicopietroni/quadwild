@@ -77,11 +77,11 @@ inline std::vector<int> solveILP(
         for (size_t i = 0; i < chartData.subSides.size(); i++) {
             const ChartSubSide& subside = chartData.subSides[i];
 
-//            size_t minValue = MINSIDEVALUE;
-//            size_t maxValue = GRB_INFINITY;
+            size_t minValue = MINSIDEVALUE;
+            size_t maxValue = GRB_INFINITY;
 
-            size_t minValue = std::max(static_cast<size_t>(MINSIDEVALUE), static_cast<size_t>(std::round(idealSize[i] / 2)));
-            size_t maxValue = std::min(std::max(static_cast<size_t>(4), static_cast<size_t>(std::round(idealSize[i] * 2))), minValue + 4);
+//            size_t minValue = std::max(static_cast<size_t>(MINSIDEVALUE), static_cast<size_t>(std::round(idealSize[i] / 2)));
+//            size_t maxValue = std::min(std::max(static_cast<size_t>(4), static_cast<size_t>(std::round(idealSize[i] * 2))), minValue + 4);
 
             //If it is not a border (free)
             if (!subside.isFixed) {

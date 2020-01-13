@@ -267,8 +267,6 @@ void SaveSetupFile(const std::string& path, qfp::Parameters& parameters, float& 
 
     fprintf(f,"alpha %f\n", parameters.alpha);
 
-    int IntVar=0;
-    fscanf(f,"ilpMethod %d\n",&IntVar);
     if (parameters.ilpMethod==qfp::ILPMethod::ABS)
         fprintf(f,"ilpMethod 0\n");
     else
@@ -302,7 +300,7 @@ void SaveSetupFile(const std::string& path, qfp::Parameters& parameters, float& 
     else
         fprintf(f,"hardParityConstraint 0\n");
 
-    fprintf(f,"scaleFact %f\n",scaleFactor);
+    fprintf(f,"scaleFact %f\n", static_cast<double>(scaleFactor));
 
     fclose(f);
 }
