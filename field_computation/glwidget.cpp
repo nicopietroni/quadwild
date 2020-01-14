@@ -206,12 +206,14 @@ void BatchProcess ()
     //SHARP FEATURE
     tri_mesh.UpdateDataStructures();
     tri_mesh.InitSharpFeatures(SharpDegree);
+   // tri_mesh.ErodeDilate(ErodeDilateSteps);
 
     //REMESH
     std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(tri_mesh,RemPar);
     tri_mesh.Clear();
     vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
     tri_mesh.UpdateDataStructures();
+    tri_mesh.ErodeDilate(ErodeDilateSteps);
 
     //REFINE IF NEEDED
     tri_mesh.InitSharpFeatures(SharpDegree);

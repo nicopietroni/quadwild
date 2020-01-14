@@ -803,6 +803,9 @@ public:
             for (size_t j=0;j<3;j++)
             {
                 if (!face[i].IsFaceEdgeS(j))continue;
+                ScalarType Len=(face[i].P0(j)-face[i].P1(j)).Norm();
+                if (Len>bbox.Diag()*0.01)continue;
+
                 if ((face[i].V0(j)->IsS())||(face[i].V1(j)->IsS()))
                     face[i].ClearFaceEdgeS(j);
             }
