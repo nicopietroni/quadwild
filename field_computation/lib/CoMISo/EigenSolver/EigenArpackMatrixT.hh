@@ -10,7 +10,7 @@
 
 //== COMPILE-TIME PACKAGE REQUIREMENTS ========================================
 #include <CoMISo/Config/config.hh>
-#if (COMISO_SUITESPARSE_AVAILABLE && COMISO_Eigen3_AVAILABLE)
+#if (COMISO_SUITESPARSE_AVAILABLE && COMISO_EIGEN3_AVAILABLE)
 //=============================================================================
 
 

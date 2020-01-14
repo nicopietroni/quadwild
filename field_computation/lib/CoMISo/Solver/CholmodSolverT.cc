@@ -91,7 +91,7 @@ bool CholmodSolver::calc_system_eigen( const Eigen_MatrixT& _mat)
 {
     if(show_timings_) sw_.start();
 
-#if COMISO_Eigen3_AVAILABLE
+#if COMISO_EIGEN3_AVAILABLE
     COMISO_EIGEN::get_ccs_symmetric_data( _mat,
 					 'u',
 					 values_, 
@@ -113,7 +113,7 @@ bool CholmodSolver::calc_system_eigen( const Eigen_MatrixT& _mat)
 template< class Eigen_MatrixT>
 bool CholmodSolver::update_system_eigen( const Eigen_MatrixT& _mat)
 {
-#if COMISO_Eigen3_AVAILABLE    
+#if COMISO_EIGEN3_AVAILABLE    
   COMISO_EIGEN::get_ccs_symmetric_data( _mat,
 				      'u',
 				       values_, 

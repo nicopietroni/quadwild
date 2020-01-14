@@ -59,6 +59,11 @@
      return !_finite(x);
    } 
 
+   inline int isfinite(double x)
+     {
+       return _finite(x);
+     }
+
   }
 
  inline double nearbyint(double x) {

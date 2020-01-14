@@ -142,36 +142,44 @@ void
 LeastSquaresProblem::
 eval_hessian ( const double* _x, SMatrixNP& _H)
 {
-  // clear old data
+  std::vector<Triplet> triplets;
+  triplets.reserve(10*n_unknowns());
+
+  add_hessian_coeffs(_x, triplets, 1.0);
+
   _H.resize(n_unknowns(), n_unknowns());
-  _H.setZero();
+  _H.setFromTriplets(triplets.begin(), triplets.end());
 
-  for(unsigned int i=0; i<terms_.size(); ++i)
-  {
-    // get local function value
-    double vterm = terms_[i]->eval_constraint(_x);
+//  // clear old data
+//  _H.resize(n_unknowns(), n_unknowns());
+//  _H.setZero();
 
-    // get local gradient
-    NConstraintInterface::SVectorNC gterm;
-    terms_[i]->eval_gradient(_x, gterm);
-
-    // add terms to global gradient
-    NConstraintInterface::SVectorNC::InnerIterator v_it (gterm);
-    for( ; v_it; ++v_it)
-    {
-      NConstraintInterface::SVectorNC::InnerIterator v_it2(gterm);
-      for( ; v_it2; ++v_it2)
-        _H.coeffRef(v_it.index(), v_it2.index()) += 2.0*v_it.value()*v_it2.value();
-    }
-
-    NConstraintInterface::SMatrixNC Hterm;
-    terms_[i]->eval_hessian(_x, Hterm);
-
-    NConstraintInterface::SMatrixNC::iterator h_it  = Hterm.begin();
-    NConstraintInterface::SMatrixNC::iterator h_end = Hterm.end();
-    for(; h_it != h_end; ++h_it)
-      _H.coeffRef(h_it.row(),h_it.col()) += 2.0*vterm*(*h_it);
-  }
+//  for(unsigned int i=0; i<terms_.size(); ++i)
+//  {
+//    // get local function value
+//    double vterm = terms_[i]->eval_constraint(_x);
+//
+//    // get local gradient
+//    NConstraintInterface::SVectorNC gterm;
+//    terms_[i]->eval_gradient(_x, gterm);
+//
+//    // add terms to global gradient
+//    NConstraintInterface::SVectorNC::InnerIterator v_it (gterm);
+//    for( ; v_it; ++v_it)
+//    {
+//      NConstraintInterface::SVectorNC::InnerIterator v_it2(gterm);
+//      for( ; v_it2; ++v_it2)
+//        _H.coeffRef(v_it.index(), v_it2.index()) += 2.0*v_it.value()*v_it2.value();
+//    }
+//
+//    NConstraintInterface::SMatrixNC Hterm;
+//    terms_[i]->eval_hessian(_x, Hterm);
+//
+//    NConstraintInterface::SMatrixNC::iterator h_it  = Hterm.begin();
+//    NConstraintInterface::SMatrixNC::iterator h_end = Hterm.end();
+//    for(; h_it != h_end; ++h_it)
+//      _H.coeffRef(h_it.row(),h_it.col()) += 2.0*vterm*(*h_it);
+//  }
 }
 
 
@@ -206,6 +214,84 @@ constant_hessian()
 //-----------------------------------------------------------------------------
 
 
+void
+LeastSquaresProblem::
+add_to_gradient   (const double* _x, double* _g, const double _c)
+{
+  for(unsigned int i=0; i<terms_.size(); ++i)
+  {
+    // get local function value
+    double vterm = terms_[i]->eval_constraint(_x);
+
+    // get local gradient
+    NConstraintInterface::SVectorNC gterm;
+    terms_[i]->eval_gradient(_x, gterm);
+
+    // add terms to global gradient
+    NConstraintInterface::SVectorNC::InnerIterator v_it(gterm);
+    for( ; v_it; ++v_it)
+    {
+      _g[v_it.index()] += _c*2.0*vterm*v_it.value();
+    }
+  }
+}
+
+
+//-----------------------------------------------------------------------------
+
+
+void
+LeastSquaresProblem::
+add_hessian_coeffs(const double* _x, std::vector<Triplet>& _trips, const double _c)
+{
+  for(unsigned int i=0; i<terms_.size(); ++i)
+  {
+    // get local function value
+    double vterm = terms_[i]->eval_constraint(_x);
+
+    // get local gradient
+    NConstraintInterface::SVectorNC gterm;
+    terms_[i]->eval_gradient(_x, gterm);
+
+    // add terms to global gradient
+    NConstraintInterface::SVectorNC::InnerIterator v_it (gterm);
+    for( ; v_it; ++v_it)
+    {
+      NConstraintInterface::SVectorNC::InnerIterator v_it2(gterm);
+      for( ; v_it2; ++v_it2)
+        _trips.push_back(Triplet(v_it.index(), v_it2.index(), _c*2.0*v_it.value()*v_it2.value()));
+//        _H.coeffRef(v_it.index(), v_it2.index()) += 2.0*v_it.value()*v_it2.value();
+    }
+
+    NConstraintInterface::SMatrixNC Hterm;
+    terms_[i]->eval_hessian(_x, Hterm);
+
+    NConstraintInterface::SMatrixNC::iterator h_it  = Hterm.begin();
+    NConstraintInterface::SMatrixNC::iterator h_end = Hterm.end();
+    for(; h_it != h_end; ++h_it)
+      _trips.push_back( Triplet(h_it.row(), h_it.col(), _c*2.0*vterm*(*h_it)));
+//      _H.coeffRef(h_it.row(),h_it.col()) += 2.0*vterm*(*h_it);
+  }
+}
+
+
+//-----------------------------------------------------------------------------
+
+
+double
+LeastSquaresProblem::
+max_deviaton( const double* _x )
+{
+  double vmax(0.0);
+
+  for(unsigned int i=0; i<terms_.size(); ++i)
+  {
+    double vterm = std::abs(terms_[i]->eval_constraint(_x));
+    if(vterm > vmax) vmax = vterm;
+  }
+
+  return vmax;
+}
 
 //=============================================================================
 } // namespace COMISO

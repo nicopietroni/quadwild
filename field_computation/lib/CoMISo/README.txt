@@ -1,3 +1,9 @@
+# This is a branch of the official CoMISo repository
+# with a minimalist cmake file designed to be used
+# with libigl. If you need CoMISo for other purposes
+# please use the CMakeLists_original.cmake which
+# supports all the features of CoMISo.
+
 CoMISo Version 1.0 rc1
 www.rwth-graphics.de
 zimmer@informatik.rwth-aachen.de
@@ -19,7 +25,7 @@ Here is an example of what packages were needed to compile CoMISo on a freshly i
 # sudo apt-get install libgmm-dev
 # sudo apt-get install libboost-dev
 # sudo apt-get install libblas-dev
-# sudo apt-get install libsuitesparse-dev 
+# sudo apt-get install libsuitesparse-dev
 (some other needed libraries such as lapack, are installed as dependencies of the above)
 
 For Windows and Macintosh systems the corresponding packages need to be downloaded and installed.
@@ -28,7 +34,7 @@ The cmake build system should enable building the CoMISo library under Windows a
 
 OpenFlipper requirements:
 -------------------------
-To build OpenFlipper you additionally need to install all the Qt4 packages libqt4-{dev-dbg, dev, network, gui, opengl, opengl-dev, script, scripttools, ...} and also 
+To build OpenFlipper you additionally need to install all the Qt4 packages libqt4-{dev-dbg, dev, network, gui, opengl, opengl-dev, script, scripttools, ...} and also
 # sudo apt-get install libglew1.5-dev
 # sudo apt-get install glutg3-dev
 
@@ -45,7 +51,7 @@ Assuming CoMISo was unpacked to the directory SOME_DIRECTORY/CoMISo (where SOME_
 
 The binaries (examples) and the shared library are found under
 /SOME_DIRECTORY/CoMISO/build/Build/bin/
-and 
+and
 /SOME_DIRECTORY/CoMISO/build/Build/lib/CoMISo/
 
 

@@ -4,7 +4,7 @@
  *      Copyright (C) 2008-2009 by Computer Graphics Group, RWTH Aachen      *
  *                           www.rwth-graphics.de                            *
  *                                                                           *
- *---------------------------------------------------------------------------* 
+ *---------------------------------------------------------------------------*
  *  This file is part of CoMISo.                                             *
  *                                                                           *
  *  CoMISo is free software: you can redistribute it and/or modify           *
@@ -27,13 +27,13 @@
 		#ifdef COMISODLL
 			#ifdef USECOMISO
 				#define COMISODLLEXPORT __declspec(dllimport)
-				#define COMISODLLEXPORTONLY 
+				#define COMISODLLEXPORTONLY
 			#else
 				#define COMISODLLEXPORT __declspec(dllexport)
 				#define COMISODLLEXPORTONLY __declspec(dllexport)
 			#endif
 		#else		
-			#define COMISODLLEXPORT	
+			#define COMISODLLEXPORT
 			#define COMISODLLEXPORTONLY
 		#endif
 	#else

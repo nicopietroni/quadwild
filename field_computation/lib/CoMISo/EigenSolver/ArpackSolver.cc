@@ -11,7 +11,7 @@
 #include "ArpackSolver.hh"
 
 //== COMPILE-TIME PACKAGE REQUIREMENTS ========================================
-#if (COMISO_ARPACK_AVAILABLE && COMISO_SUITESPARSE_AVAILABLE && COMISO_Eigen3_AVAILABLE)
+#if (COMISO_ARPACK_AVAILABLE && COMISO_SUITESPARSE_AVAILABLE && COMISO_EIGEN3_AVAILABLE)
 
 //== NAMESPACES ===============================================================
 

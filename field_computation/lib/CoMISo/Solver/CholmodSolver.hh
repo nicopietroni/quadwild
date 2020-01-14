@@ -118,6 +118,16 @@ private:
 #include "CholmodSolverT.cc"
 #endif
 //=============================================================================
+#else  // COMISO_SUITESPARSE_AVAILABLE
+#include<CoMISo/Solver/EigenLDLTSolver.hh>
+
+//#warning "CholmodSolver not available, fallback to EigenLDLTSolver..."
+
+namespace COMISO
+{
+  typedef EigenLDLTSolver CholmodSolver;
+} // namespace COMISO
+
 #endif // COMISO_SUITESPARSE_AVAILABLE
 //=============================================================================
 #endif // COMISO_CHOLMOD_SOLVER_HH defined

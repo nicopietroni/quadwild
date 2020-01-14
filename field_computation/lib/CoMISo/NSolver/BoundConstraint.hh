@@ -56,7 +56,9 @@ public:
   virtual void   eval_gradient   ( const double* _x, SVectorNC& _g      );
   virtual void   eval_hessian    ( const double* _x, SMatrixNC& _h      );
 
-  virtual bool   is_linear();
+  virtual bool   is_linear()         const;
+  virtual bool   constant_gradient() const;
+  virtual bool   constant_hessian () const;
 
   // set/get values
   unsigned int& idx();

@@ -16,6 +16,7 @@
 //== INCLUDES =================================================================
 
 #include <CoMISo/Config/CoMISoDefines.hh>
+#include <CoMISo/Utils/StopWatch.hh>
 #include <vector>
 #include <cstddef>
 #include <gmm/gmm.h>
@@ -84,6 +85,14 @@ public:
 
   int solve(NProblemInterface*    _problem, const std::vector<NConstraintInterface*>& _constraints);
 
+  // same as above with additional lazy constraints that are only added iteratively to the problem if not satisfied
+  int solve(NProblemInterface*                        _problem,
+            const std::vector<NConstraintInterface*>& _constraints,
+            const std::vector<NConstraintInterface*>& _lazy_constraints,
+            const double                              _almost_infeasible = 0.5,
+            const int                                 _max_passes        = 5   );
+
+
   // for convenience, if no constraints are given
   int solve(NProblemInterface*    _problem);
 
@@ -92,9 +101,16 @@ public:
 
   // ********* CONFIGURATION ********************* //
   // access the ipopt-application (for setting parameters etc.)
-  // example: app().Options()->SetIntegerValue("max_iter", 100);
+  // examples: app().Options()->SetIntegerValue("max_iter", 100);
+  //           app().Options()->SetStringValue("derivative_test", "second-order");
   Ipopt::IpoptApplication& app() {return (*app_); }
 
+
+  void set_print_level(const int _level)
+  {
+    app().Options()->SetIntegerValue("print_level", _level);
+    print_level_ = _level;
+  }
 
 protected:
   double* P(std::vector<double>& _v)
@@ -109,6 +125,8 @@ private:
 
   // smart pointer to IpoptApplication to set options etc.
   Ipopt::SmartPtr<Ipopt::IpoptApplication> app_;
+
+  int print_level_;
 };
 
 
@@ -132,8 +150,16 @@ public:
   typedef NProblemInterface::SMatrixNP    SMatrixNP;
 
   /** default constructor */
-  NProblemIPOPT(NProblemInterface* _problem, const std::vector<NConstraintInterface*>& _constraints)
-   : problem_(_problem) { split_constraints(_constraints);}
+  NProblemIPOPT(NProblemInterface* _problem, const std::vector<NConstraintInterface*>& _constraints, const bool _hessian_approximation = false)
+   : problem_(_problem), store_solution_(false), hessian_approximation_(_hessian_approximation)
+  {
+    // initialize solution
+    x_.resize(_problem->n_unknowns());
+    _problem->initial_x(P(x_));
+
+    split_constraints(_constraints);
+    analyze_special_properties(_problem, _constraints);
+  }
 
   /** default destructor */
   virtual ~NProblemIPOPT() {};
@@ -193,6 +219,14 @@ public:
                                  IpoptCalculatedQuantities* ip_cq);
   //@}
 
+  // special properties of problem
+  bool hessian_constant() const;
+  bool jac_c_constant() const;
+  bool jac_d_constant() const;
+
+  bool&                 store_solution()  {return store_solution_; }
+  std::vector<double>&  solution()        {return x_;}
+
 private:
   /**@name Methods to block default compiler methods.
    * The compiler automatically generates the following three methods.
@@ -213,6 +247,10 @@ private:
   // split user-provided constraints into general-constraints and bound-constraints
   void split_constraints(const std::vector<NConstraintInterface*>& _constraints);
 
+  // determine if hessian_constant, jac_c_constant or jac_d_constant
+  void analyze_special_properties(const NProblemInterface* _problem, const std::vector<NConstraintInterface*>& _constraints);
+
+
 protected:
   double* P(std::vector<double>& _v)
   {
@@ -229,6 +267,15 @@ private:
   // reference to constraints vector
   std::vector<NConstraintInterface*> constraints_;
   std::vector<BoundConstraint*>      bound_constraints_;
+
+  bool hessian_constant_;
+  bool jac_c_constant_;
+  bool jac_d_constant_;
+
+  bool store_solution_;
+  std::vector<double> x_;
+
+  bool hessian_approximation_;
 };
 
 

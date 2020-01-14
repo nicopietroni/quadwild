@@ -24,7 +24,8 @@ HEADERS += \
     includes/utils.h \
     load_save.h \
     mesh_types.h \
-    quad_from_patches.h
+    quad_from_patches.h \
+    smooth_mesh.h
 
 #DEFINES += SAVEMESHESFORDEBUG
 
@@ -34,9 +35,9 @@ HEADERS += \
 #App config
 TARGET = quad_from_patches
 
-TEMPLATE        = app
-CONFIG         += c++11
-CONFIG         -= app_bundle
+TEMPLATE = app
+CONFIG += c++11
+CONFIG -= app_bundle
 
 #Debug/release optimization flags
 CONFIG(debug, debug|release){
@@ -74,14 +75,13 @@ QMAKE_CXXFLAGS += -isystem $$LIBIGLPATH/include/
 
 #vcglib
 INCLUDEPATH += $$VCGLIBPATH
-DEFINES += NOCOMISO
 
 #eigen
 INCLUDEPATH += $$EIGENPATH
 
 #gurobi
 INCLUDEPATH += $$GUROBIPATH/include
-LIBS += -L$$GUROBIPATH/lib -lgurobi_g++5.2 -lgurobi81
+LIBS += -L$$GUROBIPATH/lib -lgurobi_g++5.2 -lgurobi90
 DEFINES += GUROBI_DEFINED
 
 #lpsolve

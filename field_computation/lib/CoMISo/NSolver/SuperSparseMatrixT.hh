@@ -14,6 +14,7 @@
 #include <iostream>
 #include <map>
 #include <math.h>
+#include <Eigen/Dense>
 
 //== FORWARDDECLARATIONS ======================================================
 
@@ -140,6 +141,14 @@ public:
     }
   }
 
+  // scale matrix by scalar
+  void scale(const VT _s)
+  {
+    typename std::map<PII, VT>::iterator m_it = data_.begin();
+    for(; m_it != data_.end(); ++m_it)
+      m_it->second *=_s;
+  }
+
   void print()
   {
     iterator it  = begin();
@@ -150,6 +159,22 @@ public:
     std::cerr << "#non-zeros: " << nonZeros() << std::endl;
     for(; it!=ite; ++it)
       std::cerr << "(" << it.row() << "," << it.col() << ") -> " << *it << std::endl;
+  }
+
+  void print_eigenvalues()
+  {
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(n_rows_, n_cols_);
+
+    iterator it = begin();
+    for(; it != end(); ++it)
+      A(it.row(),it.col()) = *it;
+
+    Eigen::EigenSolver<Eigen::MatrixXd> eigensolver(A);
+    if (eigensolver.info() != Eigen::Success) abort();
+    std::cout << "The eigenvalues of A are:\n" << eigensolver.eigenvalues() << std::endl;
+//    std::cout << "Here's a matrix whose columns are eigenvectors of A \n"
+//    << "corresponding to these eigenvalues:\n"
+//    << eigensolver.eigenvectors() << std::endl;
   }
 
   

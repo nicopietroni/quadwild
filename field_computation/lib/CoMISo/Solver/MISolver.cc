@@ -26,7 +26,7 @@
 #include <CoMISo/Config/config.hh>
 #include "MISolver.hh"
 
-#if(COMISO_QT4_AVAILABLE)
+#if(COMISO_QT_AVAILABLE)
 #include <CoMISo/QtWidgets/MISolverDialogUI.hh>
 #endif
 
@@ -190,7 +190,7 @@ MISolver::solve_direct_rounding(
     }
 #endif
 
-#if(COMISO_Eigen3_AVAILABLE)
+#if(COMISO_EIGEN3_AVAILABLE)
     // performance comparison code
     if(enable_performance_test)
     {
@@ -725,7 +725,7 @@ void
 MISolver::
 show_options_dialog()
 {
-#if(COMISO_QT4_AVAILABLE)
+#if(COMISO_QT_AVAILABLE)
   MISolverDialog* pd = new MISolverDialog(*this);
   pd->exec();
 #else

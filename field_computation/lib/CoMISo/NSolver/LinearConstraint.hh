@@ -1,6 +1,6 @@
 //=============================================================================
 //
-//  CLASS NConstraintGmmInterface
+//  CLASS LinearConstraint
 //
 //=============================================================================
 
@@ -53,7 +53,12 @@ public:
 
   virtual int n_unknowns();
 
+  // resize coefficient vector = #unknowns
+  // maintain all values in range
   void  resize(const unsigned int _n);
+
+  // clear to zero constraint 0 =_type 0
+  void  clear();
 
   const SVectorNC& coeffs() const;
         SVectorNC& coeffs();
@@ -67,7 +72,9 @@ public:
 
   virtual void eval_hessian    ( const double* _x, SMatrixNC& _h      );
 
-  virtual bool is_linear() { return true;}
+  virtual bool   is_linear()         const { return true;}
+  virtual bool   constant_gradient() const { return true;}
+  virtual bool   constant_hessian () const { return true;}
 
   // inherited from base
 //  virtual ConstraintType  constraint_type (                                      ) { return type_; }

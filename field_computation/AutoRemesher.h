@@ -13,7 +13,6 @@
 
 #include <memory>
 
-#define DEBUG
 template <class Mesh>
 class AutoRemesher {
 

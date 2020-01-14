@@ -55,7 +55,7 @@ public:
              std::vector<NConstraintInterface*>& _constraints,                  // linear constraints
              std::vector<PairUiV>&               _discrete_constraints,         // discrete constraint
              double                              _reg_factor = 0.0,             // reguluarization factor
-             bool                                _show_miso_settings = true,    // show settings dialog
+             bool                                _show_miso_settings = false,    // show settings dialog
              bool                                _show_timings = true        ); // show timings
 
 

@@ -1,8 +1,10 @@
 ############################ CONFIGURATION ############################
 
-VCGLIBPATH = /Users/nicopietroni/Desktop/vcglib
-GLEWPATH   =  /Users/nicopietroni/Desktop/code/lib/glew
-ANTPATH    = /Users/nicopietroni/Desktop/code/lib/AntTweakBar1.16
-EIGENPATH  = ./lib/libigl/external/nanogui/ext/eigen
-LIBIGLPATH = ./lib/libigl/include/
-COMISOPATH = ./lib/CoMISo/
+VCGLIBPATH = /usr/include/vcglib
+ANTTWEAKBARPATH = /usr/include/AntTweakBar
+
+EIGENPATH  = $$PWD/lib/libigl/external/nanogui/ext/eigen
+LIBIGLPATH = $$PWD/lib/libigl
+GLEWPATH   = $$PWD/lib/glew
+COMISOPATH = $$PWD/lib/CoMISo
+GMMPATH = $$COMISOPATH/ext/gmm-4.2/

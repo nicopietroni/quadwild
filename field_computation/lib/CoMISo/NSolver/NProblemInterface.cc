@@ -2,10 +2,10 @@
 
 namespace COMISO {
 
-NProblemInterface::NProblemInterface() {
-}
+NProblemInterface::NProblemInterface()
+{}
 
-NProblemInterface::~NProblemInterface() {
-}
+NProblemInterface::~NProblemInterface()
+{}
 
 }

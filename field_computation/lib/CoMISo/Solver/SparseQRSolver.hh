@@ -68,7 +68,7 @@ class COMISODLLEXPORT SparseQRSolver
 {
 public:
 
-  typedef UF_long Int;
+  typedef SuiteSparse_long Int;
 
 
     SparseQRSolver();
