@@ -91,6 +91,7 @@ FieldSmootherType::SmoothParam FieldParam;
 
 AutoRemesher<MyTriMesh>::Params RemPar;
 bool do_batch=false;
+size_t ErodeDilateSteps=4;
 
 void TW_CALL AutoRemesh(void *)
 {
@@ -148,6 +149,11 @@ void TW_CALL SaveData(void *)
     SaveAllData();
 }
 
+void TW_CALL ErodeDilateFeatureStep(void *)
+{
+    tri_mesh.ErodeDilate(ErodeDilateSteps);
+}
+
 void SetFieldBarSizePosition(QWidget *w)
 {
     int params[2];
@@ -169,6 +175,10 @@ void InitFieldBar(QWidget *w)
     TwAddVarRW(barQuad,"LimitConcave",TW_TYPE_DOUBLE, &tri_mesh.LimitConcave," label='Limit Concave'");
 
     TwAddButton(barQuad,"SetSharp",InitSharpFeatures,0,"label='InitSharp'");
+
+    TwAddVarRW(barQuad,"ErodeDilSteps",TW_TYPE_INT32,&ErodeDilateSteps,"label='ErodeDilateSteps'");
+
+    TwAddButton(barQuad,"Erode Dilate",ErodeDilateFeatureStep,0,"label='ErodeDilateSharp'");
 
     TwAddButton(barQuad,"AutoRemesh",AutoRemesh,0,"label='AutoRemesh'");
 

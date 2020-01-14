@@ -25,9 +25,9 @@ class PolyVertex:public vcg::Vertex<	PUsedTypes,
         vcg::vertex::Coord3d,
         vcg::vertex::Normal3d//,
         /*vcg::vertex::Mark,
-                                                vcg::vertex::BitFlags,
-                                                vcg::vertex::Qualityd,
-                                                vcg::vertex::TexCoord2d*/>{} ;
+                                                                        vcg::vertex::BitFlags,
+                                                                        vcg::vertex::Qualityd,
+                                                                        vcg::vertex::TexCoord2d*/>{} ;
 
 class PolyFace:public vcg::Face<
         PUsedTypes
@@ -39,9 +39,9 @@ class PolyFace:public vcg::Face<
         ,vcg::face::BitFlags // bit flags
         ,vcg::face::Normal3d // normal
         /*,vcg::face::Color4b  // color
-                                                ,vcg::face::Qualityd      // face quality.
-                                                ,vcg::face::BitFlags
-                                                ,vcg::face::Mark*/
+                                                                        ,vcg::face::Qualityd      // face quality.
+                                                                        ,vcg::face::BitFlags
+                                                                        ,vcg::face::Mark*/
         ,vcg::face::CurvatureDird> {
 };
 
@@ -90,11 +90,13 @@ public:
 };
 
 class MyTriFace;
+class MyTriEdge;
 class MyTriVertex;
 
 enum FeatureKind{ETConcave,ETConvex,ETNone};
 
 struct TriUsedTypes: public vcg::UsedTypes<vcg::Use<MyTriVertex>::AsVertexType,
+        vcg::Use<MyTriEdge>::AsEdgeType,
         vcg::Use<MyTriFace>::AsFaceType>{};
 
 class MyTriVertex:public vcg::Vertex<TriUsedTypes,
@@ -106,6 +108,12 @@ class MyTriVertex:public vcg::Vertex<TriUsedTypes,
         vcg::vertex::Qualityd>
 {
 };
+
+class MyTriEdge : public vcg::Edge<
+        TriUsedTypes,
+        vcg::edge::VertexRef,
+        vcg::edge::BitFlags> {};
+
 
 class MyTriFace:public vcg::Face<TriUsedTypes,
         vcg::face::VertexRef,
@@ -129,6 +137,7 @@ enum GoemPrecondition{NOVertManifold,NOFaceManifold,
 
 
 class MyTriMesh: public vcg::tri::TriMesh< std::vector<MyTriVertex>,
+        std::vector<MyTriEdge>,
         std::vector<MyTriFace > >
 {
     typedef std::pair<CoordType,CoordType> CoordPair;
@@ -757,7 +766,7 @@ public:
             for (size_t j=0;j<3;j++)
             {
                 if (face[i].IsFaceEdgeS(j))
-                   LSharp+=(face[i].P0(j)-face[i].P1(j)).Norm();
+                    LSharp+=(face[i].P0(j)-face[i].P1(j)).Norm();
             }
         return (LSharp/2);
     }
@@ -770,6 +779,66 @@ public:
         return (CurrA/2);
     }
 
+    void SelectFeaturesEndPoints()
+    {
+        vcg::tri::UpdateQuality<MyTriMesh>::VertexConstant(*this,0);
+        vcg::tri::UpdateFlags<MyTriMesh>::VertexClearS(*this);
+        for (size_t i=0;i<face.size();i++)
+            for (size_t j=0;j<3;j++)
+            {
+                if (!face[i].IsFaceEdgeS(j))continue;
+                face[i].V0(j)->Q()+=1;
+                face[i].V1(j)->Q()+=1;
+            }
+
+        for (size_t i=0;i<vert.size();i++)
+            if (vert[i].Q()==2)vert[i].SetS();
+    }
+
+    void ErodeFeaturesStep()
+    {
+        SelectFeaturesEndPoints();
+
+        for (size_t i=0;i<face.size();i++)
+            for (size_t j=0;j<3;j++)
+            {
+                if (!face[i].IsFaceEdgeS(j))continue;
+                if ((face[i].V0(j)->IsS())||(face[i].V1(j)->IsS()))
+                    face[i].ClearFaceEdgeS(j);
+            }
+    }
+
+    void DilateFeaturesStep(std::vector<std::pair<size_t,size_t> > &OrigFeatures)
+    {
+        SelectFeaturesEndPoints();
+
+        for (size_t i=0;i<OrigFeatures.size();i++)
+        {
+            size_t IndexF=OrigFeatures[i].first;
+            size_t IndexE=OrigFeatures[i].second;
+            if ((face[IndexF].V0(IndexE)->IsS())||
+                 (face[IndexF].V1(IndexE)->IsS()))
+                face[IndexF].SetFaceEdgeS(IndexE);
+        }
+    }
+
+    void ErodeDilate(size_t StepNum)
+    {
+        std::vector<std::pair<size_t,size_t> > OrigFeatures;
+
+        //save the features
+        for (size_t i=0;i<face.size();i++)
+            for (size_t j=0;j<3;j++)
+            {
+                if (!face[i].IsFaceEdgeS(j))continue;
+                OrigFeatures.push_back(std::pair<size_t,size_t>(i,j));
+            }
+
+        for (size_t s=0;s<StepNum;s++)
+            ErodeFeaturesStep();
+        for (size_t s=0;s<StepNum;s++)
+            DilateFeaturesStep(OrigFeatures);
+    }
 
     bool SufficientFeatures(ScalarType SharpFactor)
     {
