@@ -44,14 +44,98 @@
 #include "glwidget.h"
 #include <wrap/qt/anttweakbarMapper.h>
 #include <QWindow>
+#include <QDir>
+#include <QFile>
 #include <QFileInfo>
+#include <QTextStream>
 //#include <triangle_mesh_type.h>
 //#include <wrap/io_trimesh/import_field.h>
 //#include <wrap/io_trimesh/import.h>
 
 #include<vcg/complex/algorithms/hole.h>
+
+
 extern bool do_batch;
 extern std::string pathM;
+
+extern int remesher_iterations;
+extern double remesher_aspect_ratio;
+extern int remesher_termination_delta;
+
+extern double sharp_feature_thr;
+extern double feature_erode_dilate;
+
+void correctOrAbort(const bool ok, const std::string & line, const int linenumber)
+{
+	if(!ok)
+	{
+		std::cerr << "[fieldComputation] Malformerd config file |-> " << line << " (" << linenumber << ")" << std::endl;
+		std::cerr << "[fieldComputation] ...aborting..." << std::endl;
+		abort();
+	}
+}
+
+bool loadConfigFile(const std::string & filename)
+{
+	QFile configFile(filename.c_str());
+
+	if (!configFile.open(QIODevice::ReadOnly))
+	{
+		//handleme
+	}
+
+	QTextStream configStream(&configFile);
+
+	int i = 0;
+    QString line;
+
+    while (configStream.readLineInto(&line))
+	{
+		QStringList keyValuePair = line.split(' ');
+
+		if (keyValuePair.size() != 2)
+		{
+            correctOrAbort(false, line.toStdString(), i);
+		}
+
+		bool ok = false;
+		if (keyValuePair[0] == "remesh_iterations")
+		{
+			remesher_iterations = keyValuePair[1].toInt(&ok);
+            correctOrAbort(ok, line.toStdString(), i);
+			continue;
+		}
+		if (keyValuePair[0] == "remesh_target_aspect_ratio")
+		{
+			remesher_aspect_ratio = keyValuePair[1].toDouble(&ok);
+            correctOrAbort(ok, line.toStdString(), i);
+			continue;
+		}
+		if (keyValuePair[0] == "remesh_termination_delta")
+		{
+			remesher_termination_delta = keyValuePair[1].toInt(&ok);
+            correctOrAbort(ok, line.toStdString(), i);
+			continue;
+		}
+		if (keyValuePair[0] == "sharp_feature_thr")
+		{
+			sharp_feature_thr = keyValuePair[1].toDouble(&ok);
+            correctOrAbort(ok, line.toStdString(), i);
+			continue;
+		}
+		if (keyValuePair[0] == "sharp_feature_erode_dilate")
+		{
+			feature_erode_dilate = keyValuePair[1].toInt(&ok);
+            correctOrAbort(ok, line.toStdString(), i);
+			continue;
+		}
+
+		++i;
+	}
+
+	std::cout << "[fieldComputation] Successful config import" << std::endl;
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -74,6 +158,9 @@ int main(int argc, char *argv[])
     }
     assert(argc>1);
     pathM=std::string(argv[1]);
+    loadConfigFile("basic_setup.txt");
+	
+    std::cout << pathM << std::endl;
 
     if ((argc>2)&&(std::string(argv[2])==std::string("batch")))
         do_batch=true;

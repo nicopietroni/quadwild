@@ -80,7 +80,7 @@ int Iterations;
 ScalarType EdgeStep;
 ScalarType Multiplier=2;
 ScalarType SharpFactor=6;
-ScalarType SharpDegree=45;
+//ScalarType sharp_feature_thr=45;
 
 int xMouse,yMouse;
 
@@ -91,16 +91,32 @@ FieldSmootherType::SmoothParam FieldParam;
 
 AutoRemesher<MyTriMesh>::Params RemPar;
 bool do_batch=false;
-size_t ErodeDilateSteps=4;
+//size_t ErodeDilateSteps=4;
+
+int remesher_iterations=15;
+ScalarType remesher_aspect_ratio=0.3;
+int remesher_termination_delta=10000;
+
+ScalarType sharp_feature_thr=35.;
+int feature_erode_dilate=4;
 
 void TW_CALL AutoRemesh(void *)
 {
+
    tri_mesh.UpdateDataStructures();
 //   vcg::tri::IsotropicRemeshing<MyTriMesh>::Params par;
 //   par.minLength=tri_mesh.bbox.Diag()*0.005;
 //   par.maxLength=tri_mesh.bbox.Diag()*0.01;
 //   vcg::tri::IsotropicRemeshing<MyTriMesh>::Do(tri_mesh,par);
-   std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(tri_mesh,RemPar);
+
+   RemPar.iterations   = remesher_iterations;
+   RemPar.targetAspect = remesher_aspect_ratio;
+   RemPar.targetDeltaFN= remesher_termination_delta;
+   RemPar.userSelectedCreases = true;
+   RemPar.surfDistCheck = true;
+
+   std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh, true);
+   std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
    tri_mesh.Clear();
    vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
    tri_mesh.UpdateDataStructures();
@@ -109,7 +125,7 @@ void TW_CALL AutoRemesh(void *)
 void TW_CALL InitSharpFeatures(void *)
 {
     tri_mesh.UpdateDataStructures();
-    tri_mesh.InitSharpFeatures(SharpDegree);
+	tri_mesh.InitSharpFeatures(sharp_feature_thr);
 
 }
 
@@ -151,7 +167,7 @@ void TW_CALL SaveData(void *)
 
 void TW_CALL ErodeDilateFeatureStep(void *)
 {
-    tri_mesh.ErodeDilate(ErodeDilateSteps);
+	tri_mesh.ErodeDilate(feature_erode_dilate);
 }
 
 void SetFieldBarSizePosition(QWidget *w)
@@ -171,12 +187,12 @@ void InitFieldBar(QWidget *w)
 
     SetFieldBarSizePosition(w);
 
-    TwAddVarRW(barQuad,"SharpDegree",TW_TYPE_DOUBLE, &SharpDegree," label='Sharp Degree'");
+	TwAddVarRW(barQuad,"sharp_feature_thr",TW_TYPE_DOUBLE, &sharp_feature_thr," label='Sharp Degree'");
     TwAddVarRW(barQuad,"LimitConcave",TW_TYPE_DOUBLE, &tri_mesh.LimitConcave," label='Limit Concave'");
 
     TwAddButton(barQuad,"SetSharp",InitSharpFeatures,0,"label='InitSharp'");
 
-    TwAddVarRW(barQuad,"ErodeDilSteps",TW_TYPE_INT32,&ErodeDilateSteps,"label='ErodeDilateSteps'");
+	TwAddVarRW(barQuad,"ErodeDilSteps",TW_TYPE_INT32,&feature_erode_dilate,"label='ErodeDilateSteps'");
 
     TwAddButton(barQuad,"Erode Dilate",ErodeDilateFeatureStep,0,"label='ErodeDilateSharp'");
 
@@ -203,20 +219,29 @@ void InitFieldBar(QWidget *w)
 
 void BatchProcess ()
 {
-    //SHARP FEATURE
-    tri_mesh.UpdateDataStructures();
-    tri_mesh.InitSharpFeatures(SharpDegree);
-   // tri_mesh.ErodeDilate(ErodeDilateSteps);
+        //SHARP FEATURE
+	RemPar.iterations   = remesher_iterations;
+	RemPar.targetAspect = remesher_aspect_ratio;
+	RemPar.targetDeltaFN= remesher_termination_delta;
+	RemPar.userSelectedCreases = true;
+	RemPar.surfDistCheck = true;
 
-    //REMESH
-    std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(tri_mesh,RemPar);
+	std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh, true);
+
+	clean->UpdateDataStructures();
+	clean->InitSharpFeatures(sharp_feature_thr);
+	clean->ErodeDilate(feature_erode_dilate);
+
+	//REMESH
+	std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
+
     tri_mesh.Clear();
     vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
     tri_mesh.UpdateDataStructures();
-    tri_mesh.ErodeDilate(ErodeDilateSteps);
-
+    
     //REFINE IF NEEDED
-    tri_mesh.InitSharpFeatures(SharpDegree);
+    tri_mesh.InitSharpFeatures(sharp_feature_thr);
+    tri_mesh.ErodeDilate(feature_erode_dilate);
     tri_mesh.RefineIfNeeded();
 
     //FIELD SMOOTH
