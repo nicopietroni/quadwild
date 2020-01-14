@@ -87,9 +87,6 @@ void print_equations( const MatrixT& _B)
 // Example main
 int main(void)
 {
-  // initialize random number generator
-  srand(12345);
-
   std::cout << "---------- 1) setup an (m x n) sparse row matrix B (i.e. the B in the system ((Bx)^T)Bx)" << std::endl;
   int m = 9;
   int n = 5+1;

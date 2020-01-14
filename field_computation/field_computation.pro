@@ -85,14 +85,11 @@ INCLUDEPATH += $$GLEWPATH/include
 SOURCES += $$GLEWPATH/src/glew.c
 
 #comiso
-LIBS += -L$$COMISOPATH/build -lCoMISo
+LIBS += -L$$COMISOPATH/build/Build/lib/CoMISo/ -lCoMISo
 INCLUDEPATH += $$COMISOPATH/..
 
-#gmm (we can use comiso gmm)
+#gmm (we have to use comiso gmm)
 INCLUDEPATH += $$GMMPATH/include
-
-#openblas (do not use comiso openblas!)
-LIBS += -lopenblas
 
 # Mac specific Config required to avoid to make application bundles
 #macx{

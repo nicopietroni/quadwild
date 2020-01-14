@@ -1016,10 +1016,8 @@ eliminate_constraints(
       {
         col_it  = gmm::vect_const_begin( col );
         col_end = gmm::vect_const_end( col );
-        for ( ; col_it != col_end; ++col_it ) {
-            // FIXME: gmm complains that this subtraction is inefficient.
+        for ( ; col_it != col_end; ++col_it )
           _A( con_it.index(), col_it.index() ) -= ( *col_it )*(( *con_it )/cur_val);
-        }
 
         //_rhs[con_it.index()] -= cur_rhs * (( *con_it )/cur_val);
 //        rhs_update_table_.append(con_it.index(), -1.0 * (( *con_it )/cur_val), cur_j);

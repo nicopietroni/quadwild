@@ -33,11 +33,11 @@
 #ifndef COMISO_MISOLVERDIALOG_HH
 #define COMISO_MISOLVERDIALOG_HH
 
-#include <QObject>
+
 #include <CoMISo/Config/config.hh>
 
 //== BUILD-TIME DEPENDENCIES =================================================================
-#if COMISO_QT_AVAILABLE
+#if(COMISO_QT4_AVAILABLE)
 //============================================================================================
 
 //== INCLUDES =================================================================

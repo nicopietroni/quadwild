@@ -30,7 +30,6 @@
 #include <CoMISo/NSolver/NPDerivativeChecker.hh>
 #include <CoMISo/NSolver/GUROBISolver.hh>
 #include <CoMISo/NSolver/CPLEXSolver.hh>
-#include <CoMISo/NSolver/COMISOSolver.hh>
 #include <CoMISo/NSolver/LinearConstraint.hh>
 #include <CoMISo/NSolver/VariableType.hh>
 
@@ -102,7 +101,7 @@ public:
   }
 
   // advanced properties
-  virtual bool   constant_hessian() const { return true; }
+  virtual bool   constant_hessian() { return true; }
 };
 
 
@@ -137,27 +136,20 @@ int main(void)
   std::cout << "---------- 5) Get GUROBI solver... " << std::endl;
   COMISO::GUROBISolver gsol;
 
-  std::cout << "---------- 6) Solve..." << std::endl;
+  std::cout << "---------- 4) Solve..." << std::endl;
 
   gsol.solve(&snp, constraints, discrete_variables);
 #endif
 
   // check if TAO solver available in current configuration
 #if( COMISO_CPLEX_AVAILABLE)
-  std::cout << "---------- 7) Solve with CPLEX solver... " << std::endl;
+  std::cout << "---------- 5) Solve with CPLEX solver... " << std::endl;
   COMISO::CPLEXSolver csol;
 
-  std::cout << "---------- 8) Solve..." << std::endl;
+  std::cout << "---------- 4) Solve..." << std::endl;
 
   csol.solve(&snp, constraints, discrete_variables);
 #endif
-
-  std::cout << "---------- 9) Approximate with COMISO solver... " << std::endl;
-  COMISO::COMISOSolver cosol;
-
-  std::cout << "---------- 10) Solve..." << std::endl;
-
-  cosol.solve(&snp, constraints, discrete_variables);
 
   return 0;
 }

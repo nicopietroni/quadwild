@@ -1,0 +1,14 @@
+#Install
+sudo apt-get install g++
+sudo apt-get install cmake
+sudo apt-get install libboost-dev
+sudo apt-get install libblas-dev
+sudo apt-get install libsuitesparse-dev
+
+#From the directory where this txt file is located:
+cd CoMISo
+rm -r build
+mkdir build
+cd build
+cmake ..
+make

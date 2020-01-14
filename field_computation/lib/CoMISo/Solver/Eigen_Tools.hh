@@ -29,7 +29,7 @@
 
 //== COMPILE-TIME PACKAGE REQUIREMENTS ========================================
 #include <CoMISo/Config/config.hh>
-#if COMISO_EIGEN3_AVAILABLE
+#if COMISO_Eigen3_AVAILABLE
 
 //== INCLUDES =================================================================
 
@@ -122,7 +122,7 @@ void gmm_to_eigen( const GMM_MatrixT& _G, EIGEN_MatrixT& _E);
 #endif
 
 //=============================================================================
-#endif // COMISO_EIGEN3_AVAILABLE
+#endif // COMISO_Eigen3_AVAILABLE
 //=============================================================================//=============================================================================
 #endif // Eigen_TOOLS_HH defined
 //=============================================================================

@@ -34,16 +34,6 @@ include(CheckFunctionExists)
 
 include(CGAL_GeneratorSpecificSettings)
 
-# I8 Search paths for windows libraries
-if ( CMAKE_GENERATOR MATCHES "^Visual Studio 11.*Win64" )
-  SET(VS_SEARCH_PATH "c:/libs/vs2012/x64/")
-elseif ( CMAKE_GENERATOR MATCHES "^Visual Studio 11.*" )
-  SET(VS_SEARCH_PATH "c:/libs/vs2012/x32/")
-elseif ( CMAKE_GENERATOR MATCHES "^Visual Studio 12.*Win64" )
-  SET(VS_SEARCH_PATH "c:/libs/vs2013/x64/")
-elseif ( CMAKE_GENERATOR MATCHES "^Visual Studio 12.*" )
-  SET(VS_SEARCH_PATH "c:/libs/vs2013/x32/")
-endif()
 
 
 # This macro checks for the existence of the combination of fortran libraries
@@ -222,21 +212,6 @@ else()
       "${BLAS_LIBRARIES}"
       "${CGAL_TAUCS_LIBRARIES_DIR} ENV LAPACK_LIB_DIR"
       )
-    endif()	
-	
-
-    # BLAS in OPENBLAS library? 
-    if(NOT BLAS_LIBRARIES)
-      check_lapack_libraries(
-      LAPACK_DEFINITIONS
-      LAPACK_LIBRARIES
-      LAPACK
-      cheev
-      ""
-      "liblapack"
-      "${BLAS_LIBRARIES}"
-      "${VS_SEARCH_PATH}OpenBLAS-v0.2.9.rc2/lib"
-      )
     endif()
 
     # Apple LAPACK library?
@@ -266,21 +241,6 @@ else()
       )
     endif ( NOT LAPACK_LIBRARIES )
 
-	# Generic LAPACK library?
-    # This configuration *must* be the last try as this library is notably slow.
-    if ( NOT LAPACK_LIBRARIES )
-      check_lapack_libraries(
-      LAPACK_DEFINITIONS
-      LAPACK_LIBRARIES
-      LAPACK
-      cheev
-      ""
-      "liblapack"
-      "${BLAS_LIBRARIES}"
-      "${VS_SEARCH_PATH}/suitesparse-metis-for-windows-1.2.2-install/lib64/lapack_blas_windows"
-      )
-    endif()
-	
     # Generic LAPACK library?
     # This configuration *must* be the last try as this library is notably slow.
     if ( NOT LAPACK_LIBRARIES )
@@ -296,11 +256,6 @@ else()
       )
     endif()
 
-	if (NOT LAPACK_LIBRARY_DIR AND LAPACK_LIBRARIES)
-	  get_filename_component(LAPACK_LIBRARY_DIR ${LAPACK_LIBRARIES} DIRECTORY)
-	endif()
-	
-	
   endif(CGAL_TAUCS_FOUND AND CGAL_AUTO_LINK_ENABLED)
 
   if(LAPACK_LIBRARY_DIR OR LAPACK_LIBRARIES)

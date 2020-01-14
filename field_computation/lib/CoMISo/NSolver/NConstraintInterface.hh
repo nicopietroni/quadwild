@@ -10,7 +10,7 @@
 
 //== COMPILE-TIME PACKAGE REQUIREMENTS ========================================
 #include <CoMISo/Config/config.hh>
-#if COMISO_EIGEN3_AVAILABLE
+#if COMISO_Eigen3_AVAILABLE
 
 //== INCLUDES =================================================================
 
@@ -26,22 +26,22 @@
 
 //== NAMESPACES ===============================================================
 
-namespace COMISO {
+namespace COMISO { 
 
 //== CLASS DEFINITION =========================================================
 
-
+	      
 
 /** \class NProblemGmmInterface NProblemGmmInterface.hh <ACG/.../NPRoblemGmmInterface.hh>
 
     Brief Description.
-
+  
     A more elaborate description follows.
 */
 class COMISODLLEXPORT NConstraintInterface
 {
 public:
-
+  
   // define Sparse Datatypes
   typedef Eigen::SparseVector<double> SVectorNC;
   typedef SuperSparseMatrixT<double>  SMatrixNC;
@@ -50,8 +50,8 @@ public:
   enum ConstraintType {NC_EQUAL, NC_LESS_EQUAL, NC_GREATER_EQUAL};
 
   /// Default constructor
-  NConstraintInterface(const ConstraintType _type = NC_EQUAL, double _eps = 1e-6) : type_(_type) {}
-
+  NConstraintInterface(const ConstraintType _type = NC_EQUAL) : type_(_type) {}
+ 
   /// Destructor
   virtual ~NConstraintInterface() {}
 
@@ -60,9 +60,9 @@ public:
   virtual void            eval_gradient   ( const double* _x, SVectorNC& _g      ) = 0;
   virtual void            eval_hessian    ( const double* _x, SMatrixNC& _h      ) = 0;
 
-  virtual ConstraintType& constraint_type (                                      ) { return type_; }
+  virtual ConstraintType  constraint_type (                                      ) { return type_; }
 
-  virtual bool            is_satisfied    ( const double* _x, double _eps = 1e-6)
+  virtual bool            is_satisfied    ( const double* _x, double _eps = 1e-6 )
   {
     switch( type_)
     {
@@ -73,13 +73,9 @@ public:
     return false;
   }
 
-  // provide special properties
-  virtual bool   is_linear()         const { return false;}
-  virtual bool   constant_gradient() const { return false;}
-  virtual bool   constant_hessian () const { return false;}
-  virtual bool   sparse_hessian()    const { return true; }
+  virtual bool   is_linear() { return false;}
 
-  virtual double gradient_update_factor( const double* _x, double _eps = 1e-6)
+  virtual double gradient_update_factor( const double* _x, double _eps = 1e-6 )
   {
     double val = eval_constraint(_x);
     bool   upper_bound_ok = ( val <=  _eps);
@@ -107,7 +103,7 @@ private:
 //=============================================================================
 } // namespace COMISO
 //=============================================================================
-#endif // COMISO_EIGEN3_AVAILABLE
+#endif // COMISO_Eigen3_AVAILABLE
 //=============================================================================
 #endif // ACG_NCONSTRAINTINTERFACE_HH defined
 //=============================================================================

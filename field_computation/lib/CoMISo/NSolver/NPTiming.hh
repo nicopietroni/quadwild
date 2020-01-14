@@ -13,7 +13,7 @@
 
 #include <CoMISo/Utils/StopWatch.hh>
 #include <gmm/gmm.h>
-#include "NProblemInterface.hh"
+#include "NProblemGmmInterface.hh"
 #include <CoMISo/Config/CoMISoDefines.hh>
 
 //== FORWARDDECLARATIONS ======================================================
@@ -32,12 +32,12 @@ namespace COMISO {
   
     A more elaborate description follows.
 */
-class COMISODLLEXPORT NPTiming : public NProblemInterface
+class COMISODLLEXPORT NPTiming : public NProblemGmmInterface
 {
 public:
   
   /// Default constructor
-  NPTiming(NProblemInterface* _base);
+  NPTiming(NProblemGmmInterface* _base);
  
   /// Destructor
   ~NPTiming();
@@ -54,11 +54,6 @@ public:
 
   virtual void   store_result ( const double* _x );
 
-  // advanced properties
-  virtual bool   constant_gradient() const;
-  virtual bool   constant_hessian()  const;
-
-
   void start_timing();
 
 protected:
@@ -66,7 +61,7 @@ protected:
   void print_statistics();
 
 private:
-  NProblemInterface* base_;
+  NProblemGmmInterface* base_;
   StopWatch swg_;
   StopWatch sw_;
 

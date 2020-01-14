@@ -7,4 +7,4 @@ EIGENPATH  = $$PWD/lib/libigl/external/nanogui/ext/eigen
 LIBIGLPATH = $$PWD/lib/libigl
 GLEWPATH   = $$PWD/lib/glew
 COMISOPATH = $$PWD/lib/CoMISo
-GMMPATH = $$COMISOPATH/ext/gmm-4.2/
+GMMPATH = $$COMISOPATH/gmm/

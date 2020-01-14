@@ -24,7 +24,7 @@
 
 //== COMPILE-TIME PACKAGE REQUIREMENTS ========================================
 #include <CoMISo/Config/config.hh>
-#if (COMISO_EIGEN3_AVAILABLE)
+#if (COMISO_Eigen3_AVAILABLE)
 //== INCLUDES =================================================================
 
 #define COMISO_EIGEN_LDLT_SOLVER_TEMPLATES_C
@@ -115,5 +115,5 @@ bool EigenLDLTSolver::update_system_eigen( const Eigen_MatrixT& _mat)
 }
 
 //=============================================================================
-#endif // COMISO_EIGEN3_AVAILABLE
+#endif // COMISO_Eigen3_AVAILABLE
 //=============================================================================

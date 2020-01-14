@@ -23,94 +23,47 @@
 \*===========================================================================*/ 
 
 #include <CoMISo/Config/config.hh>
+
 #include <CoMISo/Utils/StopWatch.hh>
 #include <vector>
-#include <CoMISo/NSolver/NProblemInterface.hh>
+#include <CoMISo/NSolver/LeastSquaresProblem.hh>
+#include <CoMISo/NSolver/LinearConstraint.hh>
 #include <CoMISo/NSolver/NPDerivativeChecker.hh>
 #include <CoMISo/NSolver/IPOPTSolver.hh>
-#include <CoMISo/NSolver/TAOSolver.hh>
 
 
-// generate an instance of a nonlinear problem by deriving from base class NProblemInterface
-// implement all virtual functions in order to solve this problem by any of the solvers located
-// in CoMISo/NSolver
-
-class SmallNProblem : public COMISO::NProblemInterface
-{
-public:
-
-  // Sparse Matrix Type
-  //  typedef Eigen::DynamicSparseMatrix<double,Eigen::ColMajor> SMatrixNP;
-
-
-  // specify a function which has several local minima
-  // f(x,y)=(x-2y+1)^2 + cos(x+y)
-
-  // number of unknown variables, here x and y = 2
-  virtual int    n_unknowns   (                                )
-  {
-    return 2;
-  }
-
-  // initial value where the optimization should start from
-  virtual void   initial_x    (       double* _x               )
-  {
-    _x[0] = 0.0;
-    _x[1] = 0.0;
-  }
-
-  // function evaluation at location _x
-  virtual double eval_f       ( const double* _x               )
-  {
-    double term = _x[0] - 2.0*_x[1] + 1.0;
-
-    return term*term + cos( _x[0]+_x[1]);
-  }
-
-  // gradient evaluation at location _x
-  virtual void   eval_gradient( const double* _x, double*    _g)
-  {
-    double term = _x[0] - 2.0*_x[1] + 1.0;
-
-    _g[0] =  2.0*term - sin( _x[0]+_x[1]);
-    _g[1] = -4.0*term - sin( _x[0]+_x[1]);
-   }
-
-  // hessian matrix evaluation at location _x
-  virtual void   eval_hessian ( const double* _x, SMatrixNP& _H)
-  {
-    _H.resize(n_unknowns(), n_unknowns());
-    _H.setZero();
-
-    _H.coeffRef(0,0) =  2.0 - cos( _x[0]+_x[1]);
-    _H.coeffRef(1,0) = -4.0 - cos( _x[0]+_x[1]);
-    _H.coeffRef(0,1) = -4.0 - cos( _x[0]+_x[1]);
-    _H.coeffRef(1,1) =  8.0 - cos( _x[0]+_x[1]);
-  }
-
-  // print result
-  virtual void   store_result ( const double* _x               )
-  {
-    std::cerr << "Energy: " << eval_f(_x) << std::endl;
-    std::cerr << "(x,y) = (" << _x[0] << "," << _x[1] << ")" << std::endl;
-  }
-
-  // advanced properties
-  virtual bool   constant_hessian() { return false; }
-};
-
-
-//------------------------------------------------------------------------------------------------------
+// solve least squares problem for x=1, y=2 and x-2y = 1
 
 // Example main
 int main(void)
 {
-  std::cout << "---------- 1) Get an instance of a NProblem..." << std::endl;
-  SmallNProblem snp;
+  std::cout << "---------- 1) Get an instance of a LeastSquaresProblem..." << std::endl;
+  // number of unknowns
+  const int n = 2;
+  COMISO::LeastSquaresProblem lsqp(n);
 
+  // term0
+  COMISO::LinearConstraint::SVectorNC coeffs0(n);
+  coeffs0.coeffRef(0) = 1.0;
+  COMISO::LinearConstraint term0(coeffs0,-1.0,COMISO::NConstraintInterface::NC_EQUAL);
+  lsqp.add_term(&term0);
+
+    // term1
+  COMISO::LinearConstraint::SVectorNC coeffs1(n);
+  coeffs1.coeffRef(1) = 1.0;
+  COMISO::LinearConstraint term1(coeffs1,-2.0,COMISO::NConstraintInterface::NC_EQUAL);
+  lsqp.add_term(&term1);
+  
+    // term2
+  COMISO::LinearConstraint::SVectorNC coeffs2(n);
+  coeffs2.coeffRef(0) =  1.0;
+  coeffs2.coeffRef(1) = -2.0;
+  COMISO::LinearConstraint term2(coeffs2,-1.0,COMISO::NConstraintInterface::NC_EQUAL);
+  lsqp.add_term(&term2);
+  
   std::cout << "---------- 2) (optional for debugging) Check derivatives of problem..." << std::endl;
   COMISO::NPDerivativeChecker npd;
-  npd.check_all(&snp);
+  npd.check_all(&lsqp);
 
 // check if IPOPT solver available in current configuration
 #if( COMISO_IPOPT_AVAILABLE)
@@ -120,15 +73,13 @@ int main(void)
   std::cout << "---------- 4) Solve..." << std::endl;
   // there are no constraints -> provide an empty vector
   std::vector<COMISO::NConstraintInterface*> constraints;
-  ipsol.solve(&snp, constraints);
+  ipsol.solve(&lsqp, constraints);
 #endif
 
-  // check if TAO solver available in current configuration
-#if( COMISO_TAO_AVAILABLE)
-  std::cout << "---------- 5) Solve with TAO solver... " << std::endl;
-  COMISO::TAOSolver::solve(&snp);
-#endif
-
+  std::cout << "---------- 5) Print solution..." << std::endl;
+  for( int i=0; i<n; ++i)
+    std::cerr << "x_" << i << " = " << lsqp.x()[i] << std::endl;
+  
   return 0;
 }
 

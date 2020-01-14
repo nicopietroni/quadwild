@@ -34,20 +34,6 @@ include(CheckFunctionExists)
 
 include(CGAL_GeneratorSpecificSettings)
 
-# I8 Search paths for windows libraries
-if ( CMAKE_GENERATOR MATCHES "^Visual Studio 11.*Win64" )
-  SET(VS_SEARCH_PATH "c:/libs/vs2012/x64/")
-elseif ( CMAKE_GENERATOR MATCHES "^Visual Studio 11.*" )
-  SET(VS_SEARCH_PATH "c:/libs/vs2012/x32/")
-elseif ( CMAKE_GENERATOR MATCHES "^Visual Studio 12.*Win64" )
-  SET(VS_SEARCH_PATH "c:/libs/vs2013/x64/")
-elseif ( CMAKE_GENERATOR MATCHES "^Visual Studio 12.*" )
-  SET(VS_SEARCH_PATH "c:/libs/vs2013/x32/")
-endif()
-
-
-
-
 
 # This macro checks for the existence of the combination of fortran libraries
 # given by _list.  If the combination is found, this macro checks (using the
@@ -77,7 +63,6 @@ macro(check_fortran_libraries DEFINITIONS LIBRARIES _prefix _name _flags _list _
                   NAMES ${_library}
                   PATHS ${_path} NO_DEFAULT_PATH
                   )
-				  
       # if not found, search in environment variables and system
       if ( WIN32 )
         find_library(${_prefix}_${_library}_LIBRARY
@@ -199,32 +184,6 @@ else()
       "cblas;f77blas;atlas"
       "${CGAL_TAUCS_LIBRARIES_DIR} ENV BLAS_LIB_DIR"
       )
-    endif()
-	
-    # BLAS in OPENBLAS library? 
-    if(NOT BLAS_LIBRARIES)
-      check_fortran_libraries(
-      BLAS_DEFINITIONS
-      BLAS_LIBRARIES
-      BLAS
-      sgemm
-      ""
-      "libopenblas"
-      "${VS_SEARCH_PATH}OpenBLAS-v0.2.9.rc2/lib"
-      )
-    endif()
-	
-	# BLAS in OPENBLAS library? 
-    if(NOT BLAS_LIBRARIES)
-      check_fortran_libraries(
-      BLAS_DEFINITIONS
-      BLAS_LIBRARIES
-      BLAS
-      sgemm
-      ""
-      "libblas"
-      "${VS_SEARCH_PATH}suitesparse-metis-for-windows-1.2.2-install/lib64/lapack_blas_windows"	
-	)
     endif()
 
     # BLAS in PhiPACK libraries? (requires generic BLAS lib, too)
@@ -448,7 +407,7 @@ else()
   else()
     set(BLAS_FOUND FALSE)
   endif()
-  
+
   if(NOT BLAS_FIND_QUIETLY)
     if(BLAS_FOUND)
       message(STATUS "A library with BLAS API found.")
@@ -461,12 +420,6 @@ else()
     endif(BLAS_FOUND)
   endif(NOT BLAS_FIND_QUIETLY)
 
-  # Extract path from libraries
-  if ( NOT BLAS_LIBRARY_DIR AND BLAS_LIBRARIES)
-        list (GET BLAS_LIBRARIES 0 FIRST_LIB)
-	get_filename_component(BLAS_LIBRARY_DIR ${FIRST_LIB} DIRECTORY)
-  endif()
-  
   # Add variables to cache
   set( BLAS_INCLUDE_DIR   "${BLAS_INCLUDE_DIR}" 
                           CACHE PATH "Directories containing the BLAS header files" FORCE )

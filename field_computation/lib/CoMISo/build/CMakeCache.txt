@@ -17,17 +17,29 @@
 //Path to a library.
 BLAS_Accelerate_LIBRARY:FILEPATH=BLAS_Accelerate_LIBRARY-NOTFOUND
 
-//Path to a library.
-BLAS_acml_LIBRARY:FILEPATH=BLAS_acml_LIBRARY-NOTFOUND
+//Compilation options to use BLAS
+BLAS_DEFINITIONS:STRING=-DBLAS_USE_F2C
+
+//Directories containing the BLAS header files
+BLAS_INCLUDE_DIR:PATH=
+
+//BLAS libraries name
+BLAS_LIBRARIES:FILEPATH=/usr/lib/x86_64-linux-gnu/libblas.so
+
+//Directories containing the BLAS libraries
+BLAS_LIBRARY_DIR:PATH=
+
+//Linker flags to use BLAS
+BLAS_LINKER_FLAGS:STRING=
 
 //Path to a library.
-BLAS_acml_mp_LIBRARY:FILEPATH=BLAS_acml_mp_LIBRARY-NOTFOUND
+BLAS_acml_LIBRARY:FILEPATH=BLAS_acml_LIBRARY-NOTFOUND
 
 //Path to a library.
 BLAS_blas_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libblas.so
 
 //Path to a library.
-BLAS_blis_LIBRARY:FILEPATH=BLAS_blis_LIBRARY-NOTFOUND
+BLAS_cblas_LIBRARY:FILEPATH=BLAS_cblas_LIBRARY-NOTFOUND
 
 //Path to a library.
 BLAS_complib.sgimath_LIBRARY:FILEPATH=BLAS_complib.sgimath_LIBRARY-NOTFOUND
@@ -42,13 +54,10 @@ BLAS_dxml_LIBRARY:FILEPATH=BLAS_dxml_LIBRARY-NOTFOUND
 BLAS_essl_LIBRARY:FILEPATH=BLAS_essl_LIBRARY-NOTFOUND
 
 //Path to a library.
-BLAS_f77blas_LIBRARY:FILEPATH=BLAS_f77blas_LIBRARY-NOTFOUND
-
-//Path to a library.
-BLAS_goto2_LIBRARY:FILEPATH=BLAS_goto2_LIBRARY-NOTFOUND
-
-//Path to a library.
 BLAS_mkl_LIBRARY:FILEPATH=BLAS_mkl_LIBRARY-NOTFOUND
+
+//Path to a library.
+BLAS_mkl_c_dll_LIBRARY:FILEPATH=BLAS_mkl_c_dll_LIBRARY-NOTFOUND
 
 //Path to a library.
 BLAS_mkl_em64t_LIBRARY:FILEPATH=BLAS_mkl_em64t_LIBRARY-NOTFOUND
@@ -57,13 +66,7 @@ BLAS_mkl_em64t_LIBRARY:FILEPATH=BLAS_mkl_em64t_LIBRARY-NOTFOUND
 BLAS_mkl_ia32_LIBRARY:FILEPATH=BLAS_mkl_ia32_LIBRARY-NOTFOUND
 
 //Path to a library.
-BLAS_mkl_intel_LIBRARY:FILEPATH=BLAS_mkl_intel_LIBRARY-NOTFOUND
-
-//Path to a library.
 BLAS_mkl_intel_lp64_LIBRARY:FILEPATH=BLAS_mkl_intel_lp64_LIBRARY-NOTFOUND
-
-//Path to a library.
-BLAS_openblas_LIBRARY:FILEPATH=BLAS_openblas_LIBRARY-NOTFOUND
 
 //Path to a library.
 BLAS_scsl_LIBRARY:FILEPATH=BLAS_scsl_LIBRARY-NOTFOUND
@@ -77,15 +80,19 @@ BLAS_sunperf_LIBRARY:FILEPATH=BLAS_sunperf_LIBRARY-NOTFOUND
 //Path to a library.
 BLAS_vecLib_LIBRARY:FILEPATH=BLAS_vecLib_LIBRARY-NOTFOUND
 
+//Directory containing BLAS, LAPACK and TAUCS
+CGAL_TAUCS_DIR:PATH=
+
 //Path to a program.
 CMAKE_AR:FILEPATH=/usr/bin/ar
 
-//Choose the type of build, options are: None Debug Release RelWithDebInfo
-// MinSizeRel ...
-CMAKE_BUILD_TYPE:STRING=
+//Choose the type of build, options are: Debug, Release.
+CMAKE_BUILD_TYPE:STRING=Debug
 
 //Enable/Disable color output during build.
 CMAKE_COLOR_MAKEFILE:BOOL=ON
+
+CMAKE_CONFIGURATION_TYPES:STRING=Debug;Release
 
 //CXX compiler
 CMAKE_CXX_COMPILER:FILEPATH=/usr/bin/c++
@@ -272,8 +279,8 @@ CoMISo_LIB_DEPENDS:STATIC=general;/usr/lib/x86_64-linux-gnu/libblas.so;
 //Value Computed by CMake
 CoMISo_SOURCE_DIR:STATIC=/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo
 
-//The directory containing a CMake configuration file for Eigen3.
-Eigen3_DIR:PATH=/usr/lib/cmake/eigen3
+//The directory containing a CMake configuration file for F2C.
+F2C_DIR:PATH=F2C_DIR-NOTFOUND
 
 
 ########################
@@ -282,22 +289,12 @@ Eigen3_DIR:PATH=/usr/lib/cmake/eigen3
 
 //ADVANCED property for variable: BLAS_Accelerate_LIBRARY
 BLAS_Accelerate_LIBRARY-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: BLAS_WORKS
-BLAS_WORKS-ADVANCED:INTERNAL=1
-//Have function sgemm_
-BLAS_WORKS:INTERNAL=
 //ADVANCED property for variable: BLAS_acml_LIBRARY
 BLAS_acml_LIBRARY-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: BLAS_acml_mp_LIBRARY
-BLAS_acml_mp_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: BLAS_blas_LIBRARY
 BLAS_blas_LIBRARY-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: BLAS_blas_WORKS
-BLAS_blas_WORKS-ADVANCED:INTERNAL=1
-//Have function sgemm_
-BLAS_blas_WORKS:INTERNAL=1
-//ADVANCED property for variable: BLAS_blis_LIBRARY
-BLAS_blis_LIBRARY-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: BLAS_cblas_LIBRARY
+BLAS_cblas_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: BLAS_complib.sgimath_LIBRARY
 BLAS_complib.sgimath_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: BLAS_cxml_LIBRARY
@@ -306,26 +303,24 @@ BLAS_cxml_LIBRARY-ADVANCED:INTERNAL=1
 BLAS_dxml_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: BLAS_essl_LIBRARY
 BLAS_essl_LIBRARY-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: BLAS_f77blas_LIBRARY
-BLAS_f77blas_LIBRARY-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: BLAS_goto2_LIBRARY
-BLAS_goto2_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: BLAS_mkl_LIBRARY
 BLAS_mkl_LIBRARY-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: BLAS_mkl_c_dll_LIBRARY
+BLAS_mkl_c_dll_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: BLAS_mkl_em64t_LIBRARY
 BLAS_mkl_em64t_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: BLAS_mkl_ia32_LIBRARY
 BLAS_mkl_ia32_LIBRARY-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: BLAS_mkl_intel_LIBRARY
-BLAS_mkl_intel_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: BLAS_mkl_intel_lp64_LIBRARY
 BLAS_mkl_intel_lp64_LIBRARY-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: BLAS_openblas_LIBRARY
-BLAS_openblas_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: BLAS_scsl_LIBRARY
 BLAS_scsl_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: BLAS_sgemm_LIBRARY
 BLAS_sgemm_LIBRARY-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: BLAS_sgemm__blas_f2c_WORKS
+BLAS_sgemm__blas_f2c_WORKS-ADVANCED:INTERNAL=1
+//Have function sgemm_
+BLAS_sgemm__blas_f2c_WORKS:INTERNAL=1
 //ADVANCED property for variable: BLAS_sunperf_LIBRARY
 BLAS_sunperf_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: BLAS_vecLib_LIBRARY
@@ -344,6 +339,8 @@ CMAKE_CACHE_PATCH_VERSION:INTERNAL=4
 CMAKE_COLOR_MAKEFILE-ADVANCED:INTERNAL=1
 //Path to CMake executable.
 CMAKE_COMMAND:INTERNAL=/usr/bin/cmake
+//ADVANCED property for variable: CMAKE_CONFIGURATION_TYPES
+CMAKE_CONFIGURATION_TYPES-ADVANCED:INTERNAL=1
 //Path to cpack program executable.
 CMAKE_CPACK_COMMAND:INTERNAL=/usr/bin/cpack
 //Path to ctest program executable.
@@ -404,14 +401,6 @@ CMAKE_GENERATOR_INSTANCE:INTERNAL=
 CMAKE_GENERATOR_PLATFORM:INTERNAL=
 //Name of generator toolset.
 CMAKE_GENERATOR_TOOLSET:INTERNAL=
-//Have symbol pthread_create
-CMAKE_HAVE_LIBC_CREATE:INTERNAL=
-//Have library pthreads
-CMAKE_HAVE_PTHREADS_CREATE:INTERNAL=
-//Have library pthread
-CMAKE_HAVE_PTHREAD_CREATE:INTERNAL=1
-//Have include pthread.h
-CMAKE_HAVE_PTHREAD_H:INTERNAL=1
 //Source directory with the top level CMakeLists.txt file for this
 // project
 CMAKE_HOME_DIRECTORY:INTERNAL=/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo
@@ -475,8 +464,4 @@ CMAKE_STRIP-ADVANCED:INTERNAL=1
 CMAKE_UNAME:INTERNAL=/usr/bin/uname
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
-//Details about finding BLAS
-FIND_PACKAGE_MESSAGE_DETAILS_BLAS:INTERNAL=[/usr/lib/x86_64-linux-gnu/libblas.so][v()]
-//Details about finding Threads
-FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
 

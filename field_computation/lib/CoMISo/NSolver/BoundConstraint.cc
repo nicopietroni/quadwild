@@ -85,29 +85,7 @@ eval_hessian    ( const double* _x, SMatrixNC& _h      )
 
 bool
 BoundConstraint::
-is_linear() const
-{
-  return true;
-}
-
-
-//-----------------------------------------------------------------------------
-
-
-bool
-BoundConstraint::
-constant_gradient() const
-{
-  return true;
-}
-
-
-//-----------------------------------------------------------------------------
-
-
-bool
-BoundConstraint::
-constant_hessian() const
+is_linear()
 {
   return true;
 }

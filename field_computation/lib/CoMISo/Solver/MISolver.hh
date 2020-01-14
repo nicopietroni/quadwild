@@ -40,7 +40,7 @@
 
 #if COMISO_SUITESPARSE_AVAILABLE
   #include "CholmodSolver.hh"
-#elif COMISO_EIGEN3_AVAILABLE
+#elif COMISO_Eigen3_AVAILABLE
   #include "EigenLDLTSolver.hh"
 #else
   #print "Warning: MISolver requires Suitesparse or Eigen3 support"
@@ -370,7 +370,7 @@ private:
   // declar direct solver depending on availability
 #if COMISO_SUITESPARSE_AVAILABLE
   COMISO::CholmodSolver   direct_solver_;
-#elif COMISO_EIGEN3_AVAILABLE
+#elif COMISO_Eigen3_AVAILABLE
   COMISO::EigenLDLTSolver direct_solver_;
 #else
   #print "Warning: MISolver requires Suitesparse or Eigen3 support"
@@ -385,7 +385,7 @@ private:
 
   bool use_constraint_reordering_;
 
-#if(COMISO_QT_AVAILABLE)
+#if(COMISO_QT4_AVAILABLE)
   friend class COMISO::MISolverDialog;
 #endif
 };

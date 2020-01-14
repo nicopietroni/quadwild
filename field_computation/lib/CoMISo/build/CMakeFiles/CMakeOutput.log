@@ -28,28 +28,28 @@ The CXX compiler identification is GNU, found in "/mnt/OS/Workspace/Progetti/sup
 Determining if the C compiler works passed with the following output:
 Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_ad39d/fast"
-/usr/bin/make -f CMakeFiles/cmTC_ad39d.dir/build.make CMakeFiles/cmTC_ad39d.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_1d8b6/fast"
+/usr/bin/make -f CMakeFiles/cmTC_1d8b6.dir/build.make CMakeFiles/cmTC_1d8b6.dir/build
 make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_ad39d.dir/testCCompiler.c.o
-/usr/bin/cc    -o CMakeFiles/cmTC_ad39d.dir/testCCompiler.c.o   -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp/testCCompiler.c
-Linking C executable cmTC_ad39d
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ad39d.dir/link.txt --verbose=1
-/usr/bin/cc      -rdynamic CMakeFiles/cmTC_ad39d.dir/testCCompiler.c.o  -o cmTC_ad39d 
+Building C object CMakeFiles/cmTC_1d8b6.dir/testCCompiler.c.o
+/usr/bin/cc    -o CMakeFiles/cmTC_1d8b6.dir/testCCompiler.c.o   -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp/testCCompiler.c
+Linking C executable cmTC_1d8b6
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_1d8b6.dir/link.txt --verbose=1
+/usr/bin/cc      -rdynamic CMakeFiles/cmTC_1d8b6.dir/testCCompiler.c.o  -o cmTC_1d8b6 
 make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
 
 
 Detecting C compiler ABI info compiled with the following output:
 Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_df644/fast"
-/usr/bin/make -f CMakeFiles/cmTC_df644.dir/build.make CMakeFiles/cmTC_df644.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_248e0/fast"
+/usr/bin/make -f CMakeFiles/cmTC_248e0.dir/build.make CMakeFiles/cmTC_248e0.dir/build
 make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_df644.dir/CMakeCCompilerABI.c.o
-/usr/bin/cc    -o CMakeFiles/cmTC_df644.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.13/Modules/CMakeCCompilerABI.c
-Linking C executable cmTC_df644
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_df644.dir/link.txt --verbose=1
-/usr/bin/cc     -v -rdynamic CMakeFiles/cmTC_df644.dir/CMakeCCompilerABI.c.o  -o cmTC_df644 
+Building C object CMakeFiles/cmTC_248e0.dir/CMakeCCompilerABI.c.o
+/usr/bin/cc    -o CMakeFiles/cmTC_248e0.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.13/Modules/CMakeCCompilerABI.c
+Linking C executable cmTC_248e0
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_248e0.dir/link.txt --verbose=1
+/usr/bin/cc     -v -rdynamic CMakeFiles/cmTC_248e0.dir/CMakeCCompilerABI.c.o  -o cmTC_248e0 
 Using built-in specs.
 COLLECT_GCC=/usr/bin/cc
 COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper
@@ -61,9 +61,9 @@ Thread model: posix
 gcc version 8.3.0 (Ubuntu 8.3.0-6ubuntu1) 
 COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/
 LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../:/lib/:/usr/lib/
-COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_df644' '-mtune=generic' '-march=x86-64'
- /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/cctPBF9G.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_df644 /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_df644.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o
-COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_df644' '-mtune=generic' '-march=x86-64'
+COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_248e0' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccFzJqwo.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_248e0 /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_248e0.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o
+COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_248e0' '-mtune=generic' '-march=x86-64'
 make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
 
 
@@ -71,14 +71,14 @@ Parsed C implicit link information from above output:
   link line regex: [^( *|.*[/\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
   ignore line: [Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp]
   ignore line: []
-  ignore line: [Run Build Command:"/usr/bin/make" "cmTC_df644/fast"]
-  ignore line: [/usr/bin/make -f CMakeFiles/cmTC_df644.dir/build.make CMakeFiles/cmTC_df644.dir/build]
+  ignore line: [Run Build Command:"/usr/bin/make" "cmTC_248e0/fast"]
+  ignore line: [/usr/bin/make -f CMakeFiles/cmTC_248e0.dir/build.make CMakeFiles/cmTC_248e0.dir/build]
   ignore line: [make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp']
-  ignore line: [Building C object CMakeFiles/cmTC_df644.dir/CMakeCCompilerABI.c.o]
-  ignore line: [/usr/bin/cc    -o CMakeFiles/cmTC_df644.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.13/Modules/CMakeCCompilerABI.c]
-  ignore line: [Linking C executable cmTC_df644]
-  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_df644.dir/link.txt --verbose=1]
-  ignore line: [/usr/bin/cc     -v -rdynamic CMakeFiles/cmTC_df644.dir/CMakeCCompilerABI.c.o  -o cmTC_df644 ]
+  ignore line: [Building C object CMakeFiles/cmTC_248e0.dir/CMakeCCompilerABI.c.o]
+  ignore line: [/usr/bin/cc    -o CMakeFiles/cmTC_248e0.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.13/Modules/CMakeCCompilerABI.c]
+  ignore line: [Linking C executable cmTC_248e0]
+  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_248e0.dir/link.txt --verbose=1]
+  ignore line: [/usr/bin/cc     -v -rdynamic CMakeFiles/cmTC_248e0.dir/CMakeCCompilerABI.c.o  -o cmTC_248e0 ]
   ignore line: [Using built-in specs.]
   ignore line: [COLLECT_GCC=/usr/bin/cc]
   ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper]
@@ -90,13 +90,13 @@ Parsed C implicit link information from above output:
   ignore line: [gcc version 8.3.0 (Ubuntu 8.3.0-6ubuntu1) ]
   ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/]
   ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../:/lib/:/usr/lib/]
-  ignore line: [COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_df644' '-mtune=generic' '-march=x86-64']
-  link line: [ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/cctPBF9G.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_df644 /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_df644.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_248e0' '-mtune=generic' '-march=x86-64']
+  link line: [ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccFzJqwo.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_248e0 /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_248e0.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o]
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/collect2] ==> ignore
     arg [-plugin] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so] ==> ignore
     arg [-plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper] ==> ignore
-    arg [-plugin-opt=-fresolution=/tmp/cctPBF9G.res] ==> ignore
+    arg [-plugin-opt=-fresolution=/tmp/ccFzJqwo.res] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
     arg [-plugin-opt=-pass-through=-lc] ==> ignore
@@ -115,7 +115,7 @@ Parsed C implicit link information from above output:
     arg [-znow] ==> ignore
     arg [-zrelro] ==> ignore
     arg [-o] ==> ignore
-    arg [cmTC_df644] ==> ignore
+    arg [cmTC_248e0] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o] ==> ignore
@@ -127,7 +127,7 @@ Parsed C implicit link information from above output:
     arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
     arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
     arg [-L/usr/lib/gcc/x86_64-linux-gnu/8/../../..] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/8/../../..]
-    arg [CMakeFiles/cmTC_df644.dir/CMakeCCompilerABI.c.o] ==> ignore
+    arg [CMakeFiles/cmTC_248e0.dir/CMakeCCompilerABI.c.o] ==> ignore
     arg [-lgcc] ==> lib [gcc]
     arg [--push-state] ==> ignore
     arg [--as-needed] ==> ignore
@@ -159,14 +159,14 @@ Parsed C implicit link information from above output:
 Detecting C [-std=c11] compiler features compiled with the following output:
 Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_0b285/fast"
-/usr/bin/make -f CMakeFiles/cmTC_0b285.dir/build.make CMakeFiles/cmTC_0b285.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_4fdfc/fast"
+/usr/bin/make -f CMakeFiles/cmTC_4fdfc.dir/build.make CMakeFiles/cmTC_4fdfc.dir/build
 make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_0b285.dir/feature_tests.c.o
-/usr/bin/cc   -std=c11 -o CMakeFiles/cmTC_0b285.dir/feature_tests.c.o   -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.c
-Linking C executable cmTC_0b285
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0b285.dir/link.txt --verbose=1
-/usr/bin/cc      -rdynamic CMakeFiles/cmTC_0b285.dir/feature_tests.c.o  -o cmTC_0b285 
+Building C object CMakeFiles/cmTC_4fdfc.dir/feature_tests.c.o
+/usr/bin/cc   -std=c11 -o CMakeFiles/cmTC_4fdfc.dir/feature_tests.c.o   -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.c
+Linking C executable cmTC_4fdfc
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_4fdfc.dir/link.txt --verbose=1
+/usr/bin/cc      -rdynamic CMakeFiles/cmTC_4fdfc.dir/feature_tests.c.o  -o cmTC_4fdfc 
 make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
 
 
@@ -179,14 +179,14 @@ make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field
 Detecting C [-std=c99] compiler features compiled with the following output:
 Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_e46dc/fast"
-/usr/bin/make -f CMakeFiles/cmTC_e46dc.dir/build.make CMakeFiles/cmTC_e46dc.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_44658/fast"
+/usr/bin/make -f CMakeFiles/cmTC_44658.dir/build.make CMakeFiles/cmTC_44658.dir/build
 make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_e46dc.dir/feature_tests.c.o
-/usr/bin/cc   -std=c99 -o CMakeFiles/cmTC_e46dc.dir/feature_tests.c.o   -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.c
-Linking C executable cmTC_e46dc
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e46dc.dir/link.txt --verbose=1
-/usr/bin/cc      -rdynamic CMakeFiles/cmTC_e46dc.dir/feature_tests.c.o  -o cmTC_e46dc 
+Building C object CMakeFiles/cmTC_44658.dir/feature_tests.c.o
+/usr/bin/cc   -std=c99 -o CMakeFiles/cmTC_44658.dir/feature_tests.c.o   -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.c
+Linking C executable cmTC_44658
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_44658.dir/link.txt --verbose=1
+/usr/bin/cc      -rdynamic CMakeFiles/cmTC_44658.dir/feature_tests.c.o  -o cmTC_44658 
 make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
 
 
@@ -199,14 +199,14 @@ make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field
 Detecting C [-std=c90] compiler features compiled with the following output:
 Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_2b6d4/fast"
-/usr/bin/make -f CMakeFiles/cmTC_2b6d4.dir/build.make CMakeFiles/cmTC_2b6d4.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_08108/fast"
+/usr/bin/make -f CMakeFiles/cmTC_08108.dir/build.make CMakeFiles/cmTC_08108.dir/build
 make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_2b6d4.dir/feature_tests.c.o
-/usr/bin/cc   -std=c90 -o CMakeFiles/cmTC_2b6d4.dir/feature_tests.c.o   -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.c
-Linking C executable cmTC_2b6d4
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_2b6d4.dir/link.txt --verbose=1
-/usr/bin/cc      -rdynamic CMakeFiles/cmTC_2b6d4.dir/feature_tests.c.o  -o cmTC_2b6d4 
+Building C object CMakeFiles/cmTC_08108.dir/feature_tests.c.o
+/usr/bin/cc   -std=c90 -o CMakeFiles/cmTC_08108.dir/feature_tests.c.o   -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.c
+Linking C executable cmTC_08108
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_08108.dir/link.txt --verbose=1
+/usr/bin/cc      -rdynamic CMakeFiles/cmTC_08108.dir/feature_tests.c.o  -o cmTC_08108 
 make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
 
 
@@ -217,28 +217,28 @@ make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field
 Determining if the CXX compiler works passed with the following output:
 Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_25161/fast"
-/usr/bin/make -f CMakeFiles/cmTC_25161.dir/build.make CMakeFiles/cmTC_25161.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_4a20f/fast"
+/usr/bin/make -f CMakeFiles/cmTC_4a20f.dir/build.make CMakeFiles/cmTC_4a20f.dir/build
 make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_25161.dir/testCXXCompiler.cxx.o
-/usr/bin/c++     -o CMakeFiles/cmTC_25161.dir/testCXXCompiler.cxx.o -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
-Linking CXX executable cmTC_25161
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_25161.dir/link.txt --verbose=1
-/usr/bin/c++       -rdynamic CMakeFiles/cmTC_25161.dir/testCXXCompiler.cxx.o  -o cmTC_25161 
+Building CXX object CMakeFiles/cmTC_4a20f.dir/testCXXCompiler.cxx.o
+/usr/bin/c++     -o CMakeFiles/cmTC_4a20f.dir/testCXXCompiler.cxx.o -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
+Linking CXX executable cmTC_4a20f
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_4a20f.dir/link.txt --verbose=1
+/usr/bin/c++       -rdynamic CMakeFiles/cmTC_4a20f.dir/testCXXCompiler.cxx.o  -o cmTC_4a20f 
 make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
 
 
 Detecting CXX compiler ABI info compiled with the following output:
 Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_a119e/fast"
-/usr/bin/make -f CMakeFiles/cmTC_a119e.dir/build.make CMakeFiles/cmTC_a119e.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_b7dd3/fast"
+/usr/bin/make -f CMakeFiles/cmTC_b7dd3.dir/build.make CMakeFiles/cmTC_b7dd3.dir/build
 make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_a119e.dir/CMakeCXXCompilerABI.cpp.o
-/usr/bin/c++     -o CMakeFiles/cmTC_a119e.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.13/Modules/CMakeCXXCompilerABI.cpp
-Linking CXX executable cmTC_a119e
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a119e.dir/link.txt --verbose=1
-/usr/bin/c++      -v -rdynamic CMakeFiles/cmTC_a119e.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_a119e 
+Building CXX object CMakeFiles/cmTC_b7dd3.dir/CMakeCXXCompilerABI.cpp.o
+/usr/bin/c++     -o CMakeFiles/cmTC_b7dd3.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.13/Modules/CMakeCXXCompilerABI.cpp
+Linking CXX executable cmTC_b7dd3
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b7dd3.dir/link.txt --verbose=1
+/usr/bin/c++      -v -rdynamic CMakeFiles/cmTC_b7dd3.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_b7dd3 
 Using built-in specs.
 COLLECT_GCC=/usr/bin/c++
 COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper
@@ -250,9 +250,9 @@ Thread model: posix
 gcc version 8.3.0 (Ubuntu 8.3.0-6ubuntu1) 
 COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/
 LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../:/lib/:/usr/lib/
-COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_a119e' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
- /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccHNknUa.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_a119e /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_a119e.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o
-COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_a119e' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_b7dd3' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccASo64V.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_b7dd3 /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_b7dd3.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o
+COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_b7dd3' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
 make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
 
 
@@ -260,14 +260,14 @@ Parsed CXX implicit link information from above output:
   link line regex: [^( *|.*[/\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
   ignore line: [Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp]
   ignore line: []
-  ignore line: [Run Build Command:"/usr/bin/make" "cmTC_a119e/fast"]
-  ignore line: [/usr/bin/make -f CMakeFiles/cmTC_a119e.dir/build.make CMakeFiles/cmTC_a119e.dir/build]
+  ignore line: [Run Build Command:"/usr/bin/make" "cmTC_b7dd3/fast"]
+  ignore line: [/usr/bin/make -f CMakeFiles/cmTC_b7dd3.dir/build.make CMakeFiles/cmTC_b7dd3.dir/build]
   ignore line: [make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp']
-  ignore line: [Building CXX object CMakeFiles/cmTC_a119e.dir/CMakeCXXCompilerABI.cpp.o]
-  ignore line: [/usr/bin/c++     -o CMakeFiles/cmTC_a119e.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.13/Modules/CMakeCXXCompilerABI.cpp]
-  ignore line: [Linking CXX executable cmTC_a119e]
-  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a119e.dir/link.txt --verbose=1]
-  ignore line: [/usr/bin/c++      -v -rdynamic CMakeFiles/cmTC_a119e.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_a119e ]
+  ignore line: [Building CXX object CMakeFiles/cmTC_b7dd3.dir/CMakeCXXCompilerABI.cpp.o]
+  ignore line: [/usr/bin/c++     -o CMakeFiles/cmTC_b7dd3.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.13/Modules/CMakeCXXCompilerABI.cpp]
+  ignore line: [Linking CXX executable cmTC_b7dd3]
+  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b7dd3.dir/link.txt --verbose=1]
+  ignore line: [/usr/bin/c++      -v -rdynamic CMakeFiles/cmTC_b7dd3.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_b7dd3 ]
   ignore line: [Using built-in specs.]
   ignore line: [COLLECT_GCC=/usr/bin/c++]
   ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper]
@@ -279,13 +279,13 @@ Parsed CXX implicit link information from above output:
   ignore line: [gcc version 8.3.0 (Ubuntu 8.3.0-6ubuntu1) ]
   ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/]
   ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../:/lib/:/usr/lib/]
-  ignore line: [COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_a119e' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
-  link line: [ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccHNknUa.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_a119e /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_a119e.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-rdynamic' '-o' 'cmTC_b7dd3' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
+  link line: [ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccASo64V.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_b7dd3 /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_b7dd3.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o]
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/collect2] ==> ignore
     arg [-plugin] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so] ==> ignore
     arg [-plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper] ==> ignore
-    arg [-plugin-opt=-fresolution=/tmp/ccHNknUa.res] ==> ignore
+    arg [-plugin-opt=-fresolution=/tmp/ccASo64V.res] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
     arg [-plugin-opt=-pass-through=-lc] ==> ignore
@@ -304,7 +304,7 @@ Parsed CXX implicit link information from above output:
     arg [-znow] ==> ignore
     arg [-zrelro] ==> ignore
     arg [-o] ==> ignore
-    arg [cmTC_a119e] ==> ignore
+    arg [cmTC_b7dd3] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o] ==> ignore
@@ -316,7 +316,7 @@ Parsed CXX implicit link information from above output:
     arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
     arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
     arg [-L/usr/lib/gcc/x86_64-linux-gnu/8/../../..] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/8/../../..]
-    arg [CMakeFiles/cmTC_a119e.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+    arg [CMakeFiles/cmTC_b7dd3.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
     arg [-lstdc++] ==> lib [stdc++]
     arg [-lm] ==> lib [m]
     arg [-lgcc_s] ==> lib [gcc_s]
@@ -344,14 +344,14 @@ Parsed CXX implicit link information from above output:
 Detecting CXX [-std=c++2a] compiler features compiled with the following output:
 Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_7269a/fast"
-/usr/bin/make -f CMakeFiles/cmTC_7269a.dir/build.make CMakeFiles/cmTC_7269a.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_d9ed0/fast"
+/usr/bin/make -f CMakeFiles/cmTC_d9ed0.dir/build.make CMakeFiles/cmTC_d9ed0.dir/build
 make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_7269a.dir/feature_tests.cxx.o
-/usr/bin/c++    -std=c++2a -o CMakeFiles/cmTC_7269a.dir/feature_tests.cxx.o -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.cxx
-Linking CXX executable cmTC_7269a
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_7269a.dir/link.txt --verbose=1
-/usr/bin/c++       -rdynamic CMakeFiles/cmTC_7269a.dir/feature_tests.cxx.o  -o cmTC_7269a 
+Building CXX object CMakeFiles/cmTC_d9ed0.dir/feature_tests.cxx.o
+/usr/bin/c++    -std=c++2a -o CMakeFiles/cmTC_d9ed0.dir/feature_tests.cxx.o -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_d9ed0
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d9ed0.dir/link.txt --verbose=1
+/usr/bin/c++       -rdynamic CMakeFiles/cmTC_d9ed0.dir/feature_tests.cxx.o  -o cmTC_d9ed0 
 make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
 
 
@@ -417,14 +417,14 @@ make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field
 Detecting CXX [-std=c++17] compiler features compiled with the following output:
 Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_e3cd9/fast"
-/usr/bin/make -f CMakeFiles/cmTC_e3cd9.dir/build.make CMakeFiles/cmTC_e3cd9.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_0ffb3/fast"
+/usr/bin/make -f CMakeFiles/cmTC_0ffb3.dir/build.make CMakeFiles/cmTC_0ffb3.dir/build
 make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_e3cd9.dir/feature_tests.cxx.o
-/usr/bin/c++    -std=c++17 -o CMakeFiles/cmTC_e3cd9.dir/feature_tests.cxx.o -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.cxx
-Linking CXX executable cmTC_e3cd9
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e3cd9.dir/link.txt --verbose=1
-/usr/bin/c++       -rdynamic CMakeFiles/cmTC_e3cd9.dir/feature_tests.cxx.o  -o cmTC_e3cd9 
+Building CXX object CMakeFiles/cmTC_0ffb3.dir/feature_tests.cxx.o
+/usr/bin/c++    -std=c++17 -o CMakeFiles/cmTC_0ffb3.dir/feature_tests.cxx.o -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_0ffb3
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0ffb3.dir/link.txt --verbose=1
+/usr/bin/c++       -rdynamic CMakeFiles/cmTC_0ffb3.dir/feature_tests.cxx.o  -o cmTC_0ffb3 
 make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
 
 
@@ -490,14 +490,14 @@ make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field
 Detecting CXX [-std=c++14] compiler features compiled with the following output:
 Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_f7973/fast"
-/usr/bin/make -f CMakeFiles/cmTC_f7973.dir/build.make CMakeFiles/cmTC_f7973.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_572e4/fast"
+/usr/bin/make -f CMakeFiles/cmTC_572e4.dir/build.make CMakeFiles/cmTC_572e4.dir/build
 make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_f7973.dir/feature_tests.cxx.o
-/usr/bin/c++    -std=c++14 -o CMakeFiles/cmTC_f7973.dir/feature_tests.cxx.o -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.cxx
-Linking CXX executable cmTC_f7973
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f7973.dir/link.txt --verbose=1
-/usr/bin/c++       -rdynamic CMakeFiles/cmTC_f7973.dir/feature_tests.cxx.o  -o cmTC_f7973 
+Building CXX object CMakeFiles/cmTC_572e4.dir/feature_tests.cxx.o
+/usr/bin/c++    -std=c++14 -o CMakeFiles/cmTC_572e4.dir/feature_tests.cxx.o -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_572e4
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_572e4.dir/link.txt --verbose=1
+/usr/bin/c++       -rdynamic CMakeFiles/cmTC_572e4.dir/feature_tests.cxx.o  -o cmTC_572e4 
 make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
 
 
@@ -563,14 +563,14 @@ make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field
 Detecting CXX [-std=c++11] compiler features compiled with the following output:
 Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_8a57f/fast"
-/usr/bin/make -f CMakeFiles/cmTC_8a57f.dir/build.make CMakeFiles/cmTC_8a57f.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_b403a/fast"
+/usr/bin/make -f CMakeFiles/cmTC_b403a.dir/build.make CMakeFiles/cmTC_b403a.dir/build
 make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_8a57f.dir/feature_tests.cxx.o
-/usr/bin/c++    -std=c++11 -o CMakeFiles/cmTC_8a57f.dir/feature_tests.cxx.o -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.cxx
-Linking CXX executable cmTC_8a57f
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_8a57f.dir/link.txt --verbose=1
-/usr/bin/c++       -rdynamic CMakeFiles/cmTC_8a57f.dir/feature_tests.cxx.o  -o cmTC_8a57f 
+Building CXX object CMakeFiles/cmTC_b403a.dir/feature_tests.cxx.o
+/usr/bin/c++    -std=c++11 -o CMakeFiles/cmTC_b403a.dir/feature_tests.cxx.o -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_b403a
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b403a.dir/link.txt --verbose=1
+/usr/bin/c++       -rdynamic CMakeFiles/cmTC_b403a.dir/feature_tests.cxx.o  -o cmTC_b403a 
 make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
 
 
@@ -636,14 +636,14 @@ make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field
 Detecting CXX [-std=c++98] compiler features compiled with the following output:
 Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_9109f/fast"
-/usr/bin/make -f CMakeFiles/cmTC_9109f.dir/build.make CMakeFiles/cmTC_9109f.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_81e5c/fast"
+/usr/bin/make -f CMakeFiles/cmTC_81e5c.dir/build.make CMakeFiles/cmTC_81e5c.dir/build
 make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_9109f.dir/feature_tests.cxx.o
-/usr/bin/c++    -std=c++98 -o CMakeFiles/cmTC_9109f.dir/feature_tests.cxx.o -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.cxx
-Linking CXX executable cmTC_9109f
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9109f.dir/link.txt --verbose=1
-/usr/bin/c++       -rdynamic CMakeFiles/cmTC_9109f.dir/feature_tests.cxx.o  -o cmTC_9109f 
+Building CXX object CMakeFiles/cmTC_81e5c.dir/feature_tests.cxx.o
+/usr/bin/c++    -std=c++98 -o CMakeFiles/cmTC_81e5c.dir/feature_tests.cxx.o -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_81e5c
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_81e5c.dir/link.txt --verbose=1
+/usr/bin/c++       -rdynamic CMakeFiles/cmTC_81e5c.dir/feature_tests.cxx.o  -o cmTC_81e5c 
 make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
 
 
@@ -704,45 +704,17 @@ make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field
     Feature record: CXX_FEATURE:0cxx_variable_templates
     Feature record: CXX_FEATURE:0cxx_variadic_macros
     Feature record: CXX_FEATURE:0cxx_variadic_templates
-Determining if the include file pthread.h exists passed with the following output:
-Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
-
-Run Build Command:"/usr/bin/make" "cmTC_a1655/fast"
-/usr/bin/make -f CMakeFiles/cmTC_a1655.dir/build.make CMakeFiles/cmTC_a1655.dir/build
-make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_a1655.dir/CheckIncludeFile.c.o
-/usr/bin/cc    -o CMakeFiles/cmTC_a1655.dir/CheckIncludeFile.c.o   -c /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp/CheckIncludeFile.c
-Linking C executable cmTC_a1655
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a1655.dir/link.txt --verbose=1
-/usr/bin/cc      -rdynamic CMakeFiles/cmTC_a1655.dir/CheckIncludeFile.c.o  -o cmTC_a1655 
-make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-
-
-Determining if the function pthread_create exists in the pthread passed with the following output:
-Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
-
-Run Build Command:"/usr/bin/make" "cmTC_892e6/fast"
-/usr/bin/make -f CMakeFiles/cmTC_892e6.dir/build.make CMakeFiles/cmTC_892e6.dir/build
-make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_892e6.dir/CheckFunctionExists.c.o
-/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_892e6.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.13/Modules/CheckFunctionExists.c
-Linking C executable cmTC_892e6
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_892e6.dir/link.txt --verbose=1
-/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_892e6.dir/CheckFunctionExists.c.o  -o cmTC_892e6 -lpthread 
-make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-
-
 Determining if the function sgemm_ exists passed with the following output:
 Change Dir: /mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_df0fd/fast"
-/usr/bin/make -f CMakeFiles/cmTC_df0fd.dir/build.make CMakeFiles/cmTC_df0fd.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_7dd54/fast"
+/usr/bin/make -f CMakeFiles/cmTC_7dd54.dir/build.make CMakeFiles/cmTC_7dd54.dir/build
 make[1]: Entering directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_df0fd.dir/CheckFunctionExists.c.o
-/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=sgemm_   -o CMakeFiles/cmTC_df0fd.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.13/Modules/CheckFunctionExists.c
-Linking C executable cmTC_df0fd
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_df0fd.dir/link.txt --verbose=1
-/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=sgemm_    -rdynamic CMakeFiles/cmTC_df0fd.dir/CheckFunctionExists.c.o  -o cmTC_df0fd /usr/lib/x86_64-linux-gnu/libblas.so 
+Building C object CMakeFiles/cmTC_7dd54.dir/CheckFunctionExists.c.o
+/usr/bin/cc -DBLAS_USE_F2C  -DCHECK_FUNCTION_EXISTS=sgemm_   -o CMakeFiles/cmTC_7dd54.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.13/Modules/CheckFunctionExists.c
+Linking C executable cmTC_7dd54
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_7dd54.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=sgemm_    -rdynamic CMakeFiles/cmTC_7dd54.dir/CheckFunctionExists.c.o  -o cmTC_7dd54 /usr/lib/x86_64-linux-gnu/libblas.so 
 make[1]: Leaving directory '/mnt/OS/Workspace/Progetti/supercaprettolation/field_computation/lib/CoMISo/build/CMakeFiles/CMakeTmp'
 
 

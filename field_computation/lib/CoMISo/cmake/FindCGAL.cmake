@@ -14,8 +14,7 @@ GET_FILENAME_COMPONENT(module_file_path ${CMAKE_CURRENT_LIST_FILE} PATH )
 IF (NOT APPLE )
 	# Look for the header file.
 	FIND_PATH(CGAL_INCLUDE_DIR NAMES CGAL/auto_link/auto_link.h
-        	                   PATHS /usr/include
-        	                   ../../External/include
+        	                   PATHS ../../External/include
                                  "C:/libs/CGAL-3.6/include"
 								 "C:/Program Files/CGAL-3.5/include"
                                  "C:/Programme/CGAL-3.5/include"
@@ -62,14 +61,14 @@ IF(CGAL_INCLUDE_DIR )
                 PATHS "/opt/local/lib/"
                 DOC "Directory containing the CGAL library"
                ) 
-    list ( APPEND CGAL_LIBRARIES CGAL CGAL_Core CGAL_ImageIO mpfr )
+    list ( APPEND CGAL_LIBRARIES CGAL CGAL_Core CGAL_ImageIO )
     set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -frounding-math")
     set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -frounding-math")
 
   ELSE( WIN32 )
     find_path(CGAL_LIBRARY_DIR
               NAMES "libCGAL.so"
-              PATHS "/usr/lib/" "/usr/lib64" 
+              PATHS "/usr/lib/"
               DOC "Directory containing the CGAL library"
              )
     list ( APPEND CGAL_LIBRARIES CGAL CGAL_Core CGAL_ImageIO CGAL_Qt4) 

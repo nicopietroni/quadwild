@@ -40,15 +40,15 @@ if( WIN32 )
 else( WIN32 )
    IF( APPLE)
 	   FIND_PATH( CHOLMOD_INCLUDE_DIR cholmod.h
-        	      PATHS  /opt/local/include/ufsparse )
+        	      PATHS  /opt/local/include/ufsparse
+        	             /usr/local/include)
 
            FIND_PATH( SUITESPARSE_LIBRARY_DIR
-                      NAMES libSuiteSparse.dylib
-                      PATHS /opt/local/lib )
+                      NAMES libcholmod.a 
+                      PATHS /opt/local/lib
+                            /usr/local/lib)
 
-           list ( APPEND SUITESPARSE_LIBRARY_DIRS ${SUITESPARSE_LIBRARY_DIR} )
-
-           list ( APPEND SUITESPARSE_LIBRARIES SuiteSparse)
+	  
 
    ELSE(APPLE)
 	   FIND_PATH( CHOLMOD_INCLUDE_DIR cholmod.h
@@ -76,28 +76,29 @@ else( WIN32 )
 
    # if we found the library, add it to the defined libraries
    IF ( SUITESPARSE_LIBRARY_DIR )
-
-       # Skipped, as this is set for apple in the block above
-       if (NOT APPLE)
-         list ( APPEND SUITESPARSE_LIBRARIES amd)
-         list ( APPEND SUITESPARSE_LIBRARIES btf)
-         list ( APPEND SUITESPARSE_LIBRARIES camd)
-         list ( APPEND SUITESPARSE_LIBRARIES ccolamd)
-         list ( APPEND SUITESPARSE_LIBRARIES cholmod)
-         list ( APPEND SUITESPARSE_LIBRARIES colamd)
- #       list ( APPEND SUITESPARSE_LIBRARIES csparse)
-         list ( APPEND SUITESPARSE_LIBRARIES cxsparse)
-         list ( APPEND SUITESPARSE_LIBRARIES klu)
- #       list ( APPEND SUITESPARSE_LIBRARIES spqr)
-         list ( APPEND SUITESPARSE_LIBRARIES umfpack)
-       endif()
+       list ( APPEND SUITESPARSE_LIBRARIES amd)
+       list ( APPEND SUITESPARSE_LIBRARIES btf)
+       list ( APPEND SUITESPARSE_LIBRARIES camd)
+       list ( APPEND SUITESPARSE_LIBRARIES ccolamd)
+       list ( APPEND SUITESPARSE_LIBRARIES cholmod)
+       list ( APPEND SUITESPARSE_LIBRARIES colamd)
+#       list ( APPEND SUITESPARSE_LIBRARIES csparse)
+       list ( APPEND SUITESPARSE_LIBRARIES cxsparse)
+       list ( APPEND SUITESPARSE_LIBRARIES klu)
+#       list ( APPEND SUITESPARSE_LIBRARIES spqr)
+       list ( APPEND SUITESPARSE_LIBRARIES umfpack)
+   
+       IF( APPLE )
+         list ( APPEND SUITESPARSE_LIBRARIES tbb)
+         list ( APPEND SUITESPARSE_LIBRARIES suitesparseconfig)
+       ENDIF( APPLE )
    
        # Metis and spqr are optional
        FIND_LIBRARY( SUITESPARSE_METIS_LIBRARY
                      NAMES metis
                      PATHS ${SUITESPARSE_LIBRARY_DIR} )
        IF (SUITESPARSE_METIS_LIBRARY)			
-	  list ( APPEND SUITESPARSE_LIBRARIES ${SUITESPARSE_METIS_LIBRARY})
+	  list ( APPEND SUITESPARSE_LIBRARIES metis)
        ENDIF(SUITESPARSE_METIS_LIBRARY)
 
        if(EXISTS  "${CHOLMOD_INCLUDE_DIR}/SuiteSparseQR.hpp")
@@ -118,6 +119,7 @@ else( WIN32 )
     ENDIF( SUITESPARSE_LIBRARY_DIR )  
    
 endif( WIN32 )
+
 
 IF (SUITESPARSE_INCLUDE_DIRS AND SUITESPARSE_LIBRARIES)
    IF(WIN32)

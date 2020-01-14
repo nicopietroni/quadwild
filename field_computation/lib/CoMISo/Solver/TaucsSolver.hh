@@ -20,9 +20,6 @@
 //== INCLUDES =================================================================
 #include <CoMISo/Config/CoMISoDefines.hh>
 
-#include "GMM_Tools.hh"
-#include <iostream>
-#include <vector>
 
 #ifdef WIN32
         extern "C"
@@ -34,6 +31,11 @@
 #else
         #include <taucs.h>
 #endif
+
+
+#include "GMM_Tools.hh"
+#include <iostream>
+#include <vector>
 
 
 //== NAMESPACES ===============================================================

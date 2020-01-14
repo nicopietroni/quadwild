@@ -1,6 +1,6 @@
 //=============================================================================
 //
-//  CLASS NProblemInterface
+//  CLASS NProblemGmmInterface
 //
 //=============================================================================
 
@@ -11,11 +11,10 @@
 
 //== COMPILE-TIME PACKAGE REQUIREMENTS ========================================
 #include <CoMISo/Config/config.hh>
-#if COMISO_EIGEN3_AVAILABLE
+#if COMISO_Eigen3_AVAILABLE
 
 //== INCLUDES =================================================================
 
-#include <iostream>
 
 #include <Eigen/Eigen>
 #if !(EIGEN_VERSION_AT_LEAST(3,1,0))
@@ -35,7 +34,7 @@ namespace COMISO {
 
 	      
 
-/** \class NProblemInterface NProblemGmmInterface.hh <COMISO/NSolver/NPRoblemInterface.hh>
+/** \class NProblemGmmInterface NProblemGmmInterface.hh <ACG/.../NPRoblemGmmInterface.hh>
 
     Brief Description.
   
@@ -67,8 +66,7 @@ public:
   virtual void   store_result ( const double* _x               ) = 0;
 
   // advanced properties
-  virtual bool   constant_gradient() const { return false; }
-  virtual bool   constant_hessian()  const { return false; }
+  virtual bool   constant_hessian() { return false; }
 
 };
 
@@ -76,7 +74,7 @@ public:
 //=============================================================================
 } // namespace COMISO
 //=============================================================================
-#endif // COMISO_EIGEN3_AVAILABLE
+#endif // COMISO_Eigen3_AVAILABLE
 //=============================================================================
 #endif // COMISO_NPROBLEMGMMINTERFACE_HH defined
 //=============================================================================

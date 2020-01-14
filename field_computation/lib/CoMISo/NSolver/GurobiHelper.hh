@@ -11,7 +11,7 @@
 
 //== COMPILE-TIME PACKAGE REQUIREMENTS ========================================
 #include <CoMISo/Config/config.hh>
-#if (COMISO_GUROBI_AVAILABLE && COMISO_BOOST_AVAILABLE)
+#if COMISO_GUROBI_AVAILABLE
 //=============================================================================
 
 #include <gurobi_c++.h>
