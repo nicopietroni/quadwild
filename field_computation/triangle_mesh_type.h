@@ -14,6 +14,7 @@
 #include <iostream>
 #include <fstream>
 
+
 class PolyFace;
 class PolyVertex;
 
@@ -24,9 +25,9 @@ class PolyVertex:public vcg::Vertex<	PUsedTypes,
         vcg::vertex::Coord3d,
         vcg::vertex::Normal3d//,
         /*vcg::vertex::Mark,
-                                        vcg::vertex::BitFlags,
-                                        vcg::vertex::Qualityd,
-                                        vcg::vertex::TexCoord2d*/>{} ;
+                                                vcg::vertex::BitFlags,
+                                                vcg::vertex::Qualityd,
+                                                vcg::vertex::TexCoord2d*/>{} ;
 
 class PolyFace:public vcg::Face<
         PUsedTypes
@@ -38,9 +39,9 @@ class PolyFace:public vcg::Face<
         ,vcg::face::BitFlags // bit flags
         ,vcg::face::Normal3d // normal
         /*,vcg::face::Color4b  // color
-                                        ,vcg::face::Qualityd      // face quality.
-                                        ,vcg::face::BitFlags
-                                        ,vcg::face::Mark*/
+                                                ,vcg::face::Qualityd      // face quality.
+                                                ,vcg::face::BitFlags
+                                                ,vcg::face::Mark*/
         ,vcg::face::CurvatureDird> {
 };
 
@@ -197,10 +198,10 @@ private:
         for (size_t i=0;i<face.size();i++)
             for (size_t j=0;j<3;j++)
             {
-               if (IsConcaveEdge(face[i],j))
-                   face[i].FKind[j]=ETConcave;
-               else
-                   face[i].FKind[j]=ETConvex;
+                if (IsConcaveEdge(face[i],j))
+                    face[i].FKind[j]=ETConcave;
+                else
+                    face[i].FKind[j]=ETConvex;
             }
     }
 
@@ -720,6 +721,7 @@ public:
                     face[i].FKind[j]=ETConvex;
                 }
             }
+        std::cout<<"There is "<<SharpLenght()<<" sharp lenght"<<std::endl;
     }
 
     void GLDrawSharpEdges()
@@ -747,6 +749,39 @@ public:
         glEnd();
         glPopAttrib();
     }
+
+    ScalarType SharpLenght()
+    {
+        ScalarType LSharp=0;
+        for (size_t i=0;i<face.size();i++)
+            for (size_t j=0;j<3;j++)
+            {
+                if (face[i].IsFaceEdgeS(j))
+                   LSharp+=(face[i].P0(j)-face[i].P1(j)).Norm();
+            }
+        return (LSharp/2);
+    }
+
+    ScalarType Area()
+    {
+        ScalarType CurrA=0;
+        for (size_t i=0;i<face.size();i++)
+            CurrA+=vcg::DoubleArea(face[i]);
+        return (CurrA/2);
+    }
+
+
+    bool SufficientFeatures(ScalarType SharpFactor)
+    {
+        ScalarType sqrtCurrA=sqrt(Area());
+        ScalarType SharpL=SharpLenght();
+        std::cout<<"Sqrt Area "<<sqrtCurrA<<std::endl;
+        std::cout<<"Sharp Lenght "<<SharpL<<std::endl;
+        ScalarType Ratio=SharpL/sqrtCurrA;
+        std::cout<<"Ratio "<<Ratio<<std::endl;
+        return(Ratio>SharpFactor);
+    }
+
 };
 
 

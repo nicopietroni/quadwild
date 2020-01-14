@@ -50,7 +50,7 @@
 //#include <wrap/io_trimesh/import.h>
 
 #include<vcg/complex/algorithms/hole.h>
-
+extern bool do_batch;
 extern std::string pathM;
 
 int main(int argc, char *argv[])
@@ -74,6 +74,9 @@ int main(int argc, char *argv[])
     }
     assert(argc>1);
     pathM=std::string(argv[1]);
+
+    if ((argc>2)&&(std::string(argv[2])==std::string("batch")))
+        do_batch=true;
 
     GLWidget window;
 

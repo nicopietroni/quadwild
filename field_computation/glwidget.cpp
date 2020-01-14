@@ -79,7 +79,7 @@ typedef typename MyTriMesh::CoordType CoordType;
 int Iterations;
 ScalarType EdgeStep;
 ScalarType Multiplier=2;
-
+ScalarType SharpFactor=6;
 ScalarType SharpDegree=45;
 
 int xMouse,yMouse;
@@ -90,6 +90,7 @@ typedef FieldSmoother<MyTriMesh> FieldSmootherType;
 FieldSmootherType::SmoothParam FieldParam;
 
 AutoRemesher<MyTriMesh>::Params RemPar;
+bool do_batch=false;
 
 void TW_CALL AutoRemesh(void *)
 {
@@ -106,10 +107,9 @@ void TW_CALL AutoRemesh(void *)
 
 void TW_CALL InitSharpFeatures(void *)
 {
-    //tri_mesh.Clear();
-    //vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,remeshed_mesh);
     tri_mesh.UpdateDataStructures();
     tri_mesh.InitSharpFeatures(SharpDegree);
+
 }
 
 void TW_CALL RefineIfNeeded(void *)
@@ -126,7 +126,7 @@ void TW_CALL SmoothField(void *)
     //Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
 }
 
-void TW_CALL SaveData(void *)
+void SaveAllData()
 {
     std::string projM=pathM;
     size_t indexExt=projM.find_last_of(".");
@@ -141,6 +141,11 @@ void TW_CALL SaveData(void *)
     tri_mesh.SaveField(fieldName.c_str());
     tri_mesh.SaveSharpFeatures(sharpName.c_str());
     //tri_mesh.SaveTriMesh()
+}
+
+void TW_CALL SaveData(void *)
+{
+    SaveAllData();
 }
 
 void SetFieldBarSizePosition(QWidget *w)
@@ -159,21 +164,6 @@ void InitFieldBar(QWidget *w)
     barQuad = TwNewBar("QuadWild");
 
     SetFieldBarSizePosition(w);
-
-    //    TwAddVarRW(barQuad,"Iterations",TW_TYPE_INT32, &Iterations," label='Iterations'");
-    //    TwAddVarRW(barQuad,"Edge Size",TW_TYPE_DOUBLE, &EdgeStep," label='Edge Size'");
-    //    TwAddVarRW(barField,"Propagation",TW_TYPE_INT32, &Param.PropagationSteps," label='Prop Steps'");
-    //    TwAddVarRW(barField,"Clean Folds",TW_TYPE_BOOL8, &Param.CleanFolds," label='Clean Folds'");
-    //    TwAddVarRW(barField,"Interleave Smooth",TW_TYPE_BOOL8, &Param.InterleaveSmooth," label='Interleave Smooth'");
-    //    TwAddVarRW(barField,"Final Smooth",TW_TYPE_BOOL8, &Param.FinalSmooth," label='Final Smooth'");
-
-
-    //    TwAddVarRW(barField,"Exit At",TW_TYPE_INT32, &ExitAt," label='Exit At'");
-    //    TwAddVarRW(barQuad,"Multiplier",TW_TYPE_DOUBLE, &Multiplier," label='Multiplier'");
-    //    TwAddButton(barQuad,"Average",AverageEdge,0,"label='Set Average Edge'");
-    //    TwAddButton(barQuad,"Optimal",OptimalEdge,0,"label='Set Optimal Edge'");
-
-    //    TwAddButton(barQuad,"Remesh",Remesh,0,"label='Remesh'");
 
     TwAddVarRW(barQuad,"SharpDegree",TW_TYPE_DOUBLE, &SharpDegree," label='Sharp Degree'");
     TwAddVarRW(barQuad,"LimitConcave",TW_TYPE_DOUBLE, &tri_mesh.LimitConcave," label='Limit Concave'");
@@ -199,11 +189,42 @@ void InitFieldBar(QWidget *w)
 
     TwAddButton(barQuad,"SaveData",SaveData,0,"label='Save Data'");
 
-
-    //    TwAddButton(barField,"FindEnvelope",FindEnvelope,0,"label='Find Envelope '");
-    //    TwAddButton(barField,"EvenCorr",TestCorrection,0,"label='Test Even Correction'");
 }
 
+void BatchProcess ()
+{
+    //SHARP FEATURE
+    tri_mesh.UpdateDataStructures();
+    tri_mesh.InitSharpFeatures(SharpDegree);
+
+    //REMESH
+    std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(tri_mesh,RemPar);
+    tri_mesh.Clear();
+    vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
+    tri_mesh.UpdateDataStructures();
+
+    //REFINE IF NEEDED
+    tri_mesh.InitSharpFeatures(SharpDegree);
+    tri_mesh.RefineIfNeeded();
+
+    //FIELD SMOOTH
+    bool UseNPoly=tri_mesh.SufficientFeatures(SharpFactor);
+    if (UseNPoly)
+    {
+        std::cout<<"Using NPoly"<<std::endl;
+        FieldParam.SmoothM=SMNPoly;
+    }
+    else
+    {
+        std::cout<<"Using Comiso"<<std::endl;
+        FieldParam.SmoothM=SMMiq;
+        FieldParam.alpha_curv=0.3;
+    }
+    tri_mesh.SmoothField(FieldParam);
+
+    //SAVE
+    SaveAllData();
+}
 
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
@@ -219,20 +240,20 @@ GLWidget::GLWidget(QWidget *parent)
     if (AllQuad)
     {
         drawfield=true;
-
     }
     std::cout<<"Loaded "<<tri_mesh.face.size()<<" faces "<<std::endl;
     std::cout<<"Loaded "<<tri_mesh.vert.size()<<" vertices "<<std::endl;
 
     glWrap.m=&tri_mesh;
-    //    original_mesh.Clear();
-    //    vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(original_mesh,tri_mesh);
-    //    remeshed_mesh.Clear();
-    //    vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(remeshed_mesh,tri_mesh);
 
     tri_mesh.UpdateDataStructures();
 
     tri_mesh.LimitConcave=0;
+    if (do_batch)
+    {
+        BatchProcess();
+        exit(0);
+    }
     //remeshed_mesh.UpdateDataStructures();
     Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
 }
