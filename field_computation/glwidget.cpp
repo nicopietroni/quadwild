@@ -94,13 +94,13 @@ AutoRemesher<MyTriMesh>::Params RemPar;
 void TW_CALL AutoRemesh(void *)
 {
    tri_mesh.UpdateDataStructures();
-   vcg::tri::IsotropicRemeshing<MyTriMesh>::Params par;
-   par.minLength=tri_mesh.bbox.Diag()*0.005;
-   par.maxLength=tri_mesh.bbox.Diag()*0.01;
-   vcg::tri::IsotropicRemeshing<MyTriMesh>::Do(tri_mesh,par);
-   //std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(tri_mesh,RemPar);
-   //tri_mesh.Clear();
-   //vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
+//   vcg::tri::IsotropicRemeshing<MyTriMesh>::Params par;
+//   par.minLength=tri_mesh.bbox.Diag()*0.005;
+//   par.maxLength=tri_mesh.bbox.Diag()*0.01;
+//   vcg::tri::IsotropicRemeshing<MyTriMesh>::Do(tri_mesh,par);
+   std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(tri_mesh,RemPar);
+   tri_mesh.Clear();
+   vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
    tri_mesh.UpdateDataStructures();
 }
 
