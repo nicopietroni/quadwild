@@ -13,6 +13,7 @@
 
 #include <memory>
 
+#define DEBUG
 template <class Mesh>
 class AutoRemesher {
 
@@ -53,6 +54,7 @@ class AutoRemesher {
 		StaticGrid grid;
 		grid.Set(projectMesh.face.begin(), projectMesh.face.end());
 
+
 		do
 		{
 			vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
@@ -63,17 +65,10 @@ class AutoRemesher {
 			{
 				FaceType & f = m.face[i];
 
-				ScalarType s = vcg::Perimeter(f)/2.;
-				ScalarType a = vcg::Distance(f.cP(0), f.cP(1));
-				ScalarType b = vcg::Distance(f.cP(1), f.cP(2));
-				ScalarType c = vcg::Distance(f.cP(2), f.cP(0));
-				ScalarType heron = std::sqrt(s*(s-a)*s*(s-b)*(s-c));
-
-				ScalarType minEdge = std::min(std::min(a, b), c);
 				ScalarType quality = vcg::QualityRadii(f.cP(0), f.cP(1), f.cP(2));
 				ScalarType area = vcg::DoubleArea(f);
 
-				if ((quality <= 0.000000001 /*&& area <= 0.00000001*/) /*|| minEdge <= 0.000001*/)
+				if ((quality <= 0.00000001 /*&& area <= 0.00000001*/) /*|| minEdge <= 0.000001*/)
 				{
 					//find longest edge
 					double edges[3];
@@ -86,16 +81,16 @@ class AutoRemesher {
 						continue;
 
 
+					auto f1 = f.cFFp(longestIdx);
 					vcg::tri::Mark(m,f.V2(longestIdx));
-					if(vcg::face::CheckFlipEdge<FaceType>(f, longestIdx))  {
-
+					if (!vcg::face::IsBorder(f, longestIdx) && vcg::face::IsManifold(f, longestIdx) && vcg::face::checkFlipEdgeNotManifold<FaceType>(f, longestIdx))  {
 
 						// Check if EdgeFlipping improves quality
 						FacePointer g = f.FFp(longestIdx); int k = f.FFi(longestIdx);
 						vcg::Triangle3<ScalarType> t1(f.P(longestIdx), f.P1(longestIdx), f.P2(longestIdx)), t2(g->P(k), g->P1(k), g->P2(k)),
 						        t3(f.P(longestIdx), g->P2(k), f.P2(longestIdx)), t4(g->P(k), f.P2(longestIdx), g->P2(k));
 
-						if ( std::min( QualityFace(t1), QualityFace(t2) ) < std::min( QualityFace(t3), QualityFace(t4) ))
+						if ( std::min( QualityFace(t1), QualityFace(t2) ) <= std::min( QualityFace(t3), QualityFace(t4) ))
 						{
 							ScalarType dist;
 							CoordType closest;
@@ -107,7 +102,7 @@ class AutoRemesher {
 							if (fp1 == NULL)
 								continue;
 
-							vcg::face::FlipEdge<FaceType>(f, longestIdx);
+							vcg::face::FlipEdgeNotManifold<FaceType>(f, longestIdx);
 							++count;
 						}
 					}
@@ -136,7 +131,7 @@ public:
 
 
 
-	static std::shared_ptr<Mesh> CleanMesh(Mesh & m, const bool & splitNonManifold = true)
+	static std::shared_ptr<Mesh> CleanMesh(Mesh & m, const bool & splitNonManifold = false)
 	{
 		std::shared_ptr<Mesh> ret = std::make_shared<Mesh>();
 
@@ -185,7 +180,7 @@ public:
 		vcg::tri::UpdateBounding<Mesh>::Box(m);
 		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
 
-        typename vcg::tri::IsotropicRemeshing<Mesh>::Params para;
+		vcg::tri::IsotropicRemeshing<Mesh>::Params para;
 		para.iter = par.iterations;
 		para.SetFeatureAngleDeg(par.creaseAngle);
 		para.splitFlag    = true;
