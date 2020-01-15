@@ -1,0 +1,3 @@
+GL_ARB_seamless_cube_map
+http://www.opengl.org/registry/specs/ARB/seamless_cube_map.txt
+	GL_TEXTURE_CUBE_MAP_SEAMLESS 0x884F

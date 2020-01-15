@@ -1,0 +1,6 @@
+Srate 0.4
+Drift 100
+Split 0
+IncreaseValRem 1
+IrregularRem 0
+DistortionL 1.2
