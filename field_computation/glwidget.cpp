@@ -229,13 +229,16 @@ void BatchProcess ()
 	RemPar.userSelectedCreases = true;
 	RemPar.surfDistCheck = true;
 
+	std::cout << "[fieldComputation] Mesh cleaning..." << std::endl;
 	std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh, true);
 
+	std::cout << "[fieldComputation] Feature Extraction..." << std::endl;
 	clean->UpdateDataStructures();
 	clean->InitSharpFeatures(sharp_feature_thr);
 	clean->ErodeDilate(feature_erode_dilate);
 
 	//REMESH
+	std::cout << "[fieldComputation] Initial Remeshing..." << std::endl;
 	std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
 
     tri_mesh.Clear();
@@ -260,6 +263,8 @@ void BatchProcess ()
         FieldParam.SmoothM=SMMiq;
         FieldParam.alpha_curv=0.3;
     }
+
+    std::cout << "[fieldComputation] Smooth Field Computation..." << std::endl;
     tri_mesh.SmoothField(FieldParam);
 
     //SAVE

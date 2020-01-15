@@ -143,13 +143,14 @@ public:
 
 		vcg::tri::UpdateTopology<Mesh>::FaceFace(*ret);
 
+		std::cout << "[AutoRemeshCleaner] Removing colinear faces by flip..." << std::endl;
 		removeColinearFaces(*ret);
 
 
 		if (splitNonManifold)
 		{
 			vcg::tri::UpdateTopology<Mesh>::FaceFace(*ret);
-			vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(*ret, 0);
+			vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(*ret, 0.0000001);
 			vcg::tri::UpdateTopology<Mesh>::FaceFace(*ret);
 			vcg::tri::ForEachFace(*ret, [] (FaceType & f) {
 				for (int i = 0; i < 3; ++i)
@@ -163,11 +164,12 @@ public:
 
 		vcg::tri::UpdateTopology<Mesh>::FaceFace(*ret);
 
+		std::cout << "[AutoRemeshCleaner] Attempting to coherently orient faces..." << std::endl;
 		bool oriented = false, orientable = false;
 		vcg::tri::Clean<Mesh>::OrientCoherentlyMesh(*ret, oriented, orientable);
 
-		std::cerr << "[Remesh] Orientable:" << orientable << std::endl;
-		std::cerr << "[Remesh] Oriented:"   << oriented << std::endl;
+		std::cout << "[AutoRemeshCleaner] Orientable:" << orientable << std::endl;
+		std::cout << "[AutoRemeshCleaner] Oriented:"   << oriented << std::endl;
 
 		return ret;
 	}
