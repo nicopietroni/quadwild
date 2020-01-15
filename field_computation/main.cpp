@@ -63,7 +63,7 @@ extern double remesher_aspect_ratio;
 extern int remesher_termination_delta;
 
 extern double sharp_feature_thr;
-extern double feature_erode_dilate;
+extern int feature_erode_dilate;
 
 void correctOrAbort(const bool ok, const std::string & line, const int linenumber)
 {
@@ -75,68 +75,96 @@ void correctOrAbort(const bool ok, const std::string & line, const int linenumbe
 	}
 }
 
+//bool loadConfigFile(const std::string & filename)
+//{
+//	QFile configFile(filename.c_str());
+
+//	if (!configFile.open(QIODevice::ReadOnly))
+//	{
+//		//handleme
+//	}
+
+//	QTextStream configStream(&configFile);
+
+//	int i = 0;
+//    QString line;
+
+//    while (configStream.readLineInto(&line))//(configStream.readLineInto(&line))
+//	{
+//		QStringList keyValuePair = line.split(' ');
+
+//		if (keyValuePair.size() != 2)
+//		{
+//            correctOrAbort(false, line.toStdString(), i);
+//		}
+
+//		bool ok = false;
+//		if (keyValuePair[0] == "remesh_iterations")
+//		{
+//			remesher_iterations = keyValuePair[1].toInt(&ok);
+//            correctOrAbort(ok, line.toStdString(), i);
+//			continue;
+//		}
+//		if (keyValuePair[0] == "remesh_target_aspect_ratio")
+//		{
+//			remesher_aspect_ratio = keyValuePair[1].toDouble(&ok);
+//            correctOrAbort(ok, line.toStdString(), i);
+//			continue;
+//		}
+//		if (keyValuePair[0] == "remesh_termination_delta")
+//		{
+//			remesher_termination_delta = keyValuePair[1].toInt(&ok);
+//            correctOrAbort(ok, line.toStdString(), i);
+//			continue;
+//		}
+//		if (keyValuePair[0] == "sharp_feature_thr")
+//		{
+//			sharp_feature_thr = keyValuePair[1].toDouble(&ok);
+//            correctOrAbort(ok, line.toStdString(), i);
+//			continue;
+//		}
+//		if (keyValuePair[0] == "sharp_feature_erode_dilate")
+//		{
+//			feature_erode_dilate = keyValuePair[1].toInt(&ok);
+//            correctOrAbort(ok, line.toStdString(), i);
+//			continue;
+//		}
+
+//		++i;
+//	}
+
+//	std::cout << "[fieldComputation] Successful config import" << std::endl;
+
+//}
+
 bool loadConfigFile(const std::string & filename)
 {
-	QFile configFile(filename.c_str());
 
-	if (!configFile.open(QIODevice::ReadOnly))
-	{
-		//handleme
-	}
+    FILE *f=fopen(filename.c_str(),"rt");
 
-	QTextStream configStream(&configFile);
+    if (f==NULL)return false;
 
-	int i = 0;
-    QString line;
+    fscanf(f,"remesh_iterations %d\n",&remesher_iterations);
 
-    while (configStream.readLineInto(&line))
-	{
-		QStringList keyValuePair = line.split(' ');
+    float remesher_aspect_ratiof;
+    fscanf(f,"remesh_target_aspect_ratio %f\n",&remesher_aspect_ratiof);
+    remesher_aspect_ratio=remesher_aspect_ratiof;
 
-		if (keyValuePair.size() != 2)
-		{
-            correctOrAbort(false, line.toStdString(), i);
-		}
+    fscanf(f,"remesh_termination_delta %d\n",&remesher_termination_delta);
 
-		bool ok = false;
-		if (keyValuePair[0] == "remesh_iterations")
-		{
-			remesher_iterations = keyValuePair[1].toInt(&ok);
-            correctOrAbort(ok, line.toStdString(), i);
-			continue;
-		}
-		if (keyValuePair[0] == "remesh_target_aspect_ratio")
-		{
-			remesher_aspect_ratio = keyValuePair[1].toDouble(&ok);
-            correctOrAbort(ok, line.toStdString(), i);
-			continue;
-		}
-		if (keyValuePair[0] == "remesh_termination_delta")
-		{
-			remesher_termination_delta = keyValuePair[1].toInt(&ok);
-            correctOrAbort(ok, line.toStdString(), i);
-			continue;
-		}
-		if (keyValuePair[0] == "sharp_feature_thr")
-		{
-			sharp_feature_thr = keyValuePair[1].toDouble(&ok);
-            correctOrAbort(ok, line.toStdString(), i);
-			continue;
-		}
-		if (keyValuePair[0] == "sharp_feature_erode_dilate")
-		{
-			feature_erode_dilate = keyValuePair[1].toInt(&ok);
-            correctOrAbort(ok, line.toStdString(), i);
-			continue;
-		}
+    float sharp_feature_thrf;
+    fscanf(f,"sharp_feature_thr %f\n",&sharp_feature_thrf);
+    sharp_feature_thr=sharp_feature_thrf;
 
-		++i;
-	}
+    fscanf(f,"sharp_feature_erode_dilate %d\n",&feature_erode_dilate);
 
-	std::cout << "[fieldComputation] Successful config import" << std::endl;
+    fclose(f);
+
+    std::cout << "[fieldComputation] Successful config import" << std::endl;
+
+    return true;
 
 }
-
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);

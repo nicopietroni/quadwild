@@ -105,7 +105,8 @@ class MyTriVertex:public vcg::Vertex<TriUsedTypes,
         vcg::vertex::VFAdj,
         vcg::vertex::BitFlags,
         vcg::vertex::CurvatureDird,
-        vcg::vertex::Qualityd>
+        vcg::vertex::Qualityd,
+        vcg::vertex::Mark>
 {
 };
 
@@ -504,13 +505,15 @@ public:
 
     void RefineIfNeeded()
     {
+
+        UpdateDataStructures();
         bool has_refined=false;
         do
         {
             has_refined=false;
             has_refined|=RefineInternalFacesStepFromEdgeSel();
             has_refined|=SplitAdjacentEdgeSharpFromEdgeSel();
-            has_refined|=SplitAdjacentTerminalVertices();
+            //has_refined|=SplitAdjacentTerminalVertices();
             //has_refined|=SplitEdgeSharpSharingVerticesFromEdgeSel();
         }while (has_refined);
         InitEdgeType();
@@ -779,10 +782,9 @@ public:
         return (CurrA/2);
     }
 
-    void SelectFeaturesEndPoints()
+    void SetFeatureValence()
     {
         vcg::tri::UpdateQuality<MyTriMesh>::VertexConstant(*this,0);
-        vcg::tri::UpdateFlags<MyTriMesh>::VertexClearS(*this);
         for (size_t i=0;i<face.size();i++)
             for (size_t j=0;j<3;j++)
             {
@@ -791,42 +793,51 @@ public:
                 face[i].V1(j)->Q()+=1;
             }
 
-        for (size_t i=0;i<vert.size();i++)
-            if (vert[i].Q()==2)vert[i].SetS();
     }
 
     void ErodeFeaturesStep()
     {
-        SelectFeaturesEndPoints();
+        SetFeatureValence();
 
         for (size_t i=0;i<face.size();i++)
             for (size_t j=0;j<3;j++)
             {
                 if (!face[i].IsFaceEdgeS(j))continue;
+                if (vcg::face::IsBorder(face[i],j))continue;
                 ScalarType Len=(face[i].P0(j)-face[i].P1(j)).Norm();
-                if (Len>bbox.Diag()*0.01)continue;
+                if (Len>bbox.Diag()*0.05)continue;
 
-                if ((face[i].V0(j)->IsS())||(face[i].V1(j)->IsS()))
+                if ((face[i].V0(j)->Q()==2)||(face[i].V1(j)->Q()==2))
                     face[i].ClearFaceEdgeS(j);
             }
     }
 
     void DilateFeaturesStep(std::vector<std::pair<size_t,size_t> > &OrigFeatures)
     {
-        SelectFeaturesEndPoints();
+        SetFeatureValence();
 
         for (size_t i=0;i<OrigFeatures.size();i++)
         {
             size_t IndexF=OrigFeatures[i].first;
             size_t IndexE=OrigFeatures[i].second;
-            if ((face[IndexF].V0(IndexE)->IsS())||
-                 (face[IndexF].V1(IndexE)->IsS()))
+            if ((face[IndexF].V0(IndexE)->Q()==2)&&
+                 (!face[IndexF].V0(IndexE)->IsS()))
+                face[IndexF].SetFaceEdgeS(IndexE);
+
+            if ((face[IndexF].V1(IndexE)->Q()==2)&&
+                 (!face[IndexF].V1(IndexE)->IsS()))
                 face[IndexF].SetFaceEdgeS(IndexE);
         }
     }
 
     void ErodeDilate(size_t StepNum)
     {
+        vcg::tri::UpdateFlags<MyTriMesh>::VertexClearS(*this);
+        SetFeatureValence();
+        for (size_t i=0;i<vert.size();i++)
+               if ((vert[i].Q()>4)||((vert[i].IsB())&&(vert[i].Q()>2)))
+                   vert[i].SetS();
+
         std::vector<std::pair<size_t,size_t> > OrigFeatures;
 
         //save the features

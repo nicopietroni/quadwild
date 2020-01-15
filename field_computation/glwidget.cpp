@@ -97,7 +97,7 @@ int remesher_iterations=15;
 ScalarType remesher_aspect_ratio=0.3;
 int remesher_termination_delta=10000;
 
-ScalarType sharp_feature_thr=35.;
+ScalarType sharp_feature_thr=35;
 int feature_erode_dilate=4;
 
 void TW_CALL AutoRemesh(void *)
@@ -115,10 +115,13 @@ void TW_CALL AutoRemesh(void *)
    RemPar.userSelectedCreases = true;
    RemPar.surfDistCheck = true;
 
-   std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh, true);
+   std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh,true);
+
    std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
    tri_mesh.Clear();
    vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
+   vcg::tri::Clean<MyTriMesh>::RemoveUnreferencedVertex(tri_mesh);
+   vcg::tri::Allocator<MyTriMesh>::CompactEveryVector(tri_mesh);
    tri_mesh.UpdateDataStructures();
 }
 
