@@ -1,31 +1,23 @@
-#\macx: QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.13
-#QMAKE_MAC_SDK = macosx10.13
-#CONFIG += c++11
-
-#VCGLIBDIR = ../../../vcglib
-#GLEWDIR   = ../../../code/lib/glew
-#ANTDIR    = ../../../code/lib/AntTweakBar1.16
-#EIGENLIB  = ../lib/libigl/external/nanogui/ext/eigen
 ############################ PROJECT FILES ############################
 
 include(libs.pri)
 
-HEADERS       = glwidget.h \
-                ./tracing/vert_field_graph.h \
-                ./tracing/graph_query.h \
-                ./tracing/GL_vert_field_graph.h \
-                ./tracing/patch_tracer.h \
-                mesh_type.h
+HEADERS = \
+    glwidget.h \
+    tracing/vert_field_graph.h \
+    tracing/graph_query.h \
+    tracing/GL_vert_field_graph.h \
+    tracing/patch_tracer.h \
+    mesh_type.h
 
-
-SOURCES       = glwidget.cpp \
-                main.cpp
-
-#QT           += opengl
+SOURCES = \
+    glwidget.cpp \
+    main.cpp
 
 # Compile glew
 DEFINES += GLEW_STATIC
 DEFINES += NO_PATCH_SIZING
+
 
 ############################ TARGET ############################
 
@@ -85,7 +77,7 @@ win32{ # Awful problem with windows..
 }
 
 #glew
-#LIBS += -lGLU
+LIBS += -lGLU
 INCLUDEPATH += $$GLEWPATH/include
 SOURCES += $$GLEWPATH/src/glew.c
 

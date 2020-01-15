@@ -92,14 +92,13 @@ INCLUDEPATH += $$COMISOPATH/..
 INCLUDEPATH += $$GMMPATH/include
 
 # Mac specific Config required to avoid to make application bundles
-#macx{
+macx{
 #    CONFIG -= app_bundle
 #    LIBS += $$ANTTWEAKBARPATH/lib/libAntTweakBar.dylib
-#    QMAKE_POST_LINK +="cp -P ../../../code/lib/AntTweakBar1.16/lib/libAntTweakBar.dylib . ; "
-#    QMAKE_POST_LINK +="install_name_tool -change ../lib/libAntTweakBar.dylib ./libAntTweakBar.dylib $$TARGET ; "
+    QMAKE_POST_LINK +="cp -P ../../../code/lib/AntTweakBar1.16/lib/libAntTweakBar.dylib . ; "
+    QMAKE_POST_LINK +="install_name_tool -change ../lib/libAntTweakBar.dylib ./libAntTweakBar.dylib $$TARGET ; "
 #    QMAKE_POST_LINK +="install_name_tool -change libCoMISo.dylib $$COMISOPATH/build/Build/lib/CoMISo/libCoMISo.dylib $$TARGET ;"
-#    DEPENDPATH += .
+    DEPENDPATH += .
 #    DEPENDPATH += $$COMISOPATH/build/Build/lib/CoMISo
 #    INCLUDEPATH += $$COMISOPATH/build/Build/lib/CoMISo
-#}
-
+}

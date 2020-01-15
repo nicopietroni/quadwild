@@ -1,9 +1,9 @@
 ############################ CONFIGURATION ############################
 
-VCGLIBPATH = /Users/nicopietroni/Desktop/vcglib
-ANTTWEAKBARPATH = /Users/nicopietroni/Desktop/code/lib/AntTweakBar1.16
+VCGLIBPATH = /usr/include/vcglib
+ANTTWEAKBARPATH = /usr/include/AntTweakBar
 
-EIGENPATH  = ./lib/libigl/external/nanogui/ext/eigen
-LIBIGLPATH = ./lib/libigl/
-GLEWPATH   = /Users/nicopietroni/Desktop/code/lib/glew
+EIGENPATH  = $$PWD/lib/libigl/external/nanogui/ext/eigen
+LIBIGLPATH = $$PWD/lib/libigl
+GLEWPATH   = $$PWD/lib/glew
 
