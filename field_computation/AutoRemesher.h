@@ -132,16 +132,11 @@ public:
 	static void SplitNonManifold (Mesh & m)
 	{
 		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-		vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0);
+		vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.00000001);
 		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-		vcg::tri::ForEachFace(m, [] (FaceType & f) {
-			for (int i = 0; i < 3; ++i)
-			{
-				if (!vcg::face::IsManifold(f, i))
-					f.SetFaceEdgeS(i);
-			}
-		});
-		vcg::tri::CutMeshAlongSelectedFaceEdges(m);
+	        vcg::tri::Clean<MyTriMesh>::SplitManifoldComponents(*ret);
+                vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
+                vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.00000001);
 	}
 
 	static std::shared_ptr<Mesh> CleanMesh(Mesh & m, const bool & splitNonManifold = false)

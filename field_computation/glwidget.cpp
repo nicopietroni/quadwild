@@ -240,7 +240,6 @@ void BatchProcess ()
 	//REMESH
 	std::cout << "[fieldComputation] Initial Remeshing..." << std::endl;
 	std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
-	
 	{	
 	    	std::string projM=pathM;
     		size_t indexExt=projM.find_last_of(".");
