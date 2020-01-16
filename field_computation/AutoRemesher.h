@@ -129,7 +129,20 @@ public:
 
 	} Params;
 
-
+	static void SplitNonManifold (Mesh & m)
+	{
+		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
+		vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0);
+		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
+		vcg::tri::ForEachFace(m, [] (FaceType & f) {
+			for (int i = 0; i < 3; ++i)
+			{
+				if (!vcg::face::IsManifold(f, i))
+					f.SetFaceEdgeS(i);
+			}
+		});
+		vcg::tri::CutMeshAlongSelectedFaceEdges(m);
+	}
 
 	static std::shared_ptr<Mesh> CleanMesh(Mesh & m, const bool & splitNonManifold = false)
 	{
@@ -146,21 +159,9 @@ public:
 		std::cout << "[AutoRemeshCleaner] Removing colinear faces by flip..." << std::endl;
 		removeColinearFaces(*ret);
 
-
 		if (splitNonManifold)
-		{
-			vcg::tri::UpdateTopology<Mesh>::FaceFace(*ret);
-			vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(*ret, 0.0000001);
-			vcg::tri::UpdateTopology<Mesh>::FaceFace(*ret);
-			vcg::tri::ForEachFace(*ret, [] (FaceType & f) {
-				for (int i = 0; i < 3; ++i)
-				{
-					if (!vcg::face::IsManifold(f, i))
-						f.SetFaceEdgeS(i);
-				}
-			});
-			vcg::tri::CutMeshAlongSelectedFaceEdges(*ret);
-		}
+			SplitNonManifold(*ret);
+
 
 		vcg::tri::UpdateTopology<Mesh>::FaceFace(*ret);
 

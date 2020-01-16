@@ -230,7 +230,7 @@ void BatchProcess ()
 	RemPar.surfDistCheck = true;
 
 	std::cout << "[fieldComputation] Mesh cleaning..." << std::endl;
-	std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh, true);
+	std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh, false);
 
 	std::cout << "[fieldComputation] Feature Extraction..." << std::endl;
 	clean->UpdateDataStructures();
@@ -240,6 +240,16 @@ void BatchProcess ()
 	//REMESH
 	std::cout << "[fieldComputation] Initial Remeshing..." << std::endl;
 	std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
+	
+	{	
+	    	std::string projM=pathM;
+    		size_t indexExt=projM.find_last_of(".");
+    		projM=projM.substr(0,indexExt);
+		std::string meshName=projM+std::string("_remeshed.obj");
+		ret->SaveTriMesh(meshName.c_str());
+	}
+
+	AutoRemesher<MyTriMesh>::SplitNonManifold(*ret);
 
     tri_mesh.Clear();
     vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
