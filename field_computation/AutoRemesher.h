@@ -182,7 +182,7 @@ public:
 		vcg::tri::UpdateBounding<Mesh>::Box(m);
 		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
 
-		vcg::tri::IsotropicRemeshing<Mesh>::Params para;
+        typename vcg::tri::IsotropicRemeshing<Mesh>::Params para;
 		para.iter = par.iterations;
 		para.SetFeatureAngleDeg(par.creaseAngle);
 		para.splitFlag    = true;
