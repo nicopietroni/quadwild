@@ -134,7 +134,7 @@ public:
 		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
 		vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.00000001);
 		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-	        vcg::tri::Clean<MyTriMesh>::SplitManifoldComponents(*ret);
+            vcg::tri::Clean<Mesh>::SplitManifoldComponents(m);
                 vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
                 vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.00000001);
 	}
