@@ -56,7 +56,8 @@
 
 
 extern bool do_batch;
-extern std::string pathM;
+extern bool has_features;
+extern std::string pathM,pathS;
 
 extern int remesher_iterations;
 extern double remesher_aspect_ratio;
@@ -67,12 +68,12 @@ extern int feature_erode_dilate;
 
 void correctOrAbort(const bool ok, const std::string & line, const int linenumber)
 {
-	if(!ok)
-	{
-		std::cerr << "[fieldComputation] Malformerd config file |-> " << line << " (" << linenumber << ")" << std::endl;
-		std::cerr << "[fieldComputation] ...aborting..." << std::endl;
-		abort();
-	}
+    if(!ok)
+    {
+        std::cerr << "[fieldComputation] Malformerd config file |-> " << line << " (" << linenumber << ")" << std::endl;
+        std::cerr << "[fieldComputation] ...aborting..." << std::endl;
+        abort();
+    }
 }
 
 //bool loadConfigFile(const std::string & filename)
@@ -165,6 +166,7 @@ bool loadConfigFile(const std::string & filename)
     return true;
 
 }
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -187,12 +189,32 @@ int main(int argc, char *argv[])
     assert(argc>1);
     pathM=std::string(argv[1]);
     loadConfigFile("basic_setup.txt");
-	
+
     std::cout << pathM << std::endl;
 
     if ((argc>2)&&(std::string(argv[2])==std::string("batch")))
         do_batch=true;
+    else
+    {
+        if (argc>2)
+        {
+            std::string pathTest=std::string(argv[2]);
+            int position=pathTest.find(".sharp");
 
+            if (position!=-1)
+            {
+                pathS=pathTest;
+                has_features=true;
+            }
+
+        }
+    }
+
+    if ((has_features)&&(argc>3))
+    {
+        if (std::string(argv[3])==std::string("batch"))
+            do_batch=true;
+    }
     GLWidget window;
 
     window.show();

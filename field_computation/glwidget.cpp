@@ -58,6 +58,7 @@
 #include <AutoRemesher.h>
 
 std::string pathM="";
+std::string pathS="";
 
 vcg::Trackball track;//the active manipulator
 
@@ -91,6 +92,7 @@ FieldSmootherType::SmoothParam FieldParam;
 
 AutoRemesher<MyTriMesh>::Params RemPar;
 bool do_batch=false;
+bool has_features=false;
 //size_t ErodeDilateSteps=4;
 
 int remesher_iterations=15;
@@ -123,6 +125,7 @@ void TW_CALL AutoRemesh(void *)
    vcg::tri::Clean<MyTriMesh>::RemoveUnreferencedVertex(tri_mesh);
    vcg::tri::Allocator<MyTriMesh>::CompactEveryVector(tri_mesh);
    tri_mesh.UpdateDataStructures();
+   Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
 }
 
 void TW_CALL InitSharpFeatures(void *)
@@ -270,7 +273,7 @@ void BatchProcess ()
     {
         std::cout<<"Using Comiso"<<std::endl;
         FieldParam.SmoothM=SMMiq;
-        FieldParam.alpha_curv=0.3;
+        FieldParam.alpha_curv=0.2;
     }
 
     std::cout << "[fieldComputation] Smooth Field Computation..." << std::endl;
@@ -303,9 +306,20 @@ GLWidget::GLWidget(QWidget *parent)
     tri_mesh.UpdateDataStructures();
 
     tri_mesh.LimitConcave=0;
-    if (do_batch)
+    if (has_features)
+    {
+        bool HasRead=tri_mesh.LoadSharpFeatures(pathS);
+        assert(HasRead);
+    }
+
+    if ((do_batch)&&(!has_features))
     {
         BatchProcess();
+        exit(0);
+    }
+    if ((do_batch)&&(has_features))
+    {
+        tri_mesh.PrintSharpInfo();
         exit(0);
     }
     //remeshed_mesh.UpdateDataStructures();
@@ -394,19 +408,23 @@ void GLWidget::paintGL ()
             if ((bary.Y()<bary.X())&&(bary.Y()<bary.Z()))EdgeI=2;
             if ((bary.Z()<bary.X())&&(bary.Z()<bary.Y()))EdgeI=0;
 
-            MyTriMesh::FaceType *fOpp=f->FFp(EdgeI);
-            int eOpp=f->FFi(EdgeI);
+//            MyTriMesh::FaceType *fOpp=f->FFp(EdgeI);
+//            int eOpp=f->FFi(EdgeI);
 
             if (f->IsFaceEdgeS(EdgeI))
             {
-                f->ClearFaceEdgeS(EdgeI);
-                if (fOpp!=f)
-                    fOpp->ClearFaceEdgeS(eOpp);
+                tri_mesh.ClearSharp((*f),EdgeI);
+//                {
+//                f->ClearFaceEdgeS(EdgeI);
+//                if (fOpp!=f)
+//                    fOpp->ClearFaceEdgeS(eOpp);
             }else
             {
-                f->SetFaceEdgeS(EdgeI);
-                if (fOpp!=f)
-                    fOpp->SetFaceEdgeS(eOpp);
+
+                tri_mesh.SetSharp((*f),EdgeI);
+//                f->SetFaceEdgeS(EdgeI);
+//                if (fOpp!=f)
+//                    fOpp->SetFaceEdgeS(eOpp);
             }
         }
     }

@@ -25,9 +25,9 @@ class PolyVertex:public vcg::Vertex<	PUsedTypes,
         vcg::vertex::Coord3d,
         vcg::vertex::Normal3d//,
         /*vcg::vertex::Mark,
-                                                                        vcg::vertex::BitFlags,
-                                                                        vcg::vertex::Qualityd,
-                                                                        vcg::vertex::TexCoord2d*/>{} ;
+                                                                                        vcg::vertex::BitFlags,
+                                                                                        vcg::vertex::Qualityd,
+                                                                                        vcg::vertex::TexCoord2d*/>{} ;
 
 class PolyFace:public vcg::Face<
         PUsedTypes
@@ -39,9 +39,9 @@ class PolyFace:public vcg::Face<
         ,vcg::face::BitFlags // bit flags
         ,vcg::face::Normal3d // normal
         /*,vcg::face::Color4b  // color
-                                                                        ,vcg::face::Qualityd      // face quality.
-                                                                        ,vcg::face::BitFlags
-                                                                        ,vcg::face::Mark*/
+                                                                                        ,vcg::face::Qualityd      // face quality.
+                                                                                        ,vcg::face::BitFlags
+                                                                                        ,vcg::face::Mark*/
         ,vcg::face::CurvatureDird> {
 };
 
@@ -301,7 +301,6 @@ private:
         CoordType Cross=N0^N1;
         return ((Cross*EdgeDir)<LimitConcave);
     }
-
 
     bool SplitAdjacentTerminalVertices()
     {
@@ -659,6 +658,52 @@ public:
         return true;
     }
 
+    bool LoadSharpFeatures(const std::string &filename)
+    {
+        std::cout<<"Loading Sharp Features"<<std::endl;
+        for (size_t i=0;i<face.size();i++)
+        {
+            for (size_t j=0;j<3;j++)
+            {
+                face[i].FKind[j]=ETNone;
+                face[i].ClearFaceEdgeS(j);
+            }
+        }
+
+        FILE *f=fopen(filename.c_str(),"rt");
+        if (f==NULL)return false;
+        int Num;
+        fscanf(f,"%d/n",&Num);
+
+        for (size_t i=0;i<Num;i++)
+        {
+            int TypeSh,IndexF,IndexE;
+            fscanf(f,"%d,%d,%d,/n",&TypeSh,&IndexF,&IndexE);
+            assert((TypeSh==0)||(TypeSh==1));
+            assert((IndexE>=0)&&(IndexE<3));
+            assert((IndexF>=0)&&(IndexF<face.size()));
+            if (TypeSh==0)
+                face[IndexF].FKind[IndexE]=ETConcave;
+            else
+                face[IndexF].FKind[IndexE]=ETConvex;
+
+            face[IndexF].SetFaceEdgeS(IndexE);
+
+            if (!vcg::face::IsBorder(face[IndexF],IndexE))
+            {
+                FaceType *Fopp=face[IndexF].FFp(IndexE);
+                int IOpp=face[IndexF].FFi(IndexE);
+                Fopp->SetFaceEdgeS(IOpp);
+                if (TypeSh==0)
+                    Fopp->FKind[IOpp]=ETConcave;
+                else
+                    Fopp->FKind[IOpp]=ETConvex;
+            }
+        }
+        fclose(f);
+        return true;
+    }
+
     bool SaveTriMesh(const std::string &filename)
     {
         if(filename.empty()) return false;
@@ -821,13 +866,31 @@ public:
             size_t IndexF=OrigFeatures[i].first;
             size_t IndexE=OrigFeatures[i].second;
             if ((face[IndexF].V0(IndexE)->Q()==2)&&
-                 (!face[IndexF].V0(IndexE)->IsS()))
+                    (!face[IndexF].V0(IndexE)->IsS()))
                 face[IndexF].SetFaceEdgeS(IndexE);
 
             if ((face[IndexF].V1(IndexE)->Q()==2)&&
-                 (!face[IndexF].V1(IndexE)->IsS()))
+                    (!face[IndexF].V1(IndexE)->IsS()))
                 face[IndexF].SetFaceEdgeS(IndexE);
         }
+    }
+
+    void PrintSharpInfo()
+    {
+        vcg::tri::UpdateQuality<MeshType>::VertexConstant(*this,0);
+        for (size_t i=0;i<face.size();i++)
+            for (size_t j=0;j<3;j++)
+            {
+                if (!face[i].IsFaceEdgeS(j))continue;
+                if (!face[i].V0(j)->IsB())
+                    face[i].V0(j)->Q()+=1;
+                if (!face[i].V1(j)->IsB())
+                    face[i].V1(j)->Q()+=1;
+            }
+        size_t Valence1=0;
+        for (size_t i=0;i<vert.size();i++)
+            if (vert[i].Q()==2)Valence1++;
+        std::cout<<"EndPoints "<<Valence1<<std::endl;
     }
 
     void ErodeDilate(size_t StepNum)
@@ -835,8 +898,8 @@ public:
         vcg::tri::UpdateFlags<MyTriMesh>::VertexClearS(*this);
         SetFeatureValence();
         for (size_t i=0;i<vert.size();i++)
-               if ((vert[i].Q()>4)||((vert[i].IsB())&&(vert[i].Q()>2)))
-                   vert[i].SetS();
+            if ((vert[i].Q()>4)||((vert[i].IsB())&&(vert[i].Q()>2)))
+                vert[i].SetS();
 
         std::vector<std::pair<size_t,size_t> > OrigFeatures;
 
@@ -852,7 +915,10 @@ public:
             ErodeFeaturesStep();
         for (size_t s=0;s<StepNum;s++)
             DilateFeaturesStep(OrigFeatures);
+
+        PrintSharpInfo();
     }
+
 
     bool SufficientFeatures(ScalarType SharpFactor)
     {
@@ -863,6 +929,37 @@ public:
         ScalarType Ratio=SharpL/sqrtCurrA;
         std::cout<<"Ratio "<<Ratio<<std::endl;
         return(Ratio>SharpFactor);
+    }
+
+
+    void SetSharp(FaceType &f,int IndexE)
+    {
+        f.SetFaceEdgeS(IndexE);
+        if (IsConcaveEdge(f,IndexE))
+            f.FKind[IndexE]=ETConcave;
+        else
+            f.FKind[IndexE]=ETConvex;
+
+        if (vcg::face::IsBorder(f,IndexE))return;
+
+        MyTriMesh::FaceType *fopp=f.FFp(IndexE);
+        int eOpp=f.FFi(IndexE);
+
+        fopp->SetFaceEdgeS(eOpp);
+        fopp->FKind[eOpp]= f.FKind[IndexE];
+    }
+
+    void ClearSharp(FaceType &f,int IndexE)
+    {
+        f.ClearFaceEdgeS(IndexE);
+        f.FKind[IndexE]=ETNone;
+        if (vcg::face::IsBorder(f,IndexE))return;
+
+        MyTriMesh::FaceType *fopp=f.FFp(IndexE);
+        int eOpp=f.FFi(IndexE);
+
+        fopp->ClearFaceEdgeS(eOpp);
+        fopp->FKind[eOpp]= ETNone;
     }
 
 };
