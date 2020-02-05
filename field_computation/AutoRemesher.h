@@ -10,6 +10,7 @@
 
 #include <vcg/space/index/grid_static_ptr.h>
 #include <vcg/complex/algorithms/closest.h>
+#include <vcg/complex/algorithms/local_optimization/tri_edge_collapse.h>
 
 #include <memory>
 
@@ -41,7 +42,60 @@ class AutoRemesher {
 		return hist.Percentile(perc);
 	}
 
-	static void removeColinearFaces(Mesh & m)
+	static void collapseSurvivingMicroEdges(Mesh & m, const ScalarType qualityThr = 0.001, const ScalarType edgeRatio = 0.025, const int maxIter = 2)
+	{
+		typedef vcg::tri::BasicVertexPair<VertexType> VertexPair;
+		typedef vcg::tri::EdgeCollapser<Mesh, VertexPair> Collapser;
+		typedef typename vcg::face::Pos<FaceType> PosType;
+
+		int count = 0; int iter = 0;
+		do
+		{
+			count = 0;
+			vcg::tri::UpdateTopology<Mesh>::VertexFace(m);
+
+			for(auto fi=m.face.begin(); fi!=m.face.end(); ++fi)
+				if(!(*fi).IsD())
+				{
+					if(vcg::QualityRadii(fi->cP(0), fi->cP(1), fi->cP(2)) <= qualityThr)
+					{
+						ScalarType minEdgeLength = std::numeric_limits<ScalarType>::max();
+						ScalarType maxEdgeLength = 0;
+
+						int minEdge = 0, maxEdge = 0;
+						for(auto i=0; i<3; ++i)
+						{
+							const ScalarType len = vcg::Distance(fi->cP0(i), fi->cP1(i)) ;
+							if (len < minEdgeLength)
+							{
+								minEdge = i;
+								minEdgeLength = len;
+							}
+							if (len > maxEdgeLength)
+							{
+								maxEdge = i;
+								maxEdgeLength = len;
+							}
+						}
+
+						if (minEdgeLength <= maxEdgeLength * edgeRatio)
+						{
+							PosType pi(&*fi, minEdge);
+							VertexPair  bp = VertexPair(fi->V0(minEdge), fi->V1(minEdge));
+							CoordType mp = (fi->cP0(minEdge) + fi->cP1(minEdge))/2.f;
+
+							if(Collapser::LinkConditions(bp))
+							{
+								Collapser::Do(m, bp, mp, true);
+							}
+						}
+					}
+				}
+		} while (count > 0 && ++iter < maxIter);
+	}
+
+
+	static void removeColinearFaces(Mesh & m, const ScalarType colinearThr = 0.001)
 	{
 		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
 
@@ -54,7 +108,7 @@ class AutoRemesher {
 		StaticGrid grid;
 		grid.Set(projectMesh.face.begin(), projectMesh.face.end());
 
-
+		int iter = 0;
 		do
 		{
 			vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
@@ -68,13 +122,15 @@ class AutoRemesher {
 				ScalarType quality = vcg::QualityRadii(f.cP(0), f.cP(1), f.cP(2));
 				ScalarType area = vcg::DoubleArea(f);
 
-				if ((quality <= 0.00000001 /*&& area <= 0.00000001*/) /*|| minEdge <= 0.000001*/)
+				if ((quality <= colinearThr /*&& area <= 0.00000001*/) /*|| minEdge <= 0.000001*/)
 				{
 					//find longest edge
 					double edges[3];
 					edges[0] = vcg::Distance(f.cP(0), f.cP(1));
 					edges[1] = vcg::Distance(f.cP(1), f.cP(2));
 					edges[2] = vcg::Distance(f.cP(2), f.cP(0));
+
+					ScalarType smallestEdge = std::min(edges[0], std::min(edges[1], edges[2]));
 					int longestIdx = std::find(edges, edges+3, std::max(std::max(edges[0], edges[1]), edges[2])) - (edges);
 
 					if (vcg::tri::IsMarked(m, f.V2(longestIdx)))
@@ -94,11 +150,11 @@ class AutoRemesher {
 						{
 							ScalarType dist;
 							CoordType closest;
-							auto fp0 = vcg::tri::GetClosestFaceBase(projectMesh, grid, vcg::Barycenter(t3), 0.000001, dist, closest);
+							auto fp0 = vcg::tri::GetClosestFaceBase(projectMesh, grid, vcg::Barycenter(t3), smallestEdge/10., dist, closest);
 							if (fp0 == NULL)
 								continue;
 
-							auto fp1 = vcg::tri::GetClosestFaceBase(projectMesh, grid, vcg::Barycenter(t4), 0.000001, dist, closest);
+							auto fp1 = vcg::tri::GetClosestFaceBase(projectMesh, grid, vcg::Barycenter(t4), smallestEdge/10., dist, closest);
 							if (fp1 == NULL)
 								continue;
 
@@ -109,8 +165,9 @@ class AutoRemesher {
 				}
 			}
 			std::cout << count << std::endl;
-		} while (count);
+		} while (count && ++iter < 40);
 	}
+
 
 public:
 
@@ -134,9 +191,9 @@ public:
 		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
 		vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.00000001);
 		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-            vcg::tri::Clean<Mesh>::SplitManifoldComponents(m);
-                vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-                vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.00000001);
+		vcg::tri::Clean<Mesh>::SplitManifoldComponents(m);
+		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
+		vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.00000001);
 	}
 
 	static std::shared_ptr<Mesh> CleanMesh(Mesh & m, const bool & splitNonManifold = false)
@@ -242,6 +299,15 @@ public:
 
 		std::cerr << "[REMESH] RemeshedFaces:" << ret->FN() << std::endl;
 		std::cerr << "[REMESH] RemeshedAspect:" << computeAR(*ret) << std::endl;
+
+		const ScalarType thr = 0.01;
+		collapseSurvivingMicroEdges(*ret, thr);
+
+		vcg::tri::ForEachFace(*ret, [&] (FaceType & f) {
+			if (!f.IsD() && vcg::QualityRadii(f.cP(0), f.cP(1), f.cP(2)) <= thr)
+				vcg::tri::Allocator<Mesh>::DeleteFace(*ret, f);
+		});
+		vcg::tri::Allocator<Mesh>::CompactEveryVector(*ret);
 
 		return ret;
 	}
