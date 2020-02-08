@@ -102,37 +102,67 @@ int remesher_termination_delta=10000;
 ScalarType sharp_feature_thr=35;
 int feature_erode_dilate=4;
 
+void DoAutoRemesh()
+{
+    tri_mesh.UpdateDataStructures();
+ //   vcg::tri::IsotropicRemeshing<MyTriMesh>::Params par;
+ //   par.minLength=tri_mesh.bbox.Diag()*0.005;
+ //   par.maxLength=tri_mesh.bbox.Diag()*0.01;
+ //   vcg::tri::IsotropicRemeshing<MyTriMesh>::Do(tri_mesh,par);
+
+    RemPar.iterations   = remesher_iterations;
+    RemPar.targetAspect = remesher_aspect_ratio;
+    RemPar.targetDeltaFN= remesher_termination_delta;
+    RemPar.userSelectedCreases = true;
+    RemPar.surfDistCheck = true;
+
+    std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh,true);
+
+    std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
+    tri_mesh.Clear();
+    vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
+    vcg::tri::Clean<MyTriMesh>::RemoveUnreferencedVertex(tri_mesh);
+    vcg::tri::Allocator<MyTriMesh>::CompactEveryVector(tri_mesh);
+    tri_mesh.UpdateDataStructures();
+    Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
+}
+
 void TW_CALL AutoRemesh(void *)
 {
 
-   tri_mesh.UpdateDataStructures();
-//   vcg::tri::IsotropicRemeshing<MyTriMesh>::Params par;
-//   par.minLength=tri_mesh.bbox.Diag()*0.005;
-//   par.maxLength=tri_mesh.bbox.Diag()*0.01;
-//   vcg::tri::IsotropicRemeshing<MyTriMesh>::Do(tri_mesh,par);
+//   tri_mesh.UpdateDataStructures();
+////   vcg::tri::IsotropicRemeshing<MyTriMesh>::Params par;
+////   par.minLength=tri_mesh.bbox.Diag()*0.005;
+////   par.maxLength=tri_mesh.bbox.Diag()*0.01;
+////   vcg::tri::IsotropicRemeshing<MyTriMesh>::Do(tri_mesh,par);
 
-   RemPar.iterations   = remesher_iterations;
-   RemPar.targetAspect = remesher_aspect_ratio;
-   RemPar.targetDeltaFN= remesher_termination_delta;
-   RemPar.userSelectedCreases = true;
-   RemPar.surfDistCheck = true;
+//   RemPar.iterations   = remesher_iterations;
+//   RemPar.targetAspect = remesher_aspect_ratio;
+//   RemPar.targetDeltaFN= remesher_termination_delta;
+//   RemPar.userSelectedCreases = true;
+//   RemPar.surfDistCheck = true;
 
-   std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh,true);
+//   std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh,true);
 
-   std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
-   tri_mesh.Clear();
-   vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
-   vcg::tri::Clean<MyTriMesh>::RemoveUnreferencedVertex(tri_mesh);
-   vcg::tri::Allocator<MyTriMesh>::CompactEveryVector(tri_mesh);
-   tri_mesh.UpdateDataStructures();
-   Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
+//   std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
+//   tri_mesh.Clear();
+//   vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
+//   vcg::tri::Clean<MyTriMesh>::RemoveUnreferencedVertex(tri_mesh);
+//   vcg::tri::Allocator<MyTriMesh>::CompactEveryVector(tri_mesh);
+//   tri_mesh.UpdateDataStructures();
+//   Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
+    DoAutoRemesh();
+}
+
+void InitSharp()
+{
+    tri_mesh.UpdateDataStructures();
+    tri_mesh.InitSharpFeatures(sharp_feature_thr);
 }
 
 void TW_CALL InitSharpFeatures(void *)
 {
-    tri_mesh.UpdateDataStructures();
-	tri_mesh.InitSharpFeatures(sharp_feature_thr);
-
+   InitSharp();
 }
 
 void TW_CALL RefineIfNeeded(void *)
@@ -223,42 +253,74 @@ void InitFieldBar(QWidget *w)
 
 }
 
+//void BatchProcess ()
+//{
+//        //SHARP FEATURE
+//	RemPar.iterations   = remesher_iterations;
+//	RemPar.targetAspect = remesher_aspect_ratio;
+//	RemPar.targetDeltaFN= remesher_termination_delta;
+//	RemPar.userSelectedCreases = true;
+//	RemPar.surfDistCheck = true;
+
+//	std::cout << "[fieldComputation] Mesh cleaning..." << std::endl;
+//	std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh, false);
+
+//	std::cout << "[fieldComputation] Feature Extraction..." << std::endl;
+//	clean->UpdateDataStructures();
+//	clean->InitSharpFeatures(sharp_feature_thr);
+//	clean->ErodeDilate(feature_erode_dilate);
+
+//	//REMESH
+//	std::cout << "[fieldComputation] Initial Remeshing..." << std::endl;
+//	std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
+//	{
+//	    	std::string projM=pathM;
+//    		size_t indexExt=projM.find_last_of(".");
+//    		projM=projM.substr(0,indexExt);
+//		std::string meshName=projM+std::string("_remeshed.obj");
+//		ret->SaveTriMesh(meshName.c_str());
+//	}
+
+//	AutoRemesher<MyTriMesh>::SplitNonManifold(*ret);
+
+//    tri_mesh.Clear();
+//    vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
+//    tri_mesh.UpdateDataStructures();
+    
+//    //REFINE IF NEEDED
+//    tri_mesh.InitSharpFeatures(sharp_feature_thr);
+//    tri_mesh.ErodeDilate(feature_erode_dilate);
+//    tri_mesh.RefineIfNeeded();
+
+//    //FIELD SMOOTH
+//    bool UseNPoly=tri_mesh.SufficientFeatures(SharpFactor);
+//    if (UseNPoly)
+//    {
+//        std::cout<<"Using NPoly"<<std::endl;
+//        FieldParam.SmoothM=SMNPoly;
+//    }
+//    else
+//    {
+//        std::cout<<"Using Comiso"<<std::endl;
+//        FieldParam.SmoothM=SMMiq;
+//        FieldParam.alpha_curv=0.2;
+//    }
+
+//    std::cout << "[fieldComputation] Smooth Field Computation..." << std::endl;
+//    tri_mesh.SmoothField(FieldParam);
+
+//    //SAVE
+//    SaveAllData();
+//}
+
 void BatchProcess ()
 {
-        //SHARP FEATURE
-	RemPar.iterations   = remesher_iterations;
-	RemPar.targetAspect = remesher_aspect_ratio;
-	RemPar.targetDeltaFN= remesher_termination_delta;
-	RemPar.userSelectedCreases = true;
-	RemPar.surfDistCheck = true;
+    InitSharp();
+    tri_mesh.ErodeDilate(feature_erode_dilate);
 
-	std::cout << "[fieldComputation] Mesh cleaning..." << std::endl;
-	std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh, false);
+    DoAutoRemesh();
 
-	std::cout << "[fieldComputation] Feature Extraction..." << std::endl;
-	clean->UpdateDataStructures();
-	clean->InitSharpFeatures(sharp_feature_thr);
-	clean->ErodeDilate(feature_erode_dilate);
-
-	//REMESH
-	std::cout << "[fieldComputation] Initial Remeshing..." << std::endl;
-	std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
-	{	
-	    	std::string projM=pathM;
-    		size_t indexExt=projM.find_last_of(".");
-    		projM=projM.substr(0,indexExt);
-		std::string meshName=projM+std::string("_remeshed.obj");
-		ret->SaveTriMesh(meshName.c_str());
-	}
-
-	AutoRemesher<MyTriMesh>::SplitNonManifold(*ret);
-
-    tri_mesh.Clear();
-    vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
-    tri_mesh.UpdateDataStructures();
-    
-    //REFINE IF NEEDED
-    tri_mesh.InitSharpFeatures(sharp_feature_thr);
+    InitSharp();
     tri_mesh.ErodeDilate(feature_erode_dilate);
     tri_mesh.RefineIfNeeded();
 
@@ -385,7 +447,8 @@ void GLWidget::paintGL ()
         vcg::glScale(2.0f/tri_mesh.bbox.Diag());
         glTranslate(-tri_mesh.bbox.Center());
         tri_mesh.GLDrawSharpEdges();
-        glWrap.Draw(vcg::GLW::DMFlatWire,vcg::GLW::CMNone,vcg::GLW::TMNone);
+        //glWrap.Draw(vcg::GLW::DMFlatWire,vcg::GLW::CMNone,vcg::GLW::TMNone);
+        glWrap.Draw(vcg::GLW::DMSmooth,vcg::GLW::CMNone,vcg::GLW::TMNone);
     }
 
     if (drawfield)

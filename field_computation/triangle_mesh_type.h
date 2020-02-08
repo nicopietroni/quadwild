@@ -493,7 +493,6 @@ public:
                 FieldParam.AddConstr.push_back(std::pair<int,CoordType>(IndexF,Dir));
             }
         }
-
         FieldSmootherType::SmoothDirections(*this,FieldParam);
         vcg::tri::CrossField<MeshType>::OrientDirectionFaceCoherently(*this);
         vcg::tri::CrossField<MeshType>::UpdateSingularByCross(*this);
@@ -793,10 +792,10 @@ public:
             {
                 if (!face[i].IsFaceEdgeS(j))continue;
 
-                if (face[i].FKind[j]==ETConcave)
+                //if (face[i].FKind[j]==ETConcave)
                     vcg::glColor(vcg::Color4b(255,0,255,255));
-                else
-                    vcg::glColor(vcg::Color4b(255,255,0,255));
+//                else
+//                    vcg::glColor(vcg::Color4b(255,255,0,255));
 
                 CoordType Pos0=face[i].P0(j);
                 CoordType Pos1=face[i].P1(j);
