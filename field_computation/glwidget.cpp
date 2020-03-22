@@ -117,6 +117,7 @@ void DoAutoRemesh()
     RemPar.surfDistCheck = true;
 
     std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh,true);
+    //tri_mesh.RemoveFolds(true);
 
     std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
     tri_mesh.Clear();
@@ -124,6 +125,7 @@ void DoAutoRemesh()
     vcg::tri::Clean<MyTriMesh>::RemoveUnreferencedVertex(tri_mesh);
     vcg::tri::Allocator<MyTriMesh>::CompactEveryVector(tri_mesh);
     tri_mesh.UpdateDataStructures();
+    //tri_mesh.RemoveFolds();
     Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
 }
 
@@ -173,7 +175,11 @@ void TW_CALL RefineIfNeeded(void *)
 
 void TW_CALL SmoothField(void *)
 {
+    tri_mesh.SplitFolds();
+    tri_mesh.RemoveFolds();
+    //vcg::tri::io::ExporterPLY<MyTriMesh>::Save(tri_mesh,"test0.ply");
     tri_mesh.SmoothField(FieldParam);
+    //vcg::tri::io::ExporterPLY<MyTriMesh>::Save(tri_mesh,"test1.ply");
     drawfield=true;
 
     //Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
@@ -338,11 +344,27 @@ void BatchProcess ()
         FieldParam.alpha_curv=0.2;
     }
 
+    std::string projM=pathM;
+    size_t indexExt=projM.find_last_of(".");
+    projM=projM.substr(0,indexExt);
+    std::string meshName=projM+std::string("_rem.obj");
+    std::string sharpName=projM+std::string("_rem.sharp");
+    std::cout<<"Saving Mesh TO:"<<meshName.c_str()<<std::endl;
+    std::cout<<"Saving Sharp TO:"<<sharpName.c_str()<<std::endl;
+    tri_mesh.SaveTriMesh(meshName.c_str());
+    tri_mesh.SaveSharpFeatures(sharpName.c_str());
+
     std::cout << "[fieldComputation] Smooth Field Computation..." << std::endl;
+    tri_mesh.SplitFolds();
+    tri_mesh.RemoveFolds();
     tri_mesh.SmoothField(FieldParam);
 
+    std::string fieldName=projM+std::string("_rem.rosy");
+    std::cout<<"Saving Field TO:"<<fieldName.c_str()<<std::endl;
+    tri_mesh.SaveField(fieldName.c_str());
+
     //SAVE
-    SaveAllData();
+    //SaveAllData();
 }
 
 GLWidget::GLWidget(QWidget *parent)

@@ -1,6 +1,8 @@
 #ifndef MY_TRI_MESH_TYPE
 #define MY_TRI_MESH_TYPE
 
+//#define MINDOT -0.99
+
 #include <vcg/complex/complex.h>
 #include <vcg/complex/algorithms/update/topology.h>
 #include <vcg/complex/algorithms/update/bounding.h>
@@ -13,7 +15,8 @@
 #include <wrap/io_trimesh/export_field.h>
 #include <iostream>
 #include <fstream>
-
+#include <vcg/complex/algorithms/attribute_seam.h>
+#include <vcg/complex/algorithms/crease_cut.h>
 
 class PolyFace;
 class PolyVertex;
@@ -25,9 +28,9 @@ class PolyVertex:public vcg::Vertex<	PUsedTypes,
         vcg::vertex::Coord3d,
         vcg::vertex::Normal3d//,
         /*vcg::vertex::Mark,
-                                                                                        vcg::vertex::BitFlags,
-                                                                                        vcg::vertex::Qualityd,
-                                                                                        vcg::vertex::TexCoord2d*/>{} ;
+                                                                                                                        vcg::vertex::BitFlags,
+                                                                                                                        vcg::vertex::Qualityd,
+                                                                                                                        vcg::vertex::TexCoord2d*/>{} ;
 
 class PolyFace:public vcg::Face<
         PUsedTypes
@@ -39,9 +42,9 @@ class PolyFace:public vcg::Face<
         ,vcg::face::BitFlags // bit flags
         ,vcg::face::Normal3d // normal
         /*,vcg::face::Color4b  // color
-                                                                                        ,vcg::face::Qualityd      // face quality.
-                                                                                        ,vcg::face::BitFlags
-                                                                                        ,vcg::face::Mark*/
+                                                                                                                        ,vcg::face::Qualityd      // face quality.
+                                                                                                                        ,vcg::face::BitFlags
+                                                                                                                        ,vcg::face::Mark*/
         ,vcg::face::CurvatureDird> {
 };
 
@@ -493,10 +496,19 @@ public:
                 FieldParam.AddConstr.push_back(std::pair<int,CoordType>(IndexF,Dir));
             }
         }
-        FieldSmootherType::SmoothDirections(*this,FieldParam);
-        vcg::tri::CrossField<MeshType>::OrientDirectionFaceCoherently(*this);
-        vcg::tri::CrossField<MeshType>::UpdateSingularByCross(*this);
+        //if there is no alpha curvature and no constraint then set curv_thr
+        if ((FieldParam.alpha_curv==0)&&(FieldParam.AddConstr.size()==0))
+        {
+            FieldParam.curv_thr=0.1;
+            FieldParam.align_borders=true;
+        }
 
+        FieldSmootherType::SmoothDirections(*this,FieldParam);
+        //std::cout<<"A"<<std::endl;
+        vcg::tri::CrossField<MeshType>::OrientDirectionFaceCoherently(*this);
+        //std::cout<<"B"<<std::endl;
+        vcg::tri::CrossField<MeshType>::UpdateSingularByCross(*this);
+        //std::cout<<"C"<<std::endl;
         UpdateDataStructures();
         SetFeatureFromTable();
     }
@@ -757,11 +769,15 @@ public:
     //VCG UPDATING STRUCTURES
     void UpdateDataStructures()
     {
+        vcg::tri::Clean<MyTriMesh>::RemoveUnreferencedVertex(*this);
+        vcg::tri::Allocator<MyTriMesh>::CompactEveryVector(*this);
+
         vcg::tri::UpdateBounding<MyTriMesh>::Box(*this);
         vcg::tri::UpdateNormal<MyTriMesh>::PerVertexNormalizedPerFace(*this);
         vcg::tri::UpdateNormal<MyTriMesh>::PerFaceNormalized(*this);
         vcg::tri::UpdateTopology<MyTriMesh>::FaceFace(*this);
         vcg::tri::UpdateTopology<MyTriMesh>::VertexFace(*this);
+        vcg::tri::UpdateFlags<MyTriMesh>::VertexBorderFromFaceAdj(*this);
     }
 
     void InitSharpFeatures(ScalarType SharpAngleDegree)
@@ -793,9 +809,9 @@ public:
                 if (!face[i].IsFaceEdgeS(j))continue;
 
                 //if (face[i].FKind[j]==ETConcave)
-                    vcg::glColor(vcg::Color4b(255,0,255,255));
-//                else
-//                    vcg::glColor(vcg::Color4b(255,255,0,255));
+                vcg::glColor(vcg::Color4b(255,0,255,255));
+                //                else
+                //                    vcg::glColor(vcg::Color4b(255,255,0,255));
 
                 CoordType Pos0=face[i].P0(j);
                 CoordType Pos1=face[i].P1(j);
@@ -917,6 +933,176 @@ public:
 
         PrintSharpInfo();
     }
+
+
+    inline static void ExtractVertex(const MyTriMesh & srcMesh,
+                                     const FaceType & f,
+                                     int whichWedge,
+                                     const MyTriMesh & dstMesh,
+                                     VertexType & v)
+    {
+        (void)srcMesh;
+        (void)dstMesh;
+
+        v.P() = f.cP(whichWedge);
+        //v.T() = f.cWT(whichWedge);
+    }
+
+    std::set<std::pair<CoordType,CoordType> > ToSplit;
+
+    //    void DilateToSplitStep()
+    //    {
+    //        vcg::tri::UpdateSelection<MyTriMesh>::VertexClear(*this);
+    //        vcg::tri::UpdateQuality<MyTriMesh>::VertexConstant(*this,0);
+    //        for (size_t i=0;i<face.size();i++)
+    //            for (size_t j=0;j<face[i].VN();j++)
+    //            {
+
+    //            }
+    //    }
+
+    inline static bool CompareVertex(MyTriMesh & srcMesh,
+                                     const VertexType & vA,
+                                     const VertexType & vB)
+    {
+        //(void)srcMesh;
+
+        std::pair<CoordType,CoordType> Key(std::min(vA.cP(),vB.cP()),
+                                           std::max(vA.cP(),vB.cP()));
+        return (srcMesh.ToSplit.count(Key)==0);
+        //return (vA.cT() == vB.cT());
+    }
+
+    bool IsFold(const FaceType &f,
+                const size_t &IndexE,
+                ScalarType MinDot=-0.99)
+    {
+        if (vcg::face::IsBorder(f,IndexE))return false;
+        FaceType *fOpp=f.cFFp(IndexE);
+        //int IOpp=f.cFFi(IndexE);
+        CoordType N0=f.cN();
+        CoordType N1=fOpp->N();
+        N0.Normalize();
+        N1.Normalize();
+        if ((N0*N1)>MinDot)return false;
+        return true;
+    }
+
+    bool SplitFolds(ScalarType MinDot=-0.99)
+    {
+
+        //then save the edges to be splitted
+        std::map<CoordPair,CoordType> ToBeSplitted;
+        for (size_t i=0;i<face.size();i++)
+        {
+            //find the number of edges
+            for (size_t j=0;j<3;j++)
+            {
+                if (!IsFold(face[i],j,MinDot))continue;
+                int VIndex0=vcg::tri::Index(*this,face[i].V0(j));
+                int VIndex1=vcg::tri::Index(*this,face[i].V1(j));
+                CoordType P0=vert[VIndex0].P();
+                CoordType P1=vert[VIndex1].P();
+                std::pair<CoordType,CoordType> Key(std::min(P0,P1),std::max(P0,P1));
+                ToBeSplitted[Key]=(P0+P1)/2;
+            }
+        }
+        std::cout<<"Performing "<<ToBeSplitted.size()<< " fold split ops"<<std::endl;
+
+        SplitLev splMd(&ToBeSplitted);
+        EdgePred eP(&ToBeSplitted);
+
+        //do the final split
+
+        size_t NumV0=vert.size();
+        bool done=vcg::tri::RefineE<MeshType,SplitLev,EdgePred>(*this,splMd,eP);
+        size_t NumV1=vert.size();
+        std::cout<<"Added "<<NumV1-NumV0<<" vertices"<<std::endl;
+
+
+        UpdateDataStructures();
+        SetFeatureFromTable();
+        return done;
+    }
+
+    void RemoveFolds(ScalarType MinDot=-0.99)
+    {
+
+        InitFeatureCoordsTable();
+
+        for (size_t i=0;i<face.size();i++)
+            for (size_t j=0;j<3;j++)
+                face[i].ClearFaceEdgeS(j);
+
+        ScalarType AvgEdge=0;
+        size_t Num=0;
+        for (size_t i=0;i<face.size();i++)
+            for (size_t j=0;j<face[i].VN();j++)
+            {
+                AvgEdge+=(face[i].P0(j)-face[i].P1(j)).Norm();
+                Num++;
+                if (vcg::face::IsBorder(face[i],j))continue;
+                if (!IsFold(face[i],j,MinDot))continue;
+                face[i].SetFaceEdgeS(j);
+            }
+        AvgEdge/=Num;
+
+        size_t NumV0=vert.size();
+        vcg::tri::CutMeshAlongSelectedFaceEdges<MeshType>(*this);
+        UpdateDataStructures();
+        size_t NumV1=vert.size();
+        std::cout<<"Added "<<NumV1-NumV0<<" vertices"<<std::endl;
+        for (size_t i=NumV0;i<NumV1;i++)
+            vert[i].P()+=vert[i].N()*AvgEdge*0.00001;
+
+        SetFeatureFromTable();
+        for (size_t i=0;i<face.size();i++)
+            for (size_t j=0;j<face[i].VN();j++)
+            {
+                if (!vcg::face::IsBorder(face[i],j))continue;
+               face[i].SetFaceEdgeS(j);
+            }
+        //        ToSplit.clear();
+        //        //int RemovedNum=0;
+        //        for (size_t i=0;i<face.size();i++)
+        //            for (size_t j=0;j<face[i].VN();j++)
+        //            {
+        //                if (vcg::face::IsBorder(face[i],j))continue;
+        //                FaceType *fOpp=face[i].FFp(j);
+        //                int IOpp=face[i].FFi(j);
+        //                CoordType N0=face[i].N();
+        //                CoordType N1=fOpp->N();
+        //                if ((N0*N1)>MinDot)continue;
+        ////                if (!IsFold(face[i],j,MinDot))continue;
+        //                if (OnlySharp)
+        //                {
+        //                    //RemovedNum++;
+        //                    face[i].ClearFaceEdgeS(j);
+        //                    fOpp->ClearFaceEdgeS(IOpp);
+        //                }
+        //                else
+        //                {
+        //                    std::pair<CoordType,CoordType> Key(std::min(face[i].P0(j),face[i].P1(j)),
+        //                                                       std::max(face[i].P0(j),face[i].P1(j)));
+        //                    //RemovedNum++;
+        //                    ToSplit.insert(Key);
+        //                }
+        //            }
+
+        //        if (!OnlySharp)
+        //        {
+        //            size_t NumV0=vert.size();
+        //            vcg::tri::AttributeSeam::SplitVertex(*this, ExtractVertex, CompareVertex);
+        //            vcg::tri::Allocator<TriMesh>::CompactEveryVector(*this);
+        //            size_t NumV1=vert.size();
+        //            std::cout<<"Added "<<NumV1-NumV0<<" vertices"<<std::endl;
+        //            UpdateDataStructures();
+        //        }
+
+        //        std::cout<<"Removed "<<ToSplit.size()<<" folded sharp features"<<std::endl;
+        //        PrintSharpInfo();
+    }
+
 
 
     bool SufficientFeatures(ScalarType SharpFactor)
