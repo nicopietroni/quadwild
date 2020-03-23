@@ -116,10 +116,12 @@ void DoAutoRemesh()
     RemPar.userSelectedCreases = true;
     RemPar.surfDistCheck = true;
 
-    std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh,true);
+    std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh, false);
     //tri_mesh.RemoveFolds(true);
 
     std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
+    AutoRemesher<MyTriMesh>::SplitNonManifold(*ret);
+
     tri_mesh.Clear();
     vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
     vcg::tri::Clean<MyTriMesh>::RemoveUnreferencedVertex(tri_mesh);
@@ -325,6 +327,15 @@ void BatchProcess ()
     tri_mesh.ErodeDilate(feature_erode_dilate);
 
     DoAutoRemesh();
+
+    {
+	std::string projM=pathM;
+    	size_t indexExt=projM.find_last_of(".");
+    	projM=projM.substr(0,indexExt);
+    	std::string meshName=projM+std::string("_remeshed.obj");
+    	std::cout<<"Saving remeshed Mesh TO:"<<meshName.c_str()<<std::endl;
+    	tri_mesh.SaveTriMesh(meshName.c_str());
+    }
 
     InitSharp();
     tri_mesh.ErodeDilate(feature_erode_dilate);

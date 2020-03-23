@@ -192,8 +192,17 @@ public:
 		vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.00000001);
 		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
 		vcg::tri::Clean<Mesh>::SplitManifoldComponents(m);
-		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-		vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.00000001);
+		int splitV = 0, remF = 0;
+		do
+		{
+        	        vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
+	                remF = vcg::tri::Clean<Mesh>::RemoveNonManifoldFace(m);
+			vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
+			splitV = vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.001);
+		} while (splitV > 0 || remF > 0);
+
+                vcg::tri::Clean<Mesh>::RemoveUnreferencedVertex(m);
+                vcg::tri::Allocator<Mesh>::CompactEveryVector(m);
 	}
 
 	static std::shared_ptr<Mesh> CleanMesh(Mesh & m, const bool & splitNonManifold = false)
