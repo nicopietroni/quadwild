@@ -157,7 +157,8 @@ int main(int argc, char *argv[])
     auto last=std::unique(QuadCornersVect.begin(),QuadCornersVect.end());
     QuadCornersVect.erase(last, QuadCornersVect.end());
 
-    SmoothWithFeatures(trimesh,quadmesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,Laplacian,100,0.5,EdgeSize);
+    //SmoothWithFeatures(trimesh,quadmesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,Laplacian,100,0.5,EdgeSize);
+    SmoothSubdivide(trimesh,quadmesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,Laplacian,100,0.5,EdgeSize);
 
     //SAVE OUTPUT
     outputFilename = meshFilename;
