@@ -102,14 +102,15 @@ int remesher_termination_delta=10000;
 ScalarType sharp_feature_thr=35;
 int feature_erode_dilate=4;
 
-void DoAutoRemesh()
+void InitSharp()
 {
     tri_mesh.UpdateDataStructures();
- //   vcg::tri::IsotropicRemeshing<MyTriMesh>::Params par;
- //   par.minLength=tri_mesh.bbox.Diag()*0.005;
- //   par.maxLength=tri_mesh.bbox.Diag()*0.01;
- //   vcg::tri::IsotropicRemeshing<MyTriMesh>::Do(tri_mesh,par);
+    tri_mesh.InitSharpFeatures(sharp_feature_thr);
+}
 
+
+void DoAutoRemesh()
+{
     RemPar.iterations   = remesher_iterations;
     RemPar.targetAspect = remesher_aspect_ratio;
     RemPar.targetDeltaFN= remesher_termination_delta;
@@ -117,7 +118,11 @@ void DoAutoRemesh()
     RemPar.surfDistCheck = true;
 
     std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh, false);
-    //tri_mesh.RemoveFolds(true);
+
+    clean->UpdateDataStructures();
+    clean->InitSharpFeatures(sharp_feature_thr);
+    clean->ErodeDilate(feature_erode_dilate);
+//    tri_mesh.ErodeDilate(feature_erode_dilate);
 
     std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
     AutoRemesher<MyTriMesh>::SplitNonManifold(*ret);
@@ -127,7 +132,6 @@ void DoAutoRemesh()
     vcg::tri::Clean<MyTriMesh>::RemoveUnreferencedVertex(tri_mesh);
     vcg::tri::Allocator<MyTriMesh>::CompactEveryVector(tri_mesh);
     tri_mesh.UpdateDataStructures();
-    //tri_mesh.RemoveFolds();
     Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
 }
 
@@ -156,12 +160,6 @@ void TW_CALL AutoRemesh(void *)
 //   tri_mesh.UpdateDataStructures();
 //   Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
     DoAutoRemesh();
-}
-
-void InitSharp()
-{
-    tri_mesh.UpdateDataStructures();
-    tri_mesh.InitSharpFeatures(sharp_feature_thr);
 }
 
 void TW_CALL InitSharpFeatures(void *)
@@ -323,8 +321,6 @@ void InitFieldBar(QWidget *w)
 
 void BatchProcess ()
 {
-    InitSharp();
-    tri_mesh.ErodeDilate(feature_erode_dilate);
 
     DoAutoRemesh();
 

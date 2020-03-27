@@ -14,7 +14,6 @@
 
 #include <memory>
 
-#define DEBUG
 template <class Mesh>
 class AutoRemesher {
 
@@ -32,7 +31,7 @@ class AutoRemesher {
 	static ScalarType computeAR(Mesh & m, const double perc = 0.05)
 	{
 		vcg::tri::ForEachFace(m, [] (FaceType & f) {
-			f.Q() = vcg::Quality(f.cP(0), f.cP(1), f.cP(2));
+			f.Q() = vcg::QualityRadii(f.cP(0), f.cP(1), f.cP(2));
 		});
 
 		vcg::Histogram<ScalarType> hist;
@@ -150,11 +149,11 @@ class AutoRemesher {
 						{
 							ScalarType dist;
 							CoordType closest;
-							auto fp0 = vcg::tri::GetClosestFaceBase(projectMesh, grid, vcg::Barycenter(t3), smallestEdge/10., dist, closest);
+							auto fp0 = vcg::tri::GetClosestFaceBase(projectMesh, grid, vcg::Barycenter(t3), smallestEdge/4., dist, closest);
 							if (fp0 == NULL)
 								continue;
 
-							auto fp1 = vcg::tri::GetClosestFaceBase(projectMesh, grid, vcg::Barycenter(t4), smallestEdge/10., dist, closest);
+							auto fp1 = vcg::tri::GetClosestFaceBase(projectMesh, grid, vcg::Barycenter(t4), smallestEdge/4., dist, closest);
 							if (fp1 == NULL)
 								continue;
 
@@ -168,7 +167,69 @@ class AutoRemesher {
 		} while (count && ++iter < 40);
 	}
 
+	static void specialTreatment(Mesh & m, Mesh & project, typename vcg::tri::IsotropicRemeshing<Mesh>::Params & para)
+        {
+                        std::cerr << "[REMESH] Mesh requires special treatment" << std::endl;
+                        std::cerr << "[REMESH] Special Treatment. Faces: " << m.FN() << " Initial quality: " << computeAR(m) << std::endl;
 
+		        vcg::tri::UpdateFlags<Mesh>::Clear(m);
+			CleanMesh(m);
+
+			vcg::tri::UpdateSelection<Mesh>::FaceClear(m);
+                        vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
+                        vcg::tri::UpdateNormal<Mesh>::PerFaceNormalized(m);
+                        vcg::tri::ForEachFace(m, [] (FaceType & f) {
+                                float QQ = 0;
+				if (f.Q() <= 0.15)
+					f.SetS();
+				else
+				{
+                                	for (int j = 0; j < 3; j++)
+                                	{
+                                        	auto adjf = f.FFp(j);
+	                                        float nangle = vcg::AngleN((*adjf).cN(), f.cN());
+        	                                if (nangle > 130)
+                	                        {
+                        	                        f.SetS();
+                                	                break;
+                                        	}
+                                	}
+				}
+                        });
+
+                        vcg::tri::UpdateSelection<Mesh>::FaceDilate(m);
+
+                        para.iter = 10;
+                        para.selectedOnly = true;
+
+                        para.aspectRatioThr = 0.05;
+                        para.cleanFlag = false;
+
+			ScalarType edgeL = para.maxLength;
+
+                        para.SetTargetLen(edgeL * 0.75);
+                        para.maxSurfDist = m.bbox.Diag() / 100.;
+
+                        para.userSelectedCreases = false;
+                        para.SetFeatureAngleDeg(50);
+
+			vcg::tri::Smooth<Mesh>::VertexCoordPlanarLaplacian(m, 20, vcg::math::ToRad(0.5), true);			
+		        vcg::tri::IsotropicRemeshing<Mesh>::Do(m, para);
+			
+			vcg::tri::UpdateFlags<Mesh>::Clear(m);
+			
+			para.iter= 10;
+			para.SetTargetLen(edgeL * 1.5);
+			para.cleanFlag = true;
+			para.userSelectedCreases = false;
+			para.selectedOnly = false;
+			para.maxSurfDist = m.bbox.Diag()/250.;
+			para.SetFeatureAngleDeg(30);
+
+			vcg::tri::IsotropicRemeshing<Mesh>::Do(m, para);
+
+                        std::cerr << "[REMESH] Special Treatment. Faces: " << m.FN() << " Post-Treatment quality: " << computeAR(m) << std::endl;
+         }
 public:
 
 	typedef struct Params {
@@ -255,10 +316,11 @@ public:
 		para.selectedOnly = false;
 		para.adapt=false;
 
-		para.aspectRatioThr = 0;
+		para.aspectRatioThr = 0.05;
+		para.cleanFlag = false;
 
 		para.maxSurfDist = m.bbox.Diag() / 2000.;
-		para.surfDistCheck = par.surfDistCheck;
+		para.surfDistCheck = m.FN() < 400000 ? par.surfDistCheck : false;
 		para.userSelectedCreases = par.userSelectedCreases;
 
 		ScalarType prevFN = m.FN();
@@ -269,7 +331,10 @@ public:
 		ScalarType edgeL = std::sqrt(vcg::tri::Stat<Mesh>::ComputeMeshArea(m) * 2 / par.initialApproximateFN);
 		ScalarType edgeHigh = edgeL * 2.;
 
+		bool forcedExit = false;
+		int countIterations = 0;
 		do {
+			++countIterations;
 			vcg::tri::Append<Mesh, Mesh>::MeshCopy(*ret, m);
 
 			para.SetTargetLen(edgeL);
@@ -293,15 +358,24 @@ public:
 			}
 
 			edgeL = (edgeHigh + edgeLow) / 2.;
+			
+			if (ret->FN() > 200000 && aspect < par.targetAspect * 0.5)
+			{
+				specialTreatment(*ret, m, para);
+				
+				break;
+				//vcg::tri::Append<Mesh, Mesh>::MeshCopy(m, *ret);
+			}
+			/*if (countIterations > 7 && ret->FN() > 200000 && aspect < par.targetAspect * 0.5)
+			{	
+				std::cerr << "[REMESH] Iterative search taking too much...Forcing exit... " << std::endl;
+				break;
+			}*/
+
 #ifdef DEBUG
 			std::cout << "Delta FN " << deltaFN << std::endl;
 			std::cout << "Mesh FN  " << ret->FN() << std::endl;
 			std::cout << "Min AR   " << computeAR(*ret) << std::endl;
-			vcg::tri::io::Exporter<Mesh>::Save(
-			            *ret,
-			            "resultrem.ply",
-			            vcg::tri::io::Mask::IOM_FACEQUALITY
-			            );
 #endif
 		}
 		while (aspect < par.targetAspect || deltaFN > par.targetDeltaFN);
