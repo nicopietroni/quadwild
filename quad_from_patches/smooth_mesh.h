@@ -4,196 +4,198 @@
 #include <vector>
 #include <vcg/complex/algorithms/polygonal_algorithms.h>
 #include <wrap/io_trimesh/export.h>
+#include <wrap/igl/smooth_field.h>
+#include <vcg/complex/algorithms/implicit_smooth.h>
 
-/* ----- Triangle mesh ----- */
+///* ----- Triangle mesh ----- */
 
-class BasicVertex;
-class BasicEdge;
-class BasicFace;
+//class BasicVertex;
+//class BasicEdge;
+//class BasicFace;
 
-struct MyBasicTypes : public vcg::UsedTypes<
-        vcg::Use<BasicVertex>::AsVertexType,
-        vcg::Use<BasicEdge>::AsEdgeType,
-        vcg::Use<BasicFace>::AsFaceType>{};
+//struct MyBasicTypes : public vcg::UsedTypes<
+//        vcg::Use<BasicVertex>::AsVertexType,
+//        vcg::Use<BasicEdge>::AsEdgeType,
+//        vcg::Use<BasicFace>::AsFaceType>{};
 
-class BasicVertex : public vcg::Vertex<
-        MyBasicTypes,
-        vcg::vertex::Normal3d,
-        vcg::vertex::Coord3d,
-        vcg::vertex::BitFlags>{};
+//class BasicVertex : public vcg::Vertex<
+//        MyBasicTypes,
+//        vcg::vertex::Normal3d,
+//        vcg::vertex::Coord3d,
+//        vcg::vertex::BitFlags>{};
 
-class BasicEdge : public vcg::Edge<
-        MyBasicTypes,
-        vcg::edge::VertexRef,
-        vcg::edge::BitFlags> {};
+//class BasicEdge : public vcg::Edge<
+//        MyBasicTypes,
+//        vcg::edge::VertexRef,
+//        vcg::edge::BitFlags> {};
 
-class BasicFace : public vcg::Face<
-        MyBasicTypes,
-        vcg::face::VertexRef,
-        vcg::face::BitFlags,
-        vcg::face::Mark> {};
+//class BasicFace : public vcg::Face<
+//        MyBasicTypes,
+//        vcg::face::VertexRef,
+//        vcg::face::BitFlags,
+//        vcg::face::Mark> {};
 
-class BasicMesh : public vcg::tri::TriMesh<
-        std::vector<BasicVertex>,
-        std::vector<BasicEdge>,
-        std::vector<BasicFace> > {};
+//class BasicMesh : public vcg::tri::TriMesh<
+//        std::vector<BasicVertex>,
+//        std::vector<BasicEdge>,
+//        std::vector<BasicFace> > {};
 
-template <class TriangleMeshType>
-void ExtractEdgeMesh(const TriangleMeshType &triMesh,
-                     const std::vector<std::pair<size_t,size_t> > features,
-                     BasicMesh &EdgeMesh)
-{
-    typedef typename TriangleMeshType::FaceType TriFaceType;
-    typedef typename TriangleMeshType::ScalarType TriScalarType;
-    typedef typename TriangleMeshType::CoordType CoordType;
+//template <class TriangleMeshType>
+//void ExtractEdgeMesh(const TriangleMeshType &triMesh,
+//                     const std::vector<std::pair<size_t,size_t> > features,
+//                     BasicMesh &EdgeMesh)
+//{
+//    typedef typename TriangleMeshType::FaceType TriFaceType;
+//    typedef typename TriangleMeshType::ScalarType TriScalarType;
+//    typedef typename TriangleMeshType::CoordType CoordType;
 
-    EdgeMesh.Clear();
-    for (size_t i=0;i<features.size();i++)
-    {
-        size_t IndexF=features[i].first;
-        size_t IndexE=features[i].second;
-        CoordType P0=triMesh.face[IndexF].cP0(IndexE);
-        CoordType P1=triMesh.face[IndexF].cP1(IndexE);
-        vcg::tri::Allocator<BasicMesh>::AddEdge(EdgeMesh,P0,P1);
-    }
-    vcg::tri::Clean<BasicMesh>::RemoveDuplicateVertex(EdgeMesh);
-    vcg::tri::Clean<BasicMesh>::RemoveDuplicateEdge(EdgeMesh);
-    vcg::tri::Allocator<BasicMesh>::CompactEveryVector(EdgeMesh);
-}
+//    EdgeMesh.Clear();
+//    for (size_t i=0;i<features.size();i++)
+//    {
+//        size_t IndexF=features[i].first;
+//        size_t IndexE=features[i].second;
+//        CoordType P0=triMesh.face[IndexF].cP0(IndexE);
+//        CoordType P1=triMesh.face[IndexF].cP1(IndexE);
+//        vcg::tri::Allocator<BasicMesh>::AddEdge(EdgeMesh,P0,P1);
+//    }
+//    vcg::tri::Clean<BasicMesh>::RemoveDuplicateVertex(EdgeMesh);
+//    vcg::tri::Clean<BasicMesh>::RemoveDuplicateEdge(EdgeMesh);
+//    vcg::tri::Allocator<BasicMesh>::CompactEveryVector(EdgeMesh);
+//}
 
-void SelectCorners(BasicMesh &EdgeMesh)
-{
-    std::vector<size_t> NumE(EdgeMesh.vert.size(),0);
-    vcg::tri::UpdateFlags<BasicMesh>::VertexClearS(EdgeMesh);
-    for (size_t i=0;i<EdgeMesh.edge.size();i++)
-    {
-        size_t IndexV0=vcg::tri::Index(EdgeMesh,EdgeMesh.edge[i].V(0));
-        size_t IndexV1=vcg::tri::Index(EdgeMesh,EdgeMesh.edge[i].V(1));
-        NumE[IndexV0]++;
-        NumE[IndexV1]++;
-    }
-    for (size_t i=0;i<NumE.size();i++)
-        if (NumE[i]!=2)EdgeMesh.vert[i].SetS();
-}
+//void SelectCorners(BasicMesh &EdgeMesh)
+//{
+//    std::vector<size_t> NumE(EdgeMesh.vert.size(),0);
+//    vcg::tri::UpdateFlags<BasicMesh>::VertexClearS(EdgeMesh);
+//    for (size_t i=0;i<EdgeMesh.edge.size();i++)
+//    {
+//        size_t IndexV0=vcg::tri::Index(EdgeMesh,EdgeMesh.edge[i].V(0));
+//        size_t IndexV1=vcg::tri::Index(EdgeMesh,EdgeMesh.edge[i].V(1));
+//        NumE[IndexV0]++;
+//        NumE[IndexV1]++;
+//    }
+//    for (size_t i=0;i<NumE.size();i++)
+//        if (NumE[i]!=2)EdgeMesh.vert[i].SetS();
+//}
 
-void ClosestPointEMesh(const typename BasicMesh::CoordType &Pos,
-                       const BasicMesh &EdgeMesh,
-                       size_t &IndexE,
-                       typename BasicMesh::ScalarType &t,
-                       typename BasicMesh::ScalarType &MinD,
-                       typename BasicMesh::CoordType &Clos)
-{
-    typedef typename BasicMesh::ScalarType ScalarType;
-    typedef typename BasicMesh::CoordType CoordType;
-    MinD=std::numeric_limits<ScalarType>::max();
-    for (size_t i=0;i<EdgeMesh.edge.size();i++)
-    {
-        CoordType P0=EdgeMesh.edge[i].V(0)->P();
-        CoordType P1=EdgeMesh.edge[i].V(1)->P();
-        vcg::Segment3<ScalarType> STest(P0,P1);
-        ScalarType testD;
-        CoordType ClosTest;
-        vcg::SegmentPointDistance(STest,Pos,ClosTest,testD);
-        if (testD>MinD)continue;
-        Clos=ClosTest;
-        MinD=testD;
-        IndexE=i;
-        t=1-(Clos-P0).Norm()/(P1-P0).Norm();
-    }
-}
+//void ClosestPointEMesh(const typename BasicMesh::CoordType &Pos,
+//                       const BasicMesh &EdgeMesh,
+//                       size_t &IndexE,
+//                       typename BasicMesh::ScalarType &t,
+//                       typename BasicMesh::ScalarType &MinD,
+//                       typename BasicMesh::CoordType &Clos)
+//{
+//    typedef typename BasicMesh::ScalarType ScalarType;
+//    typedef typename BasicMesh::CoordType CoordType;
+//    MinD=std::numeric_limits<ScalarType>::max();
+//    for (size_t i=0;i<EdgeMesh.edge.size();i++)
+//    {
+//        CoordType P0=EdgeMesh.edge[i].V(0)->P();
+//        CoordType P1=EdgeMesh.edge[i].V(1)->P();
+//        vcg::Segment3<ScalarType> STest(P0,P1);
+//        ScalarType testD;
+//        CoordType ClosTest;
+//        vcg::SegmentPointDistance(STest,Pos,ClosTest,testD);
+//        if (testD>MinD)continue;
+//        Clos=ClosTest;
+//        MinD=testD;
+//        IndexE=i;
+//        t=1-(Clos-P0).Norm()/(P1-P0).Norm();
+//    }
+//}
 
-enum VType{Internal,Feature,Corner};
-
-
-
-template <class PolyMeshType,class TriangleMeshType>
-void GetVertType(const BasicMesh &edge_mesh,
-                 const typename PolyMeshType::ScalarType &AvEdge,
-                 const TriangleMeshType &tri_mesh,
-                 const PolyMeshType &poly_mesh,
-                 const std::vector<std::pair<size_t,size_t> > FeatureEdges,
-                 const std::vector<size_t> &tri_face_partition,
-                 const std::vector<size_t> &quad_face_partition,
-                 std::vector<std::vector<bool> > &IsSharp,
-                 std::vector<VType> &VertTypes)
-{
-    typedef typename BasicMesh::ScalarType ScalarType;
-    typedef typename BasicMesh::CoordType CoordType;
+//enum VType{Internal,Feature,Corner};
 
 
-    std::set<std::pair<size_t,size_t> > SharpPart;
 
-    for (size_t i=0;i<FeatureEdges.size();i++)
-    {
-        size_t IndexF=FeatureEdges[i].first;
-        size_t IndexE=FeatureEdges[i].second;
-        if (vcg::face::IsBorder(tri_mesh.face[IndexF],IndexE))continue;
-        size_t Part0=tri_face_partition[IndexF];
+//template <class PolyMeshType,class TriangleMeshType>
+//void GetVertType(const BasicMesh &edge_mesh,
+//                 const typename PolyMeshType::ScalarType &AvEdge,
+//                 const TriangleMeshType &tri_mesh,
+//                 const PolyMeshType &poly_mesh,
+//                 const std::vector<std::pair<size_t,size_t> > FeatureEdges,
+//                 const std::vector<size_t> &tri_face_partition,
+//                 const std::vector<size_t> &quad_face_partition,
+//                 std::vector<std::vector<bool> > &IsSharp,
+//                 std::vector<VType> &VertTypes)
+//{
+//    typedef typename BasicMesh::ScalarType ScalarType;
+//    typedef typename BasicMesh::CoordType CoordType;
 
-        size_t IndexFOpp=vcg::tri::Index(tri_mesh,tri_mesh.face[IndexF].cFFp(IndexE));
-        size_t Part1=tri_face_partition[IndexFOpp];
-        assert(Part0!=Part1);
-        std::pair<size_t,size_t> key(std::min(Part0,Part1),std::max(Part0,Part1));
-        SharpPart.insert(key);
-    }
 
-    //then check the edge of the quads
-    IsSharp.resize(poly_mesh.face.size());
-    for (size_t i=0;i<poly_mesh.face.size();i++)
-    {
-        size_t Part0=quad_face_partition[i];
-        IsSharp[i].resize(poly_mesh.face[i].VN(),false);
-        for (size_t j=0;j<poly_mesh.face[i].VN();j++)
-        {
-            if (vcg::face::IsBorder(poly_mesh.face[i],j))
-                IsSharp[i][j]=true;
-            else
-            {
-                size_t IndexFOpp=vcg::tri::Index(poly_mesh,poly_mesh.face[i].cFFp(j));
-                size_t Part1=quad_face_partition[IndexFOpp];
-                std::pair<size_t,size_t> key(std::min(Part0,Part1),std::max(Part0,Part1));
+//    std::set<std::pair<size_t,size_t> > SharpPart;
 
-                if (SharpPart.count(key))
-                    IsSharp[i][j]=true;
-            }
-        }
-    }
+//    for (size_t i=0;i<FeatureEdges.size();i++)
+//    {
+//        size_t IndexF=FeatureEdges[i].first;
+//        size_t IndexE=FeatureEdges[i].second;
+//        if (vcg::face::IsBorder(tri_mesh.face[IndexF],IndexE))continue;
+//        size_t Part0=tri_face_partition[IndexF];
 
-    //finally set the vertex type
-    VertTypes.clear();
-    VertTypes.resize(poly_mesh.vert.size(),Internal);
-    std::vector<size_t> SharpVal(poly_mesh.vert.size(),0);
-    for (size_t i=0;i<poly_mesh.face.size();i++)
-    {
-        size_t NumV=poly_mesh.face[i].VN();
-        for (size_t j=0;j<NumV;j++)
-        {
-            if (!IsSharp[i][j])continue;
-            size_t IndexV0=vcg::tri::Index(poly_mesh,poly_mesh.face[i].V(j));
-            size_t IndexV1=vcg::tri::Index(poly_mesh,poly_mesh.face[i].V((j+1)%NumV));
-            SharpVal[IndexV0]++;
-            SharpVal[IndexV1]++;
-        }
-    }
+//        size_t IndexFOpp=vcg::tri::Index(tri_mesh,tri_mesh.face[IndexF].cFFp(IndexE));
+//        size_t Part1=tri_face_partition[IndexFOpp];
+//        assert(Part0!=Part1);
+//        std::pair<size_t,size_t> key(std::min(Part0,Part1),std::max(Part0,Part1));
+//        SharpPart.insert(key);
+//    }
 
-    for (size_t i=0;i<SharpVal.size();i++)
-    {
-        if (SharpVal[i]==0)continue;
+//    //then check the edge of the quads
+//    IsSharp.resize(poly_mesh.face.size());
+//    for (size_t i=0;i<poly_mesh.face.size();i++)
+//    {
+//        size_t Part0=quad_face_partition[i];
+//        IsSharp[i].resize(poly_mesh.face[i].VN(),false);
+//        for (size_t j=0;j<poly_mesh.face[i].VN();j++)
+//        {
+//            if (vcg::face::IsBorder(poly_mesh.face[i],j))
+//                IsSharp[i][j]=true;
+//            else
+//            {
+//                size_t IndexFOpp=vcg::tri::Index(poly_mesh,poly_mesh.face[i].cFFp(j));
+//                size_t Part1=quad_face_partition[IndexFOpp];
+//                std::pair<size_t,size_t> key(std::min(Part0,Part1),std::max(Part0,Part1));
 
-        size_t IndexE;
-        BasicMesh::ScalarType t,MinD;
-        BasicMesh::CoordType Clos;
+//                if (SharpPart.count(key))
+//                    IsSharp[i][j]=true;
+//            }
+//        }
+//    }
 
-        ClosestPointEMesh(poly_mesh.vert[i].cP(),edge_mesh,IndexE,t,MinD,Clos);
+//    //finally set the vertex type
+//    VertTypes.clear();
+//    VertTypes.resize(poly_mesh.vert.size(),Internal);
+//    std::vector<size_t> SharpVal(poly_mesh.vert.size(),0);
+//    for (size_t i=0;i<poly_mesh.face.size();i++)
+//    {
+//        size_t NumV=poly_mesh.face[i].VN();
+//        for (size_t j=0;j<NumV;j++)
+//        {
+//            if (!IsSharp[i][j])continue;
+//            size_t IndexV0=vcg::tri::Index(poly_mesh,poly_mesh.face[i].V(j));
+//            size_t IndexV1=vcg::tri::Index(poly_mesh,poly_mesh.face[i].V((j+1)%NumV));
+//            SharpVal[IndexV0]++;
+//            SharpVal[IndexV1]++;
+//        }
+//    }
 
-        if (MinD>AvEdge/10)continue;
+//    for (size_t i=0;i<SharpVal.size();i++)
+//    {
+//        if (SharpVal[i]==0)continue;
 
-        if (SharpVal[i]==4)
-            VertTypes[i]=Feature;
-        else
-            VertTypes[i]=Corner;
-    }
-}
+//        size_t IndexE;
+//        BasicMesh::ScalarType t,MinD;
+//        BasicMesh::CoordType Clos;
+
+//        ClosestPointEMesh(poly_mesh.vert[i].cP(),edge_mesh,IndexE,t,MinD,Clos);
+
+//        if (MinD>AvEdge/10)continue;
+
+//        if (SharpVal[i]==4)
+//            VertTypes[i]=Feature;
+//        else
+//            VertTypes[i]=Corner;
+//    }
+//}
 
 template <class PolyMeshType,class TriangleMeshType>
 void GetCorners(const std::vector<std::pair<size_t,size_t> > &FeatureEdges,
@@ -205,8 +207,8 @@ void GetCorners(const std::vector<std::pair<size_t,size_t> > &FeatureEdges,
                 std::vector<size_t> &cornersIdx)
 {
     cornersIdx.clear();
-    typedef typename BasicMesh::ScalarType ScalarType;
-    typedef typename BasicMesh::CoordType CoordType;
+    typedef typename PolyMeshType::ScalarType ScalarType;
+    typedef typename PolyMeshType::CoordType CoordType;
 
     for (size_t i=0;i<tri_feature_C.size();i++)
     {
@@ -339,8 +341,8 @@ void GetVertProjBasis(const typename PolyMeshType::ScalarType &AvEdge,
                       std::vector<int> &VertBasis,
                       std::vector<std::vector<vcg::Segment3<typename PolyMeshType::ScalarType> > > &ProjBasis)
 {
-    typedef typename BasicMesh::ScalarType ScalarType;
-    typedef typename BasicMesh::CoordType CoordType;
+    typedef typename PolyMeshType::ScalarType ScalarType;
+    typedef typename PolyMeshType::CoordType CoordType;
     typedef typename vcg::Segment3<typename PolyMeshType::ScalarType> SegmentType;
 
     VertBasis.clear();
@@ -428,16 +430,330 @@ void GetVertProjBasis(const typename PolyMeshType::ScalarType &AvEdge,
         VertBasis[cornersIdx[i]]=-1;
 
     if (ProjBasis.size()>0)
-    MergeProjBasis(tri_mesh,featuresC,VertBasis,ProjBasis);
+        MergeProjBasis(tri_mesh,featuresC,VertBasis,ProjBasis);
     //std::cout<<"D"<<std::endl;
 }
 
 enum SmoothType{Laplacian,TemplateFit};
 
+template <class PolyMeshType>
+void LaplacianEdgePos(const PolyMeshType &poly_mesh,const bool FixS,
+                      const typename PolyMeshType::ScalarType Damp,
+                      std::vector<typename PolyMeshType::CoordType> &TargetPos)
+{
+    typedef typename PolyMeshType::ScalarType ScalarType;
+    typedef typename PolyMeshType::CoordType CoordType;
+
+    TargetPos = std::vector<CoordType>(poly_mesh.vert.size(),CoordType(0,0,0));
+    std::vector<size_t> NumPos(poly_mesh.vert.size(),0);
+    for (size_t i=0;i<poly_mesh.face.size();i++)
+    {
+        int sizeP=poly_mesh.face[i].VN();
+        for (size_t j=0;j<poly_mesh.face[i].VN();j++)
+        {
+            CoordType Pos0=poly_mesh.face[i].cP(j);
+            CoordType Pos1=poly_mesh.face[i].cP((j+1)%sizeP);
+            size_t VIndex0=vcg::tri::Index(poly_mesh,poly_mesh.face[i].V(j));
+            size_t VIndex1=vcg::tri::Index(poly_mesh,poly_mesh.face[i].V((j+1)%sizeP));
+            TargetPos[VIndex0]+=Pos1;
+            TargetPos[VIndex1]+=Pos0;
+            NumPos[VIndex0]++;
+            NumPos[VIndex1]++;
+        }
+    }
+
+    for (size_t i=0;i<TargetPos.size();i++)
+    {
+        if (NumPos[i]==0)continue;
+        TargetPos[i]/=NumPos[i];
+    }
+
+    for (size_t i=0;i<poly_mesh.vert.size();i++)
+    {
+        if (FixS && (poly_mesh.vert[i].IsS()))continue;
+        TargetPos[i]=poly_mesh.vert[i].cP()*Damp+TargetPos[i]*(1-Damp);
+    }
+}
+
+template <class PolyMeshType,class TriMeshType>
+void GetQuadInterpW(const typename TriMeshType::FaceType &FTris,
+                     const typename PolyMeshType::FaceType &FPoly,
+                     const typename TriMeshType::CoordType &ClosestPt,
+                     std::vector<typename TriMeshType::ScalarType> &VertWeigths)
+{
+    typedef typename PolyMeshType::ScalarType ScalarType;
+    typedef typename PolyMeshType::CoordType CoordType;
+    typedef typename TriMeshType::FaceType TriFaceType;
+
+   VertWeigths.clear();
+   VertWeigths=std::vector<ScalarType>(4,0);
+
+   //get the barycentric coordinates
+   CoordType bary;
+   //bool Interpolated=
+   vcg::InterpolationParameters(FTris,ClosestPt,bary);
+//   std::cout<<" "<<bary.X()<<","<<bary.Y()<<","<<bary.Z()<<std::endl;
+
+//   assert(Interpolated);
+
+   //then check which are the index of the vertices
+   int IndexV[3]={-1,-1,-1};
+   for (size_t i=0;i<3;i++)
+   {
+       for (size_t j=0;j<4;j++)
+       {
+           if (FTris.cV(i)->cQ()==FPoly.cV(j)->cQ())
+           {
+              IndexV[i]=j;
+              break;
+           }
+       }
+   }
+
+   //then check there in only and only one -1
+   assert((IndexV[0]==-1)||(IndexV[1]==-1)||(IndexV[2]==-1));
+
+//   //and all different
+//   std::cout<<" "<<FTris.cV(0)->cQ()<<" "<<FTris.cV(1)->Q()<<" "<<FTris.cV(2)->cQ()<<std::endl;
+
+//   std::cout<<" "<<FTris.cV(0)->P().X()<<","<<
+//                   FTris.cV(0)->P().Y()<<","<<
+//                   FTris.cV(0)->P().Z()<<"-"<<
+//                   FTris.cV(1)->P().X()<<","<<
+//                   FTris.cV(1)->P().Y()<<","<<
+//                   FTris.cV(1)->P().Z()<<"-"<<
+//                   FTris.cV(2)->P().X()<<","<<
+//                   FTris.cV(2)->P().Y()<<","<<
+//                   FTris.cV(2)->P().Z()<<std::endl;
+
+
+//   std::cout<<" "<<FPoly.cV(0)->cQ()<<" "<<FPoly.cV(1)->cQ()<<
+//              " "<<FPoly.cV(2)->Q()<< " "<<FPoly.cV(3)->Q()<<std::endl;
+
+//   std::cout<<" "<<FPoly.cV(0)->P().X()<<","<<
+//                   FPoly.cV(0)->P().Y()<<","<<
+//                   FPoly.cV(0)->P().Z()<<"-"<<
+//                   FPoly.cV(1)->P().X()<<","<<
+//                   FPoly.cV(1)->P().Y()<<","<<
+//                   FPoly.cV(1)->P().Z()<<"-"<<
+//                   FPoly.cV(2)->P().X()<<","<<
+//                   FPoly.cV(2)->P().Y()<<","<<
+//                   FPoly.cV(2)->P().Z()<<"-"<<
+//              FPoly.cV(3)->P().X()<<","<<
+//              FPoly.cV(3)->P().Y()<<","<<
+//              FPoly.cV(3)->P().Z()<<std::endl;
+
+//   std::cout<<" "<<IndexV[0]<<" "<<IndexV[1]<<" "<<IndexV[2]<<std::endl;
+   assert((IndexV[0]!=IndexV[1])&&(IndexV[1]!=IndexV[2])&&(IndexV[0]!=IndexV[2]));
+
+   for (size_t i=0;i<3;i++)
+        bary.V(i)=std::max(bary.V(i),(ScalarType)0);
+   //then set the weights
+   for (size_t i=0;i<3;i++)
+   {
+       assert(bary.V(i)>=0);
+       //distribute on all
+       if (IndexV[i]==-1)
+       {
+         VertWeigths[0]+=bary.V(i)/4;
+         VertWeigths[1]+=bary.V(i)/4;
+         VertWeigths[2]+=bary.V(i)/4;
+         VertWeigths[3]+=bary.V(i)/4;
+       }
+       else
+       {
+           assert(IndexV[i]>=0);
+           assert(IndexV[i]<4);
+           VertWeigths[IndexV[i]] =bary.V(i);
+       }
+   }
+
+   //finally normalize
+   ScalarType Sum=0;
+   for (size_t i=0;i<4;i++)
+       Sum+=VertWeigths[i];
+
+   for (size_t i=0;i<4;i++)
+   {
+       assert(VertWeigths[i]>=0);
+       VertWeigths[i]/=Sum;
+   }
+}
+
+template <class PolyMeshType,class TriMeshType>
+void ProjectStepPositions(PolyMeshType &PolyM,TriMeshType &TriM,
+                          vcg::GridStaticPtr<typename TriMeshType::FaceType,typename TriMeshType::ScalarType> TriGrid,
+                          std::vector<typename PolyMeshType::CoordType> &TargetPos)
+{
+    typedef typename PolyMeshType::ScalarType ScalarType;
+    typedef typename PolyMeshType::CoordType CoordType;
+    typedef typename TriMeshType::FaceType TriFaceType;
+    TargetPos.clear();
+    for (size_t i=0;i<PolyM.vert.size();i++)
+    {
+        CoordType TestPos=PolyM.vert[i].P();
+        CoordType closestPt;
+        ScalarType MaxD=PolyM.bbox.Diag();
+        ScalarType MinD;
+        TriFaceType *f=vcg::tri::GetClosestFaceBase(TriM,TriGrid,TestPos,MaxD,MinD,closestPt);
+        assert(f!=NULL);
+        TargetPos.push_back(closestPt);
+     }
+}
+
+template <class PolyMeshType,class TriMeshType>
+void BackProjectStepPositions(PolyMeshType &PolyM,TriMeshType &TriM,
+                              std::vector<typename PolyMeshType::CoordType> &TargetPos)
+{
+    typedef typename PolyMeshType::ScalarType ScalarType;
+    typedef typename PolyMeshType::CoordType CoordType;
+    typedef typename TriMeshType::FaceType TriFaceType;
+
+    //transform the polygonal mesh into triangle one
+    //ScalarType alpha = (PolyM.bbox.Diag()/PolyM.face.size())*0.01;
+    TriMeshType poly_tris;
+
+    //set the index of original vertices
+    for (size_t i=0;i<PolyM.vert.size();i++)
+        PolyM.vert[i].Q()=i;
+
+    for (size_t i=0;i<PolyM.face.size();i++)
+        PolyM.face[i].Q()=i;
+
+    vcg::PolygonalAlgorithm<PolyMeshType>::TriangulateToTriMesh(PolyM,poly_tris);
+//    assert(poly_tris.vert.size()==(PolyM.vert.size()+PolyM.face.size()));
+//    assert(poly_tris.face.size()==(4*PolyM.face.size()));
+
+
+    for (size_t i=0;i<poly_tris.vert.size();i++)
+    {
+       assert(poly_tris.face[i].Q()>=0);
+       assert(poly_tris.face[i].Q()<PolyM.face.size());
+    }
+
+    for (size_t i=0;i<poly_tris.vert.size();i++)
+    {
+        poly_tris.vert[i].Q()=-1;
+        if (i<PolyM.vert.size())
+            poly_tris.vert[i].Q()=i;
+    }
+
+    vcg::GridStaticPtr<TriFaceType,ScalarType> TriGrid;
+    TriGrid.Set(poly_tris.face.begin(),poly_tris.face.end());
+
+    std::vector<std::vector<CoordType> > VertMove(PolyM.vert.size());
+    std::vector<std::vector<ScalarType> > VertWeight(PolyM.vert.size());
+    for (size_t i=0;i<TriM.vert.size();i++)
+    {
+        CoordType TestPos=TriM.vert[i].P();
+        CoordType closestPt;
+        ScalarType MaxD=PolyM.bbox.Diag();
+        ScalarType MinD;
+        TriFaceType *f=vcg::tri::GetClosestFaceBase(poly_tris,TriGrid,TestPos,MaxD,MinD,closestPt);
+        assert(f!=NULL);
+
+        //retrieve the original face
+        int IndexTriF=vcg::tri::Index(poly_tris,f);
+        int IndexPolyF=poly_tris.face[IndexTriF].Q();
+
+        assert(IndexPolyF>=0);
+        assert(IndexPolyF<PolyM.face.size());
+
+        std::vector<typename TriMeshType::ScalarType> VertWeigths;
+        //std::cout<<"A"<<std::endl;
+        GetQuadInterpW<PolyMeshType,TriMeshType>(poly_tris.face[IndexTriF],
+                                                 PolyM.face[IndexPolyF],
+                                                 closestPt,VertWeigths);
+        //std::cout<<"B"<<std::endl;
+        CoordType MoveVect=TestPos-closestPt;
+
+        for (size_t j=0;j<4;j++)
+        {
+            int IndexV=vcg::tri::Index(PolyM,PolyM.face[IndexPolyF].V(j));
+            VertMove[IndexV].push_back(MoveVect*VertWeigths[j]);
+            VertWeight[IndexV].push_back(VertWeigths[j]);
+        }
+
+//        for (size_t j=0;j<4;j++)
+//        {
+//            CoordType MoveVect=TestPos-closestPt;
+//            CoordType VertPos=PolyM.face[IndexPolyF].P(j);
+//            ScalarType DistVert=(VertPos-closestPt).Norm();
+//            ScalarType DistV=1/(alpha+DistVert);
+
+//            int IndexV=vcg::tri::Index(PolyM,PolyM.face[IndexPolyF].V(j));
+//            VertMove[IndexV].push_back(MoveVect);
+//            VertWeight[IndexV].push_back(DistV);
+//        }
+    }
+
+    //normalize the weight and average the direction
+    std::vector<CoordType> TargetMov(PolyM.vert.size(),CoordType(0,0,0));
+    for (size_t i=0;i<VertWeight.size();i++)
+    {
+        ScalarType SumW=0;
+        for (size_t j=0;j<VertWeight[i].size();j++)
+            SumW+=VertWeight[i][j];
+
+        if (SumW==0)continue;
+
+        for (size_t j=0;j<VertWeight[i].size();j++)
+            VertWeight[i][j]/=SumW;
+
+        for (size_t j=0;j<VertMove[i].size();j++)
+            TargetMov[i]+=VertMove[i][j]*VertWeight[i][j];
+    }
+
+    TargetPos.clear();
+    for (size_t i=0;i<PolyM.vert.size();i++)
+        TargetPos.push_back(PolyM.vert[i].P()+TargetMov[i]);
+}
+
+
+template <class PolyMeshType,class TriMeshType>
+void MultiCostraintSmooth(PolyMeshType &PolyM,TriMeshType &TriM,
+                          const typename PolyMeshType::ScalarType Damp,
+                          size_t step_num=50,
+                          size_t back_proj_steps=5)
+{
+    typedef typename PolyMeshType::ScalarType ScalarType;
+    typedef typename PolyMeshType::CoordType CoordType;
+    typedef typename TriMeshType::FaceType TriFaceType;
+
+    vcg::GridStaticPtr<TriFaceType,ScalarType> TriGrid;
+    TriGrid.Set(TriM.face.begin(),TriM.face.end());
+    for (size_t s=0;s<step_num;s++)
+    {
+        std::vector<typename PolyMeshType::CoordType> TargetPosProj;
+        std::vector<typename PolyMeshType::CoordType> TargetPosBackProj;
+        std::vector<typename PolyMeshType::CoordType> TargetPosSmooth;
+
+        LaplacianEdgePos(PolyM,false,Damp,TargetPosSmooth);
+        //then blend between the two
+        for (size_t i=0;i<PolyM.vert.size();i++)
+            PolyM.vert[i].P()=TargetPosSmooth[i];
+
+        for (size_t i=0;i<back_proj_steps;i++)
+        {
+            BackProjectStepPositions(PolyM,TriM,TargetPosBackProj);
+            for (size_t i=0;i<PolyM.vert.size();i++)
+                PolyM.vert[i].P()=TargetPosBackProj[i];
+        }
+
+
+        ProjectStepPositions(PolyM,TriM,TriGrid,TargetPosProj);
+        for (size_t i=0;i<PolyM.vert.size();i++)
+            PolyM.vert[i].P()=TargetPosProj[i];
+
+//        //then blend between the two
+//        for (size_t i=0;i<PolyM.vert.size();i++)
+//            PolyM.vert[i].P()=TargetPosSmooth[i]*0.5+TargetPosProj[i]*0.5;
+    }
+}
 
 template <class PolyMeshType>
-typename PolyMeshType::CoordType ClosestPointSegSet(const typename BasicMesh::CoordType &Pos,
-                                                    std::vector<vcg::Segment3<typename BasicMesh::ScalarType> > &SegSet)
+typename PolyMeshType::CoordType ClosestPointSegSet(const typename PolyMeshType::CoordType &Pos,
+                                                    std::vector<vcg::Segment3<typename PolyMeshType::ScalarType> > &SegSet)
 {
     typedef typename PolyMeshType::ScalarType ScalarType;
     typedef typename PolyMeshType::CoordType CoordType;
@@ -493,6 +809,114 @@ void LaplacianEdge(PolyMeshType &poly_mesh,bool FixS,typename PolyMeshType::Scal
 
 }
 
+//void InitProejct(TriangleMeshType &tri_mesh,
+//                        PolyMeshType &poly_mesh,
+//                        const std::vector<std::pair<size_t,size_t> > &features,
+//                        const std::vector<size_t> &featuresC,
+//                        const std::vector<size_t> &tri_face_partition,
+//                        const std::vector<size_t > &quad_corner,
+//                        const std::vector<size_t> &quad_face_partition,
+//                        SmoothType SType,
+//                        size_t Steps,
+//                        typename PolyMeshType::ScalarType Damp,
+//                        typename PolyMeshType::ScalarType AvEdge)
+//{
+////InitByCurvature(MeshType & mesh,
+////                                unsigned Nring,
+////                                bool UpdateFaces=true)
+//}
+
+//template<class TriangleMeshType>
+//void ProjectMovingDirection(vcg::GridStaticPtr<typename TriangleMeshType::FaceType,
+//                                               typename TriangleMeshType::ScalarType> &TriGrid,
+//                            TriangleMeshType &tri_mesh,
+//                            const typename TriangleMeshType::CoordType &SamplePos,
+//                            typename TriangleMeshType::CoordType &MovingDir)
+//{
+//    typedef typename TriangleMeshType::FaceType TriFaceType;
+//    typedef typename TriangleMeshType::ScalarType TriScalarType;
+//    typedef typename TriangleMeshType::CoordType CoordType;
+
+//    //get the closest face point
+//    CoordType closestPt,Normf,bary;
+//    TriScalarType MaxD=tri_mesh.bbox.Diag();
+//    TriScalarType MinD;
+//    TriFaceType *f=vcg::tri::GetClosestFaceBase(tri_mesh,TriGrid,SamplePos,MaxD,MinD,closestPt,Normf,bary);
+
+//    //project moving direction cannot move along normal
+//    MovingDir-=Normf*(MovingDir*Normf);
+//}
+
+template<class TriangleMeshType>
+void ProjectMovingDirectionStep(vcg::GridStaticPtr<typename TriangleMeshType::FaceType,
+                                typename TriangleMeshType::ScalarType> &TriGrid,
+                                TriangleMeshType &tri_mesh,
+                                const typename TriangleMeshType::CoordType &SamplePos,
+                                typename TriangleMeshType::CoordType &MovingDir)
+{
+    typedef typename TriangleMeshType::FaceType TriFaceType;
+    typedef typename TriangleMeshType::ScalarType TriScalarType;
+    typedef typename TriangleMeshType::CoordType CoordType;
+
+    //get the closest face point
+    CoordType closestPt,Normf,bary;
+    TriScalarType MaxD=tri_mesh.bbox.Diag();
+    TriScalarType MinD;
+    TriFaceType *f=vcg::tri::GetClosestFaceBase(tri_mesh,TriGrid,SamplePos,MaxD,MinD,closestPt,Normf,bary);
+
+    //project moving direction cannot move along normal
+    MovingDir-=Normf*(MovingDir*Normf);
+
+    //then get the two directions
+    CoordType PD1=f->PD1();
+    CoordType PD2=f->PD2();
+    PD1.Normalize();
+    PD2.Normalize();
+
+    TriScalarType Mag1=fabs(f->K1());//0.9
+    TriScalarType Mag2=fabs(f->K2());//0.1
+    //    TriScalarType SumMag=Mag1+Mag2;
+    //    Mag1/=SumMag;
+    //    Mag2/=SumMag;
+    //    Mag1=1-Mag1;//0.1
+    //    Mag2=1-Mag2;//0.9
+
+    CoordType Dir=MovingDir;
+    Dir.Normalize();
+    TriScalarType Dot1=fabs(Dir*PD1);//0.1
+    TriScalarType Dot2=fabs(Dir*PD2);//0.9
+
+    //TriScalarType InterpDir=Dot1/(Dot1+Dot2);//0.9
+    TriScalarType InterpMag=Mag1*Dot1+Mag2*Dot2;//0.1*0.1+0.9*0.9
+    MovingDir*=InterpMag;
+}
+
+template<class TriangleMeshType>
+void ProjectMovingDirection(vcg::GridStaticPtr<typename TriangleMeshType::FaceType,
+                            typename TriangleMeshType::ScalarType> &TriGrid,
+                            TriangleMeshType &tri_mesh,
+                            const typename TriangleMeshType::CoordType &SamplePos,
+                            typename TriangleMeshType::CoordType &MovingDir,
+                            size_t Steps=10)
+{
+    typedef typename TriangleMeshType::FaceType TriFaceType;
+    typedef typename TriangleMeshType::ScalarType TriScalarType;
+    typedef typename TriangleMeshType::CoordType CoordType;
+
+    CoordType CurrStep=MovingDir/Steps;
+    CoordType CurrPos=SamplePos;
+    for (size_t i=0;i<Steps;i++)
+    {
+        //make a step
+        ProjectMovingDirectionStep(TriGrid,tri_mesh,CurrPos,CurrStep);
+        //update current positions
+        CurrPos+=CurrStep;
+    }
+
+    //the return the final position
+    MovingDir=CurrPos-SamplePos;
+}
+
 template <class PolyMeshType,class TriangleMeshType>
 void SmoothWithFeatures(TriangleMeshType &tri_mesh,
                         PolyMeshType &poly_mesh,
@@ -517,13 +941,12 @@ void SmoothWithFeatures(TriangleMeshType &tri_mesh,
     std::vector<std::vector<vcg::Segment3<typename PolyMeshType::ScalarType> > > ProjBasis;
     GetVertProjBasis(AvEdge,features,featuresC,tri_mesh,quad_corner,poly_mesh,tri_face_partition,quad_face_partition,VertBasis,ProjBasis);
     std::cout<<"*** End Getting Projection basis ***"<<std::endl;
-    //GetVertProjBasis(AvEdge,features,featuresC,tri_mesh,poly_mesh,tri_face_partition,quad_face_partition,VertBasis,ProjBasis);
 
 
-    BasicMesh EdgeMesh;
-    ExtractEdgeMesh(tri_mesh,features,EdgeMesh);
+    //    BasicMesh EdgeMesh;
+    //    ExtractEdgeMesh(tri_mesh,features,EdgeMesh);
 
-    vcg::tri::io::ExporterOBJ<BasicMesh>::Save(EdgeMesh,"test_edge.obj",vcg::tri::io::Mask::IOM_EDGEINDEX);
+    //vcg::tri::io::ExporterOBJ<BasicMesh>::Save(EdgeMesh,"test_edge.obj",vcg::tri::io::Mask::IOM_EDGEINDEX);
 
     //select corners
     vcg::tri::UpdateSelection<PolyMeshType>::VertexClear(poly_mesh);
@@ -534,19 +957,43 @@ void SmoothWithFeatures(TriangleMeshType &tri_mesh,
     vcg::GridStaticPtr<TriFaceType,TriScalarType> TriGrid;
     TriGrid.Set(tri_mesh.face.begin(),tri_mesh.face.end());
 
+    //    for (size_t i=0;i<poly_mesh.vert.size();i++)
+    //    {
+
+    //        TriScalarType MinD;
+    //        TriScalarType MaxD=poly_mesh.bbox.Diag();
+    //        CoordType closestPt;
+    //        vcg::tri::GetClosestFaceBase(tri_mesh,TriGrid,poly_mesh.vert[i].P(),MaxD,MinD,closestPt);
+    //        poly_mesh.vert[i].P()=closestPt;
+
+    //    }
+
+    //    return;
+
     for (size_t s=0;s<Steps;s++)
     {
+        //save the initial position
+        std::vector<CoordType> Pos0;
+        for (size_t i=0;i<poly_mesh.vert.size();i++)
+            Pos0.push_back(poly_mesh.vert[i].P());
+
         if (SType==Laplacian)
             LaplacianEdge(poly_mesh,true,Damp);
         //vcg::PolygonalAlgorithm<PolyMeshType>::Laplacian(poly_mesh,true,1,Damp);
         else
             vcg::PolygonalAlgorithm<PolyMeshType>::SmoothPCA(poly_mesh,1,Damp,true,true,0.2,false);
-        //then reproject
+
+
+
+        //move in tangent space
         for (size_t i=0;i<poly_mesh.vert.size();i++)
         {
+            CoordType Pos1=poly_mesh.vert[i].P();
+            CoordType MovDir=Pos1-Pos0[i];
+            ProjectMovingDirection<TriangleMeshType>(TriGrid,tri_mesh,Pos0[i],MovDir);
+            poly_mesh.vert[i].P()=Pos0[i]+MovDir;
+
             //if (VertTypes[i]==Corner)continue;
-
-
             CoordType closestPt;
             if (VertBasis[i]>=0)
             {
@@ -560,10 +1007,61 @@ void SmoothWithFeatures(TriangleMeshType &tri_mesh,
                 vcg::tri::GetClosestFaceBase(tri_mesh,TriGrid,poly_mesh.vert[i].P(),MaxD,MinD,closestPt);
                 poly_mesh.vert[i].P()=closestPt;
             }
+            //          }
         }
-    }
 
+    }
 }
+
+
+//template <class PolyMeshType,class TriangleMeshType>
+//void SmoothSubdivide(TriangleMeshType &tri_mesh,
+//                     PolyMeshType &poly_mesh,
+//                     const std::vector<std::pair<size_t,size_t> > &features,
+//                     const std::vector<size_t> &featuresC,
+//                     const std::vector<size_t> &tri_face_partition,
+//                     const std::vector<size_t > &quad_corner,
+//                     const std::vector<size_t> &quad_face_partition,
+//                     SmoothType SType,
+//                     size_t Steps,
+//                     typename PolyMeshType::ScalarType Damp,
+//                     typename PolyMeshType::ScalarType AvEdge)
+//{
+//    typedef typename TriangleMeshType::FaceType TriFaceType;
+//    typedef typename TriangleMeshType::ScalarType TriScalarType;
+//    typedef typename TriangleMeshType::CoordType CoordType;
+
+//    vcg::tri::FieldSmoother<TriangleMeshType>::InitByCurvature(tri_mesh,5);
+//    vcg::tri::CrossField<TriangleMeshType>::SetFaceCrossVectorFromVert(tri_mesh);
+//    std::vector<TriScalarType> KVal;
+//    for (size_t i=0;i<tri_mesh.vert.size();i++)
+//    {
+//        tri_mesh.vert[i].K1()/=fabs(tri_mesh.vert[i].K1());
+//        tri_mesh.vert[i].K2()/=fabs(tri_mesh.vert[i].K2());
+//    }
+
+//    for (size_t i=0;i<tri_mesh.vert.size();i++)
+//    {
+//        KVal.push_back(fabs(tri_mesh.vert[i].K1()));
+//        KVal.push_back(fabs(tri_mesh.vert[i].K2()));
+//        //std::cout<<"PD1: "<<tri_mesh.vert[i].K1()<<"PD2: "<<tri_mesh.vert[i].K2()<<std::endl;
+//    }
+//    std::sort(KVal.begin(),KVal.end());
+//    int Index=KVal.size()*0.8;
+//    TriScalarType MaxV=KVal[Index];
+//    for (size_t i=0;i<tri_mesh.vert.size();i++)
+//    {
+//        tri_mesh.vert[i].K1()/=MaxV;
+//        tri_mesh.vert[i].K2()/=MaxV;
+//        if (tri_mesh.vert[i].K1()>1)tri_mesh.vert[i].K1()=1;
+//        if (tri_mesh.vert[i].K2()>1)tri_mesh.vert[i].K2()=1;
+//        tri_mesh.vert[i].K1()=1-tri_mesh.vert[i].K1();
+//        tri_mesh.vert[i].K2()=1-tri_mesh.vert[i].K2();
+//    }
+
+//    SmoothWithFeatures(tri_mesh,poly_mesh,features,featuresC,tri_face_partition,
+//                       quad_corner,quad_face_partition,SType,Steps,Damp,AvEdge);
+//}
 
 
 template <class PolyMeshType,class TriangleMeshType>
@@ -579,9 +1077,54 @@ void SmoothSubdivide(TriangleMeshType &tri_mesh,
                      typename PolyMeshType::ScalarType Damp,
                      typename PolyMeshType::ScalarType AvEdge)
 {
-//   vcg::PolygonalAlgorithm<PolyMeshType>::SubdivideStep(poly_mesh);
-//   vcg::PolygonalAlgorithm<PolyMeshType>::SubdivideStep(poly_mesh);
-   SmoothWithFeatures(tri_mesh,poly_mesh,features,featuresC,tri_face_partition,
-                     quad_corner,quad_face_partition,SType,Steps,Damp,AvEdge);
+    typedef typename TriangleMeshType::FaceType TriFaceType;
+    typedef typename TriangleMeshType::ScalarType TriScalarType;
+    typedef typename TriangleMeshType::CoordType CoordType;
+
+//    std::vector<CoordType> TargetPos;
+//    BackProjectStepPositions(poly_mesh,tri_mesh,TargetPos);
+//    for (size_t i=0;i<poly_mesh.vert.size();i++)
+//        poly_mesh.vert[i].P()=TargetPos[i];
+    //BackProjectOnMesh(poly_mesh,tri_mesh);
+    MultiCostraintSmooth(poly_mesh,tri_mesh,Damp);
+    return;
+
+    //make a copy of the mesh
+    PolyMeshType poly_swap;
+    vcg::tri::Append<PolyMeshType,PolyMeshType>::Mesh(poly_swap,poly_mesh);
+
+    //subdivide
+    //vcg::PolygonalAlgorithm<PolyMeshType>::SubdivideStep(poly_swap);
+    //vcg::PolygonalAlgorithm<PolyMeshType>::SubdivideStep(poly_swap);
+
+    //then triangulate
+    TriangleMeshType poly_tris;
+    vcg::PolygonalAlgorithm<PolyMeshType>::TriangulateToTriMesh(poly_swap,poly_tris);
+
+    //set a grid
+    vcg::GridStaticPtr<TriFaceType,TriScalarType> TriGrid;
+    TriGrid.Set(tri_mesh.face.begin(),tri_mesh.face.end());
+
+    for (size_t i=0;i<Steps;i++)
+    {
+        //smooth
+        LaplacianEdge(poly_swap,false,Damp);
+        //the reproject
+        for (size_t j=0;j<poly_swap.vert.size();j++)
+        {
+            TriScalarType MinD;
+            TriScalarType MaxD=poly_mesh.bbox.Diag();
+            CoordType closestPt;
+            vcg::tri::GetClosestFaceBase(tri_mesh,TriGrid,poly_swap.vert[j].P(),MaxD,MinD,closestPt);
+            poly_swap.vert[j].P()=closestPt;
+        }
+    }
+
+    for (size_t i=0;i<poly_mesh.vert.size();i++)
+        poly_mesh.vert[i].P()=poly_swap.vert[i].P();
+
+    //    SmoothWithFeatures(tri_mesh,poly_mesh,features,featuresC,tri_face_partition,
+    //                       quad_corner,quad_face_partition,SType,Steps,Damp,AvEdge);
 }
+
 #endif // SMOOTH_MESH_H
