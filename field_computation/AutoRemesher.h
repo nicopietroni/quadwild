@@ -247,23 +247,111 @@ public:
 
 	} Params;
 
-	static void SplitNonManifold (Mesh & m)
-	{
-		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-		vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.00000001);
-		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-		vcg::tri::Clean<Mesh>::SplitManifoldComponents(m);
-		int splitV = 0, remF = 0;
-		do
-		{
-        	        vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-	                remF = vcg::tri::Clean<Mesh>::RemoveNonManifoldFace(m);
-			vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-			splitV = vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.001);
-		} while (splitV > 0 || remF > 0);
+   static size_t openNonManifoldEdges(Mesh & m, const ScalarType moveThreshold)
+    {
+        vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
+        vcg::tri::UpdateTopology<Mesh>::VertexFace(m);
+        vcg::tri::UpdateFlags<Mesh>::VertexClearV(m);
 
-                vcg::tri::Clean<Mesh>::RemoveUnreferencedVertex(m);
-                vcg::tri::Allocator<Mesh>::CompactEveryVector(m);
+        typedef typename vcg::face::Pos<FaceType> PosType;
+
+        typedef std::vector<std::vector<std::pair<size_t, size_t> > > VertexToFaceGroups;
+
+        std::unordered_map<size_t,VertexToFaceGroups> map;
+
+        vcg::tri::ForEachFacePos(m, [&](PosType & pos) {
+
+            if (!pos.V()->IsV() && !pos.IsManifold())
+            {
+                pos.V()->SetV();
+
+                std::vector<FacePointer> faceVec;
+                std::vector<int> vIndices;
+                vcg::face::VFStarVF(pos.V(), faceVec, vIndices);
+
+                std::unordered_set<size_t> inserted;
+
+                VertexToFaceGroups faceGroups;
+
+                for (size_t i = 0; i < faceVec.size(); ++i)
+                {
+                    const FacePointer fp = faceVec[i];
+
+                    if (inserted.count(vcg::tri::Index(m, fp)) != 0)
+                        continue;
+
+                    std::vector<std::pair<size_t, size_t> > manifoldGroup;
+
+                    PosType cyclePos(fp, vIndices[i]);
+                    PosType beginPos = cyclePos;
+                    //get to a non manifold edge...
+                    do
+                    {
+                        manifoldGroup.push_back(std::make_pair(vcg::tri::Index(m, cyclePos.F()), cyclePos.VInd()));
+                        inserted.insert(vcg::tri::Index(m, cyclePos.F()));
+                        cyclePos.F()->Q() = faceGroups.size() + 1;
+                        cyclePos.FlipE();
+                        cyclePos.NextF();
+                    } while (cyclePos.IsManifold() && !cyclePos.IsBorder());
+
+                    cyclePos = beginPos;
+                    cyclePos.NextF();
+
+                    while (cyclePos.IsManifold() && !cyclePos.IsBorder())
+                    {
+                        manifoldGroup.push_back(std::make_pair(vcg::tri::Index(m, cyclePos.F()), cyclePos.VInd()));
+                        inserted.insert(vcg::tri::Index(m, cyclePos.F()));
+                        cyclePos.F()->Q() = faceGroups.size() + 1;
+                        cyclePos.FlipE();
+                        cyclePos.NextF();
+                    }
+                    faceGroups.push_back(manifoldGroup);
+                }
+
+                map[vcg::tri::Index(m, pos.V())] = faceGroups;
+            }
+        });
+
+        for (auto group : map)
+        {
+            const size_t vert = group.first;
+            const VertexToFaceGroups & faceGroups = group.second;
+            if (faceGroups.size() > 1)
+            {
+                auto vp = vcg::tri::Allocator<Mesh>::AddVertices(m, faceGroups.size()-1);
+
+                for (size_t i = 1; i < faceGroups.size(); ++i)
+                {
+                    vp->P() = m.vert[vert].cP();
+
+                    CoordType delta(0, 0, 0);
+                    for (std::pair<size_t,size_t> faceVertIndex : faceGroups[i])
+                    {
+                        m.face[faceVertIndex.first].V(faceVertIndex.second) = &*vp;
+                        delta += vcg::Barycenter(m.face[faceVertIndex.first]) - vp->cP();
+                    }
+                    delta /= faceGroups[i].size();
+                    vp->P() += delta * moveThreshold;
+                    ++vp;
+                }
+            }
+        }
+
+        return map.size();
+    }
+
+	static void SplitNonManifold (Mesh & m)
+    	{
+        	int splitV = 0, openings = 0;
+        	do
+        	{
+            		openings = openNonManifoldEdges(m, 0.00001);
+            		vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
+            		splitV = vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.00001);
+        	} while (splitV > 0 || openings > 0);
+
+	        vcg::tri::Clean<Mesh>::RemoveUnreferencedVertex(m);
+        	vcg::tri::Allocator<Mesh>::CompactEveryVector(m);
 	}
 
 	static std::shared_ptr<Mesh> CleanMesh(Mesh & m, const bool & splitNonManifold = false)
@@ -386,12 +474,20 @@ public:
 		const ScalarType thr = 0.01;
 		collapseSurvivingMicroEdges(*ret, thr);
 
-		vcg::tri::ForEachFace(*ret, [&] (FaceType & f) {
-			if (!f.IsD() && vcg::QualityRadii(f.cP(0), f.cP(1), f.cP(2)) <= thr)
-				vcg::tri::Allocator<Mesh>::DeleteFace(*ret, f);
-		});
-		vcg::tri::Allocator<Mesh>::CompactEveryVector(*ret);
+		vcg::tri::UpdateSelection<Mesh>::FaceClear(*ret);
+		vcg::tri::UpdateTopology<Mesh>::FaceFace(*ret);
 
+		vcg::tri::ForEachFace(*ret, [&] (FaceType & f) {
+			if (!f.IsD() && vcg::QualityRadii(f.cP(0), f.cP(1), f.cP(2)) <= 0.01)
+				f.SetS();
+		});
+			
+		vcg::tri::UpdateSelection<Mesh>::FaceDilate(*ret);
+//		vcg::tri::UpdateSelection<Mesh>::FaceDilate(*ret);
+//		vcg::tri::Smooth<Mesh>::VertexCoordLaplacian(*ret, 15, true);
+		
+		vcg::tri::Allocator<Mesh>::CompactEveryVector(*ret);
+		std::cout << "[REMESH] remeshing ends.." << std::endl;
 		return ret;
 	}
 };
