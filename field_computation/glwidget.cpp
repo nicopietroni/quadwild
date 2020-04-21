@@ -56,6 +56,7 @@
 //#include <vcg/complex/algorithms/parametrization/tangent_field_operators.h>
 #include <wrap/gl/gl_field.h>
 #include <AutoRemesher.h>
+#include <vcg/complex/algorithms/hole.h>
 
 std::string pathM="";
 std::string pathS="";
@@ -321,6 +322,7 @@ void InitFieldBar(QWidget *w)
 
 void BatchProcess ()
 {
+    vcg::tri::Hole<MyTriMesh>::EarCuttingFill<vcg::tri::TrivialEar<MyTriMesh> >(tri_mesh,6);
 
     DoAutoRemesh();
 
@@ -332,6 +334,9 @@ void BatchProcess ()
     	std::cout<<"Saving remeshed Mesh TO:"<<meshName.c_str()<<std::endl;
     	tri_mesh.SaveTriMesh(meshName.c_str());
     }
+
+    vcg::tri::Clean<MyTriMesh>::RemoveSmallConnectedComponentsSize(tri_mesh,10);
+    vcg::tri::Allocator<MyTriMesh>::CompactEveryVector(tri_mesh);
 
     InitSharp();
     tri_mesh.ErodeDilate(feature_erode_dilate);
