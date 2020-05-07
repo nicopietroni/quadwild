@@ -145,19 +145,27 @@ bool loadConfigFile(const std::string & filename)
 
     if (f==NULL)return false;
 
+    std::cout<<"READ CONFIG FILE"<<std::endl;
+
+
     fscanf(f,"remesh_iterations %d\n",&remesher_iterations);
+    std::cout<<"remesh_iterations "<<remesher_iterations<<std::endl;
 
     float remesher_aspect_ratiof;
     fscanf(f,"remesh_target_aspect_ratio %f\n",&remesher_aspect_ratiof);
     remesher_aspect_ratio=remesher_aspect_ratiof;
+    std::cout<<"remesher_aspect_ratio "<<remesher_aspect_ratio<<std::endl;
 
     fscanf(f,"remesh_termination_delta %d\n",&remesher_termination_delta);
+    std::cout<<"remesh_termination_delta "<<remesher_termination_delta<<std::endl;
 
     float sharp_feature_thrf;
     fscanf(f,"sharp_feature_thr %f\n",&sharp_feature_thrf);
     sharp_feature_thr=sharp_feature_thrf;
+    std::cout<<"sharp_feature_thr "<<sharp_feature_thr<<std::endl;
 
     fscanf(f,"sharp_feature_erode_dilate %d\n",&feature_erode_dilate);
+    std::cout<<"sharp_feature_erode_dilate "<<feature_erode_dilate<<std::endl;
 
     fclose(f);
 

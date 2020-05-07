@@ -51,8 +51,8 @@ int main(int argc, char *argv[])
     loadSetupFile(std::string("basic_setup.txt"), parameters, scaleFactor);
 
     parameters.hardParityConstraint=true;
-    parameters.chartSmoothingIterations = 0;
-    parameters.quadrangulationSmoothingIterations = 0; //Fixed borders of the patches
+    parameters.chartSmoothingIterations = 10;
+    parameters.quadrangulationSmoothingIterations = 10; //Fixed borders of the patches
 
     if(argc<2)
     {
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
     QuadCornersVect.erase(last, QuadCornersVect.end());
 
     //SmoothWithFeatures(trimesh,quadmesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,Laplacian,100,0.5,EdgeSize);
-    SmoothSubdivide(trimesh,quadmesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,Laplacian,100,0.5,EdgeSize);
+    SmoothSubdivide(trimesh,quadmesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,100,0.5,EdgeSize);
 
     //SAVE OUTPUT
     outputFilename = meshFilename;
@@ -203,6 +203,7 @@ void loadSetupFile(const std::string& path, qfp::Parameters& parameters, float& 
 
     float alphaF;
     fscanf(f,"alpha %f\n",&alphaF);
+    std::cout<<"ALPHA "<<alphaF<<std::endl;
     parameters.alpha=alphaF;
 
     int IntVar=0;

@@ -1,6 +1,6 @@
-Srate 0.4
+Srate 0.8
 Drift 100
 Split 0
-IncreaseValRem 1
+IncreaseValRem 0
 IrregularRem 0
-DistortionL 1.2
+DistortionL 2

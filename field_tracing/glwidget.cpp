@@ -187,6 +187,7 @@ void LoadSetupFile(std::string path)
     float MaxDistortionf;
     fscanf(f,"DistortionL %f\n",&MaxDistortionf);
     PTr.max_lenght_distortion=(CMesh::ScalarType)MaxDistortionf;
+    std::cout<<"DistortionL "<<MaxDistortionf<<std::endl;
     fclose(f);
 
     if ((batch_process)&&(BatchSample>0))

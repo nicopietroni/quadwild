@@ -2292,6 +2292,7 @@ public:
     ScalarType max_lenght_distortion;
     ScalarType max_lenght_variance;
     ScalarType sample_ratio;
+    ScalarType max_patch_area;
     size_t MinVal;
     size_t MaxVal;
 
@@ -2707,7 +2708,7 @@ private:
 
     void WorstPatchQuality(ScalarType &WorstLenght,
                            ScalarType &WorstLVariance,
-                           bool only_irregular=true)
+                           bool only_irregular=false)
     {
         WorstLenght=1;
         WorstLVariance=1;
@@ -2719,6 +2720,26 @@ private:
             WorstLenght=std::max(WorstLenght,CurrLenght);
             WorstLVariance=std::max(WorstLVariance,CurrVariance);
         }
+    }
+
+    void GetPatchAreas(std::vector<ScalarType> &AreaPatch)
+    {
+        AreaPatch.clear();
+        for (size_t i=0;i<Partitions.size();i++)
+        {
+            ScalarType currA=0;
+            for (size_t j=0;j<Partitions[i].size();j++)
+                currA+=vcg::DoubleArea(Mesh().face[Partitions[i][j]])/2.0;
+            AreaPatch.push_back(currA);
+        }
+    }
+
+    ScalarType MeshArea()
+    {
+        ScalarType currA=0;
+        for (size_t i=0;i<Mesh().face.size();i++)
+            currA+=(vcg::DoubleArea(Mesh().face[i])/2.0);
+        return currA;
     }
 
     void GetCurrentConfigurationAround(const std::vector<vcg::face::Pos<FaceType> > &FacesPath,
@@ -2835,13 +2856,27 @@ private:
             if (Valence5_0>0)CanRemove=false;
             if (Valence3_0>0)CanRemove=false;
         }
+        std::vector<ScalarType> AreaPatch;
+        GetPatchAreas(AreaPatch);
+        for (size_t i=0;i<AreaPatch.size();i++)
+        {
+            if (AreaPatch[i]>max_patch_area)
+            {
+                CanRemove=false;
+//                std::cout<<"Patch "<<i<<std::endl;
+//                std::cout<<"Area "<<AreaPatch[i]<<std::endl;
+//                std::cout<<"Max "<<max_patch_area<<std::endl;
+            }
+        }
+
         if (CanRemove)
         {
             ScalarType LenghtDist;
             ScalarType LenghtVariance;
-            WorstPatchQuality(LenghtDist,LenghtVariance);
+            WorstPatchQuality(LenghtDist,LenghtVariance,true);
             if ((max_lenght_distortion>1) &&(LenghtDist>max_lenght_distortion))CanRemove=false;
             if ((max_lenght_variance>1) && (LenghtVariance>max_lenght_variance))CanRemove=false;
+
         }
         if (!CanRemove)
         {
@@ -3086,8 +3121,14 @@ public:
         //std::cout<<"* With More Singularities "<<HasMoreSing<<std::endl;
     }
 
+//    ScalarType PatchDistortion(size_t IndexP)
+//    {
+
+//    }
+
     void RemovePaths(bool DoSmooth=true)
     {
+        max_patch_area=MeshArea()*0.02;
         std::vector<std::vector<vcg::face::Pos<FaceType> > > PathPos;
 
         //select pos
@@ -4433,6 +4474,8 @@ public:
 
         TraceLoops(false);
 
+        //RemovePaths(true);
+
         if (HasIncompleteEmitter())
             JoinNarrow(false);
 
@@ -4441,6 +4484,8 @@ public:
 
         //if (!HasTerminated())
         JoinBoundaries(false);
+
+        //RemovePaths(true);
 
         if (HasIncompleteEmitter())
             JoinNarrow(false);
@@ -4637,11 +4682,12 @@ public:
         avoid_increase_valence=true;
         avoid_collapse_irregular=false;
         max_lenght_distortion=1.2;
-        max_lenght_variance=-1;
+        max_lenght_variance=2;
         sample_ratio=0.2;
         MinVal=3;
         MaxVal=6;
         AllReceivers=false;
+        max_patch_area=MeshArea()*0.5;
     }
 };
 
