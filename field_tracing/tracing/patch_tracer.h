@@ -15,15 +15,15 @@
 #include <wrap/io_trimesh/export_obj.h>
 
 #define CONVEX_THR 5.0
-#define CONCAVE_THR 5.0
-#define NARROW_THR 5.0
+#define CONCAVE_THR 7.0
+#define NARROW_THR 20.0
 
 #define MAX_SAMPLES 1000
 #define MAX_NARROW_CONST 0.05
 
 enum TypeVert{Narrow,Concave,Convex,Flat,Internal,Choosen,None};
 enum TraceType{TraceDirect,DijkstraReceivers,TraceLoop};
-enum PatchType{LowCorners,HighCorners,NonDisk,HasEmitter,MoreSing,IsOK};
+enum PatchType{LowCorners,HighCorners,NonDisk,HasEmitter,Distorted,IsOk};//MoreSing,IsOK};
 
 template <class MeshType>
 class PatchTracer
@@ -116,17 +116,62 @@ private:
 
     void FindNarrowV(std::vector<size_t> &NarrowV)
     {
-        //then find the concaves
-        vcg::tri::UpdateSelection<MeshType>::VertexCornerBorder(Mesh(),2*M_PI-M_PI/NARROW_THR);
-        for (size_t i=0;i<Mesh().vert.size();i++)
+        //first find the angle for each vertex
+        std::map<CoordType,ScalarType> VertAngle;
+        std::vector<ScalarType > angle(Mesh().vert.size(),0);
+
+        for(size_t i=0;i<Mesh().face.size();i++)
+        {
+          for(size_t j=0;j<Mesh().face[i].VN();++j)
+          {
+              size_t IndexV=vcg::tri::Index(Mesh(),Mesh().face[i].V(j));
+              angle[IndexV] += vcg::face::WedgeAngleRad(Mesh().face[i],j);
+          }
+        }
+
+        //then cumulate across shared borders
+        for(size_t i=0;i<Mesh().vert.size();i++)
+        {
+            CoordType testP=Mesh().vert[i].P();
+            if (VertAngle.count(testP)==0)
+                VertAngle[testP]=angle[i];
+            else
+                VertAngle[testP]+=angle[i];
+        }
+
+        for(size_t i=0;i<Mesh().vert.size();i++)
         {
             if (!Mesh().vert[i].IsB())continue;
-            if (Mesh().vert[i].IsS())continue;
-            NarrowV.push_back(i);
+            ScalarType sideAngle=angle[i];
+            if (VFGraph.IsRealBorderVert(i))
+            {
+                if(sideAngle>(2*M_PI-M_PI/NARROW_THR))
+                    NarrowV.push_back(i);
+            }
+            else
+            {
+                CoordType testP=Mesh().vert[i].P();
+                assert(VertAngle.count(testP)>0);
+                ScalarType currAngle=VertAngle[testP];
+                if (sideAngle>(currAngle-M_PI/NARROW_THR))
+                   NarrowV.push_back(i);
+            }
+
         }
-        std::sort(NarrowV.begin(),NarrowV.end());
-        auto last=std::unique(NarrowV.begin(),NarrowV.end());
-        NarrowV.erase(last, NarrowV.end());
+//                std::sort(NarrowV.begin(),NarrowV.end());
+//                auto last=std::unique(NarrowV.begin(),NarrowV.end());
+//                NarrowV.erase(last, NarrowV.end());
+//        //then find the narrows
+//        vcg::tri::UpdateSelection<MeshType>::VertexCornerBorder(Mesh(),2*M_PI-M_PI/NARROW_THR);
+//        for (size_t i=0;i<Mesh().vert.size();i++)
+//        {
+//            if (!Mesh().vert[i].IsB())continue;
+//            if (Mesh().vert[i].IsS())continue;
+//            NarrowV.push_back(i);
+//        }
+//        std::sort(NarrowV.begin(),NarrowV.end());
+//        auto last=std::unique(NarrowV.begin(),NarrowV.end());
+//        NarrowV.erase(last, NarrowV.end());
     }
 
     void FindFlatV(const std::vector<size_t> &ConvexV,
@@ -210,6 +255,69 @@ private:
         InitVertType(ConvexV,ConcaveV,NarrowV,FlatV);
     }
 
+    void ComputeFlatEmitterReceivers(const size_t IndexV,
+                                     size_t &Emitter,
+                                     size_t &Receiver)
+    {
+        assert(VertOrthoDir[IndexV].size()==2);
+        CoordType Ortho0=VertOrthoDir[IndexV][0];
+        CoordType Ortho1=VertOrthoDir[IndexV][1];
+        CoordType TargetD=Ortho0+Ortho1;
+        TargetD.Normalize();
+        size_t BestDir=VFGraph.GetClosestDirTo(IndexV,TargetD);
+        Emitter=VertexFieldGraph<MeshType>::IndexNode(IndexV,BestDir);
+        Receiver=VertexFieldGraph<MeshType>::TangentNode(Emitter);
+    }
+
+    void ComputeNarrowEmitterReceivers(const size_t IndexV,
+                                       size_t &Emitter,
+                                       size_t &Receiver)
+    {
+        assert(VertFlatDir[IndexV].size()==2);
+        CoordType Flat0=VertFlatDir[IndexV][0];
+        CoordType Flat1=VertFlatDir[IndexV][1];
+        CoordType TargetD=Flat0+Flat1;
+        TargetD.Normalize();
+        size_t BestDir=VFGraph.GetClosestDirTo(IndexV,TargetD);
+        Emitter=VertexFieldGraph<MeshType>::IndexNode(IndexV,BestDir);
+        Receiver=VertexFieldGraph<MeshType>::TangentNode(Emitter);
+    }
+
+    void ComputeConcaveEmitterReceivers(const size_t IndexV,
+                                        std::vector<size_t> &Emitter,
+                                        std::vector<size_t> &Receiver)
+    {
+        assert(VertOrthoDir[IndexV].size()==2);
+        CoordType Ortho0=VertOrthoDir[IndexV][0];
+        CoordType Ortho1=VertOrthoDir[IndexV][1];
+        size_t BestDir0=VFGraph.GetClosestDirTo(IndexV,Ortho0);
+        size_t BestDir1=VFGraph.GetClosestDirTo(IndexV,Ortho1);
+
+        size_t IndexNode0=VertexFieldGraph<MeshType>::IndexNode(IndexV,BestDir0);
+        size_t IndexNode1=VertexFieldGraph<MeshType>::IndexNode(IndexV,BestDir1);
+        //there are three cases
+        if (IndexNode0==IndexNode1)
+            Emitter.push_back(IndexNode0);
+        else
+        {
+            Emitter.push_back(IndexNode0);
+            Emitter.push_back(IndexNode1);
+            //check if they are opposite
+            size_t OppN=VertexFieldGraph<MeshType>::TangentNode(IndexNode0);
+            if (OppN==IndexNode1)//in this case add a third one
+            {
+                size_t EmitterN,ReceiverN;
+                ComputeNarrowEmitterReceivers(IndexV,EmitterN,ReceiverN);
+                assert(EmitterN!=IndexNode0);
+                assert(EmitterN!=IndexNode1);
+                Emitter.push_back(EmitterN);
+            }
+        }
+
+        for (size_t i=0;i<Emitter.size();i++)
+            Receiver.push_back(VertexFieldGraph<MeshType>::TangentNode(Emitter[i]));
+    }
+
     void InitEmitters()
     {
         NodeEmitterTypes.clear();
@@ -227,69 +335,94 @@ private:
                 continue;
 
             if (VertType[i]==Flat)
-            {
-                assert(VertOrthoDir[i].size()==2);
-                CoordType Ortho0=VertOrthoDir[i][0];
-                CoordType Ortho1=VertOrthoDir[i][1];
-                CoordType TargetD=Ortho0+Ortho1;
-                TargetD.Normalize();
-                size_t BestDir=VFGraph.GetClosestDirTo(i,TargetD);
-                int IndexNode=VertexFieldGraph<MeshType>::IndexNode(i,BestDir);
+            {              
+                size_t Emitter,Receiver;
+                ComputeFlatEmitterReceivers(i,Emitter,Receiver);
+                assert(Emitter!=Receiver);
+                assert(NodeEmitterTypes[Emitter]==None);
+                NodeEmitterTypes[Emitter]=Flat;
+                assert(NodeReceiverTypes[Receiver]==None);
+                NodeReceiverTypes[Receiver]=Flat;
+//                assert(VertOrthoDir[i].size()==2);
+//                CoordType Ortho0=VertOrthoDir[i][0];
+//                CoordType Ortho1=VertOrthoDir[i][1];
+//                CoordType TargetD=Ortho0+Ortho1;
+//                TargetD.Normalize();
+//                size_t BestDir=VFGraph.GetClosestDirTo(i,TargetD);
+//                int IndexNode=VertexFieldGraph<MeshType>::IndexNode(i,BestDir);
 
-                assert(NodeEmitterTypes[IndexNode]==None);
-                NodeEmitterTypes[IndexNode]=Flat;
+//                assert(NodeEmitterTypes[IndexNode]==None);
+//                NodeEmitterTypes[IndexNode]=Flat;
 
-                //                //if real border then add receiver
-                //                if (VFGraph.IsRealBorderVert(i))
-                //                {
-                size_t OppN=VertexFieldGraph<MeshType>::TangentNode(IndexNode);
-                assert(NodeReceiverTypes[OppN]==None);
-                NodeReceiverTypes[OppN]=Flat;
+//                //                //if real border then add receiver
+//                //                if (VFGraph.IsRealBorderVert(i))
+//                //                {
+//                size_t OppN=VertexFieldGraph<MeshType>::TangentNode(IndexNode);
+//                assert(NodeReceiverTypes[OppN]==None);
+//                NodeReceiverTypes[OppN]=Flat;
             }
             if (VertType[i]==Concave)
             {
-                assert(VertOrthoDir[i].size()==2);
-                CoordType Ortho0=VertOrthoDir[i][0];
-                CoordType Ortho1=VertOrthoDir[i][1];
-                size_t BestDir0=VFGraph.GetClosestDirTo(i,Ortho0);
-                size_t BestDir1=VFGraph.GetClosestDirTo(i,Ortho1);
-
-                size_t IndexNode0=VertexFieldGraph<MeshType>::IndexNode(i,BestDir0);
-                size_t IndexNode1=VertexFieldGraph<MeshType>::IndexNode(i,BestDir1);
-
-                assert(NodeEmitterTypes[IndexNode0]==None);
-                NodeEmitterTypes[IndexNode0]=Concave;
-
-                size_t OppN=VertexFieldGraph<MeshType>::TangentNode(IndexNode0);
-                assert(NodeReceiverTypes[OppN]==None);
-                NodeReceiverTypes[OppN]=Concave;
-
-                if (IndexNode0!=IndexNode1)
+                std::vector<size_t> Emitter,Receiver;
+                ComputeConcaveEmitterReceivers(i,Emitter,Receiver);
+                for (size_t i=0;i<Emitter.size();i++)
                 {
-                    assert(NodeEmitterTypes[IndexNode1]==None);
-                    NodeEmitterTypes[IndexNode1]=Concave;
-                    OppN=VertexFieldGraph<MeshType>::TangentNode(IndexNode1);
-                    assert(NodeReceiverTypes[OppN]==None);
-                    NodeReceiverTypes[OppN]=Concave;
+                    assert(NodeEmitterTypes[Emitter[i]]==None);
+                    NodeEmitterTypes[Emitter[i]]=Concave;
                 }
+                for (size_t i=0;i<Receiver.size();i++)
+                {
+                    NodeReceiverTypes[Receiver[i]]=Concave;
+                }
+//                assert(VertOrthoDir[i].size()==2);
+//                CoordType Ortho0=VertOrthoDir[i][0];
+//                CoordType Ortho1=VertOrthoDir[i][1];
+//                size_t BestDir0=VFGraph.GetClosestDirTo(i,Ortho0);
+//                size_t BestDir1=VFGraph.GetClosestDirTo(i,Ortho1);
+
+//                size_t IndexNode0=VertexFieldGraph<MeshType>::IndexNode(i,BestDir0);
+//                size_t IndexNode1=VertexFieldGraph<MeshType>::IndexNode(i,BestDir1);
+
+//                assert(NodeEmitterTypes[IndexNode0]==None);
+//                NodeEmitterTypes[IndexNode0]=Concave;
+
+//                size_t OppN=VertexFieldGraph<MeshType>::TangentNode(IndexNode0);
+//                assert(NodeReceiverTypes[OppN]==None);
+//                NodeReceiverTypes[OppN]=Concave;
+
+//                if (IndexNode0!=IndexNode1)
+//                {
+//                    assert(NodeEmitterTypes[IndexNode1]==None);
+//                    NodeEmitterTypes[IndexNode1]=Concave;
+//                    OppN=VertexFieldGraph<MeshType>::TangentNode(IndexNode1);
+//                    assert(NodeReceiverTypes[OppN]==None);
+//                    NodeReceiverTypes[OppN]=Concave;
+//                }
             }
 
             if (VertType[i]==Narrow)
             {
-                assert(VertFlatDir[i].size()==2);
-                CoordType Flat0=VertFlatDir[i][0];
-                CoordType Flat1=VertFlatDir[i][1];
-                CoordType TargetD=Flat0+Flat1;
-                TargetD.Normalize();
-                size_t BestDir=VFGraph.GetClosestDirTo(i,TargetD);
-                int IndexNode=VertexFieldGraph<MeshType>::IndexNode(i,BestDir);
+                size_t Emitter,Receiver;
+                ComputeNarrowEmitterReceivers(i,Emitter,Receiver);
+                assert(Emitter!=Receiver);
+                assert(NodeEmitterTypes[Emitter]==None);
+                NodeEmitterTypes[Emitter]=Narrow;
+                assert(NodeReceiverTypes[Receiver]==None);
+                NodeReceiverTypes[Receiver]=Narrow;
+//                assert(VertFlatDir[i].size()==2);
+//                CoordType Flat0=VertFlatDir[i][0];
+//                CoordType Flat1=VertFlatDir[i][1];
+//                CoordType TargetD=Flat0+Flat1;
+//                TargetD.Normalize();
+//                size_t BestDir=VFGraph.GetClosestDirTo(i,TargetD);
+//                int IndexNode=VertexFieldGraph<MeshType>::IndexNode(i,BestDir);
 
-                assert(NodeEmitterTypes[IndexNode]==None);
-                NodeEmitterTypes[IndexNode]=Narrow;
+//                assert(NodeEmitterTypes[IndexNode]==None);
+//                NodeEmitterTypes[IndexNode]=Narrow;
 
-                size_t OppN=VertexFieldGraph<MeshType>::TangentNode(IndexNode);
-                assert(NodeReceiverTypes[OppN]==None);
-                NodeReceiverTypes[OppN]=Narrow;
+//                size_t OppN=VertexFieldGraph<MeshType>::TangentNode(IndexNode);
+//                assert(NodeReceiverTypes[OppN]==None);
+//                NodeReceiverTypes[OppN]=Narrow;
             }
         }
 
@@ -461,7 +594,7 @@ private:
         for (size_t i=0;i<VertType.size();i++)
             if (VertType[i]==Narrow)VerticesNeeds[i]=1;
         for (size_t i=0;i<VertType.size();i++)
-            if (VertType[i]==Concave)VerticesNeeds[i]=1;
+            if (VertType[i]==Concave)VerticesNeeds[i]=2;
     }
 
     void InitStructures()
@@ -545,7 +678,17 @@ private:
             if (Candidates[i].TracingMethod==TraceDirect)
             {
                 std::vector<size_t> PathN;
+                //deselect source seletion in case is also a receiver
+                bool restoreSel=false;
+                if (VFGraph.IsSelected(IndexN0))
+                {
+                    VFGraph.DeSelect(IndexN0);
+                    restoreSel=true;
+                }
                 bool Traced=VertexFieldQuery<MeshType>::TraceToSelected(VFGraph,IndexN0,PathN);
+                if (restoreSel)
+                    VFGraph.Select(IndexN0);
+
                 if (!Traced)continue;
                 bool SelfInt=VertexFieldQuery<MeshType>::SelfIntersect(VFGraph,PathN,false);
                 if (SelfInt)continue;
@@ -562,7 +705,17 @@ private:
 
                 SParam.OnlyDirect=false;
                 SParam.DriftPenalty=Drift;
+
+                //deselect source selection in case is also a receiver
+                bool restoreSel=false;
+                if (VFGraph.IsSelected(IndexN0))
+                {
+                    VFGraph.DeSelect(IndexN0);
+                    restoreSel=true;
+                }
                 bool Traced=VertexFieldQuery<MeshType>::ShortestPath(VFGraph,SParam,PathN);
+                if (restoreSel)
+                    VFGraph.Select(IndexN0);
                 if (!Traced)continue;
                 bool SelfInt=VertexFieldQuery<MeshType>::SelfIntersect(VFGraph,PathN,false);
                 if (SelfInt)continue;
@@ -1018,6 +1171,550 @@ public:
 
 private:
 
+//    void GetConfiguration(const TypeVert FromType,
+//                          const TypeVert ToType,
+//                          const TraceType TracingType,
+//                          std::vector<bool> &CanEmit,
+//                          std::vector<bool> &CanReceive,
+//                          std::vector<bool> &MustDisable)
+//    {
+//        CanEmit.clear();
+//        CanReceive.clear();
+//        MustDisable.clear();
+//        CanEmit.resize(VFGraph.NumNodes(),false);
+//        CanReceive.resize(VFGraph.NumNodes(),false);
+//        MustDisable.resize(VFGraph.NumNodes(),false);
+
+//        //all convex must be disabled always
+//        std::vector<size_t> ConvexNodes;
+//        GetConvexNodes(ConvexNodes);
+
+//        //leave it valid only when not all receivers and trace to flat
+//        if ((!AllReceivers)||(ToType!=Flat))
+//        {
+//            for (size_t i=0;i<ConvexNodes.size();i++)
+//                MustDisable[ConvexNodes[i]]=true;
+//        }
+
+//        //by default also disable the traced ones
+//        std::vector<size_t> ChoosenAndTangentNodes;
+//        GetChoosenNodesAndTangent(ChoosenAndTangentNodes);
+//        for (size_t i=0;i<ChoosenAndTangentNodes.size();i++)
+//            MustDisable[ChoosenAndTangentNodes[i]]=true;
+
+
+//        //also disable the border ones
+//        std::vector<size_t> TangentBorderNodes;
+//        GetFlatTangentNodes(TangentBorderNodes);
+//        if ((!AllReceivers)||(ToType!=Flat))
+//        {
+//            for (size_t i=0;i<TangentBorderNodes.size();i++)
+//                MustDisable[TangentBorderNodes[i]]=true;
+//        }
+
+//        if ((FromType==Narrow)&&(ToType==Narrow))
+//        {
+//            assert(TracingType!=TraceLoop);
+
+//            //get concave nodes
+//            std::vector<size_t> ConcaveNodes;
+//            GetConcaveNodes(ConcaveNodes);
+
+//            //then disable them (cannot pass throught them)
+//            for (size_t i=0;i<ConcaveNodes.size();i++)
+//                MustDisable[ConcaveNodes[i]]=true;
+
+//            //set narrow emitter active and non satisfied
+//            std::vector<size_t> EmitterNodes;
+//            GetUnsatisfiedEmitterType(Narrow,EmitterNodes);
+//            for (size_t i=0;i<EmitterNodes.size();i++)
+//            {
+//                if (MustDisable[EmitterNodes[i]])continue;
+//                CanEmit[EmitterNodes[i]]=true;
+//            }
+
+//            //set narrow emitter receiver, active and non satisfied
+//            std::vector<size_t> ReceiverNodes;
+//            GetUnsatisfiedReceiverType(Narrow,ReceiverNodes);
+//            for (size_t i=0;i<ReceiverNodes.size();i++)
+//            {
+//                if (MustDisable[ReceiverNodes[i]])continue;
+//                CanReceive[ReceiverNodes[i]]=true;
+//            }
+
+//            return;
+//        }
+
+//        if ((FromType==Narrow)&&(ToType==Concave))
+//        {
+//            assert(TracingType!=TraceLoop);
+
+//            //narrow receivers
+//            std::vector<size_t> NarrowReceivers;
+//            GetReceiverType(Narrow,NarrowReceivers);
+//            for (size_t i=0;i<NarrowReceivers.size();i++)
+//                MustDisable[NarrowReceivers[i]]=true;
+
+//            //concave emitters
+//            std::vector<size_t> ConcaveEmitters;
+//            GetEmitterType(Concave,ConcaveEmitters);
+//            for (size_t i=0;i<ConcaveEmitters.size();i++)
+//                MustDisable[ConcaveEmitters[i]]=true;
+
+
+//            //set narrow emitter active and non satisfied
+//            std::vector<size_t> EmitterNodes;
+//            GetUnsatisfiedEmitterType(Narrow,EmitterNodes);
+//            for (size_t i=0;i<EmitterNodes.size();i++)
+//            {
+//                if (MustDisable[EmitterNodes[i]])continue;
+//                CanEmit[EmitterNodes[i]]=true;
+//            }
+
+//            //set narrow emitter receiver, active and non satisfied
+//            std::vector<size_t> ReceiverNodes;
+//            GetUnsatisfiedReceiverType(Concave,ReceiverNodes);
+//            for (size_t i=0;i<ReceiverNodes.size();i++)
+//            {
+//                if (MustDisable[ReceiverNodes[i]])continue;
+//                CanReceive[ReceiverNodes[i]]=true;
+//            }
+
+//            return;
+//        }
+
+//        if ((FromType==Narrow)&&(ToType==Flat))
+//        {
+//            assert(TracingType!=TraceLoop);
+
+//            //narrow receivers
+//            std::vector<size_t> NarrowReceivers;
+//            GetReceiverType(Narrow,NarrowReceivers);
+
+//            //concave emitters
+//            std::vector<size_t> ConcaveNodes;
+//            GetConcaveNodes(ConcaveNodes);
+
+//            //            if (!AllReceivers)
+//            //            {
+//            for (size_t i=0;i<NarrowReceivers.size();i++)
+//                MustDisable[NarrowReceivers[i]]=true;
+
+//            for (size_t i=0;i<ConcaveNodes.size();i++)
+//                MustDisable[ConcaveNodes[i]]=true;
+//            //           }
+
+//            //set narrow emitter active and non satisfied
+//            std::vector<size_t> EmitterNodes;
+//            GetUnsatisfiedEmitterType(Narrow,EmitterNodes);
+//            for (size_t i=0;i<EmitterNodes.size();i++)
+//            {
+//                if (MustDisable[EmitterNodes[i]])continue;
+//                CanEmit[EmitterNodes[i]]=true;
+//            }
+
+//            //set flat emitter receiver, active and non satisfied
+//            std::vector<size_t> ReceiverNodes;
+//            GetReceiverType(Flat,ReceiverNodes);
+//            for (size_t i=0;i<ReceiverNodes.size();i++)
+//            {
+//                if (MustDisable[ReceiverNodes[i]])continue;
+//                CanReceive[ReceiverNodes[i]]=true;
+//            }
+
+//            if (AllReceivers)
+//            {
+//                for (size_t i=0;i<ConvexNodes.size();i++)
+//                    CanReceive[ConvexNodes[i]]=true;
+//                for (size_t i=0;i<TangentBorderNodes.size();i++)
+//                    CanReceive[TangentBorderNodes[i]]=true;
+//            }
+//            return;
+//        }
+
+//        //        if ((FromType==Narrow)&&(ToType==Choosen))
+//        //        {
+//        //            assert(TracingType!=TraceLoop);
+
+//        //            //set narrow emitter active and non satisfied
+//        //            std::vector<size_t> EmitterNodes;
+//        //            GetUnsatisfiedEmitterType(Narrow,EmitterNodes);
+//        //            for (size_t i=0;i<EmitterNodes.size();i++)
+//        //            {
+//        //                if (MustDisable[EmitterNodes[i]])continue;
+//        //                CanEmit[EmitterNodes[i]]=true;
+//        //            }
+
+//        //            //narrow receivers
+//        //            std::vector<size_t> NarrowReceivers;
+//        //            GetReceiverType(Narrow,NarrowReceivers);
+
+//        //            //concave emitters
+//        //            std::vector<size_t> ConcaveNodes;
+//        //            GetConcaveNodes(ConcaveNodes);
+
+//        //            for (size_t i=0;i<NarrowReceivers.size();i++)
+//        //                MustDisable[NarrowReceivers[i]]=true;
+
+//        //            for (size_t i=0;i<ConcaveNodes.size();i++)
+//        //                MustDisable[ConcaveNodes[i]]=true;
+
+//        //            //set flat emitter receiver, active and non satisfied
+//        //            //TODO ENABLE FIRST AND LAST
+//        //            std::vector<size_t> ReceiverNodes;
+//        //            GetReceiverType(Choosen,ReceiverNodes);
+//        //            for (size_t i=0;i<ReceiverNodes.size();i++)
+//        //            {
+//        //                if (MustDisable[ReceiverNodes[i]])continue;
+//        //                CanReceive[ReceiverNodes[i]]=true;
+//        //            }
+
+//        //            //add end node receivers
+//        //            std::vector<size_t> EndChoosenReceivers;
+//        //            GetChoosenEndNodeReceivers(EndChoosenReceivers);
+//        //            for (size_t i=0;i<EndChoosenReceivers.size();i++)
+//        //            {
+//        //                MustDisable[EndChoosenReceivers[i]]=false;
+//        //                CanReceive[EndChoosenReceivers[i]]=true;
+//        //            }
+
+//        //            return;
+//        //        }
+
+//        if ((FromType==Concave)&&(ToType==Concave))
+//        {
+//            assert(TracingType!=TraceLoop);
+
+//            //narrow receivers
+//            std::vector<size_t> NarrowReceivers;
+//            GetReceiverType(Narrow,NarrowReceivers);
+//            for (size_t i=0;i<NarrowReceivers.size();i++)
+//                MustDisable[NarrowReceivers[i]]=true;
+
+//            //narrow emitters
+//            std::vector<size_t> NarrowEmitters;
+//            GetEmitterType(Narrow,NarrowEmitters);
+//            for (size_t i=0;i<NarrowEmitters.size();i++)
+//                MustDisable[NarrowEmitters[i]]=true;
+
+
+//            //set concave emitter active and non satisfied
+//            std::vector<size_t> EmitterNodes;
+//            GetUnsatisfiedEmitterType(Concave,EmitterNodes);
+//            for (size_t i=0;i<EmitterNodes.size();i++)
+//            {
+//                if (MustDisable[EmitterNodes[i]])continue;
+//                CanEmit[EmitterNodes[i]]=true;
+//            }
+
+//            //set narrow emitter receiver, active and non satisfied
+//            std::vector<size_t> ReceiverNodes;
+//            GetUnsatisfiedReceiverType(Concave,ReceiverNodes);
+//            for (size_t i=0;i<ReceiverNodes.size();i++)
+//            {
+//                if (MustDisable[ReceiverNodes[i]])continue;
+//                CanReceive[ReceiverNodes[i]]=true;
+//            }
+//            return;
+//        }
+
+//        if ((FromType==Concave)&&(ToType==Flat))
+//        {
+//            assert(TracingType!=TraceLoop);
+
+//            //narrow receivers
+//            std::vector<size_t> NarrowReceivers;
+//            GetReceiverType(Narrow,NarrowReceivers);
+//            for (size_t i=0;i<NarrowReceivers.size();i++)
+//                MustDisable[NarrowReceivers[i]]=true;
+
+//            //narrow emitters
+//            std::vector<size_t> NarrowEmitters;
+//            GetEmitterType(Narrow,NarrowEmitters);
+//            for (size_t i=0;i<NarrowEmitters.size();i++)
+//                MustDisable[NarrowEmitters[i]]=true;
+
+//            //concave receivers
+//            std::vector<size_t> ConcaveReceivers;
+//            GetReceiverType(Concave,ConcaveReceivers);
+//            for (size_t i=0;i<ConcaveReceivers.size();i++)
+//                MustDisable[ConcaveReceivers[i]]=true;
+
+
+//            //set concave emitter active and non satisfied
+//            std::vector<size_t> EmitterNodes;
+//            GetUnsatisfiedEmitterType(Concave,EmitterNodes);
+//            for (size_t i=0;i<EmitterNodes.size();i++)
+//            {
+//                if (MustDisable[EmitterNodes[i]])continue;
+//                CanEmit[EmitterNodes[i]]=true;
+//            }
+
+//            //set flat receiver, active and non satisfied
+//            std::vector<size_t> ReceiverNodes;
+//            GetReceiverType(Flat,ReceiverNodes);
+//            for (size_t i=0;i<ReceiverNodes.size();i++)
+//            {
+//                if (MustDisable[ReceiverNodes[i]])continue;
+//                CanReceive[ReceiverNodes[i]]=true;
+//            }
+//            if (AllReceivers)
+//            {
+//                for (size_t i=0;i<ConvexNodes.size();i++)
+//                    CanReceive[ConvexNodes[i]]=true;
+
+//                for (size_t i=0;i<TangentBorderNodes.size();i++)
+//                    CanReceive[TangentBorderNodes[i]]=true;
+//            }
+//            return;
+//        }
+
+//        //        if ((FromType==Concave)&&(ToType==Choosen))
+//        //        {
+//        //            assert(TracingType!=TraceLoop);
+
+//        //            //narrow receivers
+//        //            std::vector<size_t> NarrowReceivers;
+//        //            GetReceiverType(Narrow,NarrowReceivers);
+//        //            for (size_t i=0;i<NarrowReceivers.size();i++)
+//        //                MustDisable[NarrowReceivers[i]]=true;
+
+//        //            //narrow emitters
+//        //            std::vector<size_t> NarrowEmitters;
+//        //            GetEmitterType(Narrow,NarrowEmitters);
+//        //            for (size_t i=0;i<NarrowEmitters.size();i++)
+//        //                MustDisable[NarrowEmitters[i]]=true;
+
+//        //            //concave receivers
+//        //            std::vector<size_t> ConcaveReceivers;
+//        //            GetReceiverType(Concave,ConcaveReceivers);
+//        //            for (size_t i=0;i<ConcaveReceivers.size();i++)
+//        //                MustDisable[ConcaveReceivers[i]]=true;
+
+//        //            //set concave emitter active and non satisfied
+//        //            std::vector<size_t> EmitterNodes;
+//        //            GetUnsatisfiedEmitterType(Concave,EmitterNodes);
+//        //            for (size_t i=0;i<EmitterNodes.size();i++)
+//        //            {
+//        //                if (MustDisable[EmitterNodes[i]])continue;
+//        //                CanEmit[EmitterNodes[i]]=true;
+//        //            }
+
+//        //            //set flat emitter receiver, active and non satisfied
+//        //            //TODO ENABLE FIRST AND LAST
+//        //            std::vector<size_t> ReceiverNodes;
+//        //            GetReceiverType(Choosen,ReceiverNodes);
+//        //            for (size_t i=0;i<ReceiverNodes.size();i++)
+//        //            {
+//        //                if (MustDisable[ReceiverNodes[i]])continue;
+//        //                CanReceive[ReceiverNodes[i]]=true;
+//        //            }
+
+//        //            //add end node receivers
+//        //            std::vector<size_t> EndChoosenReceivers;
+//        //            GetChoosenEndNodeReceivers(EndChoosenReceivers);
+//        //            for (size_t i=0;i<EndChoosenReceivers.size();i++)
+//        //            {
+//        //                MustDisable[EndChoosenReceivers[i]]=false;
+//        //                CanReceive[EndChoosenReceivers[i]]=true;
+//        //            }
+
+//        //            return;
+//        //        }
+
+//        if ((FromType==Flat)&&(ToType==Flat))
+//        {
+//            //narrow receivers
+//            std::vector<size_t> NarrowReceivers;
+//            GetReceiverType(Narrow,NarrowReceivers);
+//            for (size_t i=0;i<NarrowReceivers.size();i++)
+//                MustDisable[NarrowReceivers[i]]=true;
+
+//            //narrow emitters
+//            std::vector<size_t> NarrowEmitters;
+//            GetEmitterType(Narrow,NarrowEmitters);
+//            for (size_t i=0;i<NarrowEmitters.size();i++)
+//                MustDisable[NarrowEmitters[i]]=true;
+
+//            //narrow emitters
+//            std::vector<size_t> ConcaveNodes;
+//            GetConcaveNodes(ConcaveNodes);
+//            for (size_t i=0;i<ConcaveNodes.size();i++)
+//                MustDisable[ConcaveNodes[i]]=true;
+
+//            //set concave emitter active and non satisfied
+//            std::vector<size_t> EmitterNodes;
+//            GetEmitterType(Flat,EmitterNodes);
+//            for (size_t i=0;i<EmitterNodes.size();i++)
+//            {
+//                if (MustDisable[EmitterNodes[i]])continue;
+//                CanEmit[EmitterNodes[i]]=true;
+//            }
+
+//            std::vector<size_t> ReceiverNodes;
+//            GetReceiverType(Flat,ReceiverNodes);
+//            for (size_t i=0;i<ReceiverNodes.size();i++)
+//            {
+//                if (MustDisable[ReceiverNodes[i]])continue;
+//                CanReceive[ReceiverNodes[i]]=true;
+//            }
+//            return;
+//        }
+
+//        //        if ((FromType==Flat)&&(ToType==Choosen))
+//        //        {
+//        //            //narrow receivers
+//        //            std::vector<size_t> NarrowReceivers;
+//        //            GetReceiverType(Narrow,NarrowReceivers);
+//        //            for (size_t i=0;i<NarrowReceivers.size();i++)
+//        //                MustDisable[NarrowReceivers[i]]=true;
+
+//        //            //narrow emitters
+//        //            std::vector<size_t> NarrowEmitters;
+//        //            GetEmitterType(Narrow,NarrowEmitters);
+//        //            for (size_t i=0;i<NarrowEmitters.size();i++)
+//        //                MustDisable[NarrowEmitters[i]]=true;
+
+//        //            //narrow emitters
+//        //            std::vector<size_t> ConcaveNodes;
+//        //            GetConcaveNodes(ConcaveNodes);
+//        //            for (size_t i=0;i<ConcaveNodes.size();i++)
+//        //                MustDisable[ConcaveNodes[i]]=true;
+
+//        //            //set concave emitter active and non satisfied
+//        //            std::vector<size_t> EmitterNodes;
+//        //            GetEmitterType(Flat,EmitterNodes);
+//        //            for (size_t i=0;i<EmitterNodes.size();i++)
+//        //            {
+//        //                if (MustDisable[EmitterNodes[i]])continue;
+//        //                CanEmit[EmitterNodes[i]]=true;
+//        //            }
+
+//        //            //set flat emitter receiver, active and non satisfied
+//        //            //TODO ENABLE FIRST AND LAST
+//        //            std::vector<size_t> ReceiverNodes;
+//        //            GetReceiverType(Choosen,ReceiverNodes);
+//        //            for (size_t i=0;i<ReceiverNodes.size();i++)
+//        //            {
+//        //                if (MustDisable[ReceiverNodes[i]])continue;
+//        //                CanReceive[ReceiverNodes[i]]=true;
+//        //            }
+
+//        //            //add end node receivers
+//        //            std::vector<size_t> EndChoosenReceivers;
+//        //            GetChoosenEndNodeReceivers(EndChoosenReceivers);
+//        //            for (size_t i=0;i<EndChoosenReceivers.size();i++)
+//        //            {
+//        //                MustDisable[EndChoosenReceivers[i]]=false;
+//        //                CanReceive[EndChoosenReceivers[i]]=true;
+//        //            }
+
+//        //            return;
+//        //        }
+
+//        //        if ((FromType==Choosen)&&(ToType==Choosen))
+//        //        {
+//        //            //narrow receivers
+//        //            std::vector<size_t> NarrowReceivers;
+//        //            GetReceiverType(Narrow,NarrowReceivers);
+//        //            for (size_t i=0;i<NarrowReceivers.size();i++)
+//        //                MustDisable[NarrowReceivers[i]]=true;
+
+//        //            //narrow emitters
+//        //            std::vector<size_t> NarrowEmitters;
+//        //            GetEmitterType(Narrow,NarrowEmitters);
+//        //            for (size_t i=0;i<NarrowEmitters.size();i++)
+//        //                MustDisable[NarrowEmitters[i]]=true;
+
+//        //            //narrow emitters
+//        //            std::vector<size_t> ConcaveNodes;
+//        //            GetConcaveNodes(ConcaveNodes);
+//        //            for (size_t i=0;i<ConcaveNodes.size();i++)
+//        //                MustDisable[ConcaveNodes[i]]=true;
+
+//        //            //set flat emitter receiver, active and non satisfied
+//        //            //TODO ENABLE FIRST AND LAST
+//        //            std::vector<size_t> EmitterNodes;
+//        //            GetReceiverType(Choosen,EmitterNodes);
+//        //            for (size_t i=0;i<EmitterNodes.size();i++)
+//        //            {
+//        //                if (MustDisable[EmitterNodes[i]])continue;
+//        //                CanEmit[EmitterNodes[i]]=true;
+//        //            }
+
+//        //            std::vector<size_t> ReceiverNodes;
+//        //            GetReceiverType(Choosen,ReceiverNodes);
+//        //            for (size_t i=0;i<ReceiverNodes.size();i++)
+//        //            {
+//        //                if (MustDisable[ReceiverNodes[i]])continue;
+//        //                CanReceive[ReceiverNodes[i]]=true;
+//        //            }
+
+//        //            //add end node emitters
+//        //            std::vector<size_t> EndChoosenEmitters;
+//        //            GetChoosenEndNodeEmitters(EndChoosenEmitters);
+//        //            for (size_t i=0;i<EndChoosenEmitters.size();i++)
+//        //            {
+//        //                MustDisable[EndChoosenEmitters[i]]=false;
+//        //                CanEmit[EndChoosenEmitters[i]]=true;
+//        //            }
+
+//        //            //add end node receivers
+//        //            std::vector<size_t> EndChoosenReceivers;
+//        //            GetChoosenEndNodeReceivers(EndChoosenReceivers);
+//        //            for (size_t i=0;i<EndChoosenReceivers.size();i++)
+//        //            {
+//        //                MustDisable[EndChoosenReceivers[i]]=false;
+//        //                CanReceive[EndChoosenReceivers[i]]=true;
+//        //            }
+
+//        //            return;
+//        //        }
+
+//        if (TracingType==TraceLoop)
+//        {
+//            assert(FromType==Internal);
+//            assert(ToType==Internal);
+
+//            //get concave nodes
+//            std::vector<size_t> ConcaveNodes;
+//            GetConcaveNodes(ConcaveNodes);
+
+//            //narrow emitters
+//            std::vector<size_t> NarrowEmittersNodes;
+//            GetNarrowEmitters(NarrowEmittersNodes);
+
+//            //narrow receivers
+//            std::vector<size_t> NarrowReceiversNodes;
+//            GetNarrowReceivers(NarrowReceiversNodes);
+
+
+//            for (size_t i=0;i<ConcaveNodes.size();i++)
+//                MustDisable[ConcaveNodes[i]]=true;
+
+//            for (size_t i=0;i<NarrowEmittersNodes.size();i++)
+//                MustDisable[NarrowEmittersNodes[i]]=true;
+
+//            for (size_t i=0;i<NarrowReceiversNodes.size();i++)
+//                MustDisable[NarrowReceiversNodes[i]]=true;
+
+//            //set internal emitter
+//            std::vector<size_t> EmitterNodes;
+//            GetEmitterType(Internal,EmitterNodes);
+//            for (size_t i=0;i<EmitterNodes.size();i++)
+//            {
+//                if (MustDisable[EmitterNodes[i]]==false)
+//                    CanEmit[EmitterNodes[i]]=true;
+//            }
+
+//            return;
+//        }
+//        std::cout<<"****************************************"<<std::endl;
+//        PrintConfiguration(FromType,ToType,TracingType);
+//        std::cout<<"****************************************"<<std::endl;
+//        assert(0);
+//    }
+
     void GetConfiguration(const TypeVert FromType,
                           const TypeVert ToType,
                           const TraceType TracingType,
@@ -1102,11 +1799,11 @@ private:
             for (size_t i=0;i<NarrowReceivers.size();i++)
                 MustDisable[NarrowReceivers[i]]=true;
 
-            //concave emitters
-            std::vector<size_t> ConcaveEmitters;
-            GetEmitterType(Concave,ConcaveEmitters);
-            for (size_t i=0;i<ConcaveEmitters.size();i++)
-                MustDisable[ConcaveEmitters[i]]=true;
+//            //concave emitters
+//            std::vector<size_t> ConcaveEmitters;
+//            GetEmitterType(Concave,ConcaveEmitters);
+//            for (size_t i=0;i<ConcaveEmitters.size();i++)
+//                MustDisable[ConcaveEmitters[i]]=true;
 
 
             //set narrow emitter active and non satisfied
@@ -1125,6 +1822,15 @@ private:
             {
                 if (MustDisable[ReceiverNodes[i]])continue;
                 CanReceive[ReceiverNodes[i]]=true;
+            }
+
+            //concave emitters disable if not receive
+            std::vector<size_t> ConcaveEmitters;
+            GetEmitterType(Concave,ConcaveEmitters);
+            for (size_t i=0;i<ConcaveEmitters.size();i++)
+            {
+                if (CanReceive[ConcaveEmitters[i]])continue;
+                MustDisable[ConcaveEmitters[i]]=true;
             }
 
             return;
@@ -1179,55 +1885,6 @@ private:
             return;
         }
 
-        //        if ((FromType==Narrow)&&(ToType==Choosen))
-        //        {
-        //            assert(TracingType!=TraceLoop);
-
-        //            //set narrow emitter active and non satisfied
-        //            std::vector<size_t> EmitterNodes;
-        //            GetUnsatisfiedEmitterType(Narrow,EmitterNodes);
-        //            for (size_t i=0;i<EmitterNodes.size();i++)
-        //            {
-        //                if (MustDisable[EmitterNodes[i]])continue;
-        //                CanEmit[EmitterNodes[i]]=true;
-        //            }
-
-        //            //narrow receivers
-        //            std::vector<size_t> NarrowReceivers;
-        //            GetReceiverType(Narrow,NarrowReceivers);
-
-        //            //concave emitters
-        //            std::vector<size_t> ConcaveNodes;
-        //            GetConcaveNodes(ConcaveNodes);
-
-        //            for (size_t i=0;i<NarrowReceivers.size();i++)
-        //                MustDisable[NarrowReceivers[i]]=true;
-
-        //            for (size_t i=0;i<ConcaveNodes.size();i++)
-        //                MustDisable[ConcaveNodes[i]]=true;
-
-        //            //set flat emitter receiver, active and non satisfied
-        //            //TODO ENABLE FIRST AND LAST
-        //            std::vector<size_t> ReceiverNodes;
-        //            GetReceiverType(Choosen,ReceiverNodes);
-        //            for (size_t i=0;i<ReceiverNodes.size();i++)
-        //            {
-        //                if (MustDisable[ReceiverNodes[i]])continue;
-        //                CanReceive[ReceiverNodes[i]]=true;
-        //            }
-
-        //            //add end node receivers
-        //            std::vector<size_t> EndChoosenReceivers;
-        //            GetChoosenEndNodeReceivers(EndChoosenReceivers);
-        //            for (size_t i=0;i<EndChoosenReceivers.size();i++)
-        //            {
-        //                MustDisable[EndChoosenReceivers[i]]=false;
-        //                CanReceive[EndChoosenReceivers[i]]=true;
-        //            }
-
-        //            return;
-        //        }
-
         if ((FromType==Concave)&&(ToType==Concave))
         {
             assert(TracingType!=TraceLoop);
@@ -1281,11 +1938,11 @@ private:
             for (size_t i=0;i<NarrowEmitters.size();i++)
                 MustDisable[NarrowEmitters[i]]=true;
 
-            //concave receivers
-            std::vector<size_t> ConcaveReceivers;
-            GetReceiverType(Concave,ConcaveReceivers);
-            for (size_t i=0;i<ConcaveReceivers.size();i++)
-                MustDisable[ConcaveReceivers[i]]=true;
+//            //concave receivers
+//            std::vector<size_t> ConcaveReceivers;
+//            GetReceiverType(Concave,ConcaveReceivers);
+//            for (size_t i=0;i<ConcaveReceivers.size();i++)
+//                MustDisable[ConcaveReceivers[i]]=true;
 
 
             //set concave emitter active and non satisfied
@@ -1305,6 +1962,16 @@ private:
                 if (MustDisable[ReceiverNodes[i]])continue;
                 CanReceive[ReceiverNodes[i]]=true;
             }
+
+             //concave receivers
+             std::vector<size_t> ConcaveReceivers;
+             GetReceiverType(Concave,ConcaveReceivers);
+             for (size_t i=0;i<ConcaveReceivers.size();i++)
+             {
+                 if (CanEmit[ConcaveReceivers[i]])continue;
+                 MustDisable[ConcaveReceivers[i]]=true;
+             }
+
             if (AllReceivers)
             {
                 for (size_t i=0;i<ConvexNodes.size();i++)
@@ -1316,58 +1983,6 @@ private:
             return;
         }
 
-        //        if ((FromType==Concave)&&(ToType==Choosen))
-        //        {
-        //            assert(TracingType!=TraceLoop);
-
-        //            //narrow receivers
-        //            std::vector<size_t> NarrowReceivers;
-        //            GetReceiverType(Narrow,NarrowReceivers);
-        //            for (size_t i=0;i<NarrowReceivers.size();i++)
-        //                MustDisable[NarrowReceivers[i]]=true;
-
-        //            //narrow emitters
-        //            std::vector<size_t> NarrowEmitters;
-        //            GetEmitterType(Narrow,NarrowEmitters);
-        //            for (size_t i=0;i<NarrowEmitters.size();i++)
-        //                MustDisable[NarrowEmitters[i]]=true;
-
-        //            //concave receivers
-        //            std::vector<size_t> ConcaveReceivers;
-        //            GetReceiverType(Concave,ConcaveReceivers);
-        //            for (size_t i=0;i<ConcaveReceivers.size();i++)
-        //                MustDisable[ConcaveReceivers[i]]=true;
-
-        //            //set concave emitter active and non satisfied
-        //            std::vector<size_t> EmitterNodes;
-        //            GetUnsatisfiedEmitterType(Concave,EmitterNodes);
-        //            for (size_t i=0;i<EmitterNodes.size();i++)
-        //            {
-        //                if (MustDisable[EmitterNodes[i]])continue;
-        //                CanEmit[EmitterNodes[i]]=true;
-        //            }
-
-        //            //set flat emitter receiver, active and non satisfied
-        //            //TODO ENABLE FIRST AND LAST
-        //            std::vector<size_t> ReceiverNodes;
-        //            GetReceiverType(Choosen,ReceiverNodes);
-        //            for (size_t i=0;i<ReceiverNodes.size();i++)
-        //            {
-        //                if (MustDisable[ReceiverNodes[i]])continue;
-        //                CanReceive[ReceiverNodes[i]]=true;
-        //            }
-
-        //            //add end node receivers
-        //            std::vector<size_t> EndChoosenReceivers;
-        //            GetChoosenEndNodeReceivers(EndChoosenReceivers);
-        //            for (size_t i=0;i<EndChoosenReceivers.size();i++)
-        //            {
-        //                MustDisable[EndChoosenReceivers[i]]=false;
-        //                CanReceive[EndChoosenReceivers[i]]=true;
-        //            }
-
-        //            return;
-        //        }
 
         if ((FromType==Flat)&&(ToType==Flat))
         {
@@ -1407,116 +2022,6 @@ private:
             }
             return;
         }
-
-        //        if ((FromType==Flat)&&(ToType==Choosen))
-        //        {
-        //            //narrow receivers
-        //            std::vector<size_t> NarrowReceivers;
-        //            GetReceiverType(Narrow,NarrowReceivers);
-        //            for (size_t i=0;i<NarrowReceivers.size();i++)
-        //                MustDisable[NarrowReceivers[i]]=true;
-
-        //            //narrow emitters
-        //            std::vector<size_t> NarrowEmitters;
-        //            GetEmitterType(Narrow,NarrowEmitters);
-        //            for (size_t i=0;i<NarrowEmitters.size();i++)
-        //                MustDisable[NarrowEmitters[i]]=true;
-
-        //            //narrow emitters
-        //            std::vector<size_t> ConcaveNodes;
-        //            GetConcaveNodes(ConcaveNodes);
-        //            for (size_t i=0;i<ConcaveNodes.size();i++)
-        //                MustDisable[ConcaveNodes[i]]=true;
-
-        //            //set concave emitter active and non satisfied
-        //            std::vector<size_t> EmitterNodes;
-        //            GetEmitterType(Flat,EmitterNodes);
-        //            for (size_t i=0;i<EmitterNodes.size();i++)
-        //            {
-        //                if (MustDisable[EmitterNodes[i]])continue;
-        //                CanEmit[EmitterNodes[i]]=true;
-        //            }
-
-        //            //set flat emitter receiver, active and non satisfied
-        //            //TODO ENABLE FIRST AND LAST
-        //            std::vector<size_t> ReceiverNodes;
-        //            GetReceiverType(Choosen,ReceiverNodes);
-        //            for (size_t i=0;i<ReceiverNodes.size();i++)
-        //            {
-        //                if (MustDisable[ReceiverNodes[i]])continue;
-        //                CanReceive[ReceiverNodes[i]]=true;
-        //            }
-
-        //            //add end node receivers
-        //            std::vector<size_t> EndChoosenReceivers;
-        //            GetChoosenEndNodeReceivers(EndChoosenReceivers);
-        //            for (size_t i=0;i<EndChoosenReceivers.size();i++)
-        //            {
-        //                MustDisable[EndChoosenReceivers[i]]=false;
-        //                CanReceive[EndChoosenReceivers[i]]=true;
-        //            }
-
-        //            return;
-        //        }
-
-        //        if ((FromType==Choosen)&&(ToType==Choosen))
-        //        {
-        //            //narrow receivers
-        //            std::vector<size_t> NarrowReceivers;
-        //            GetReceiverType(Narrow,NarrowReceivers);
-        //            for (size_t i=0;i<NarrowReceivers.size();i++)
-        //                MustDisable[NarrowReceivers[i]]=true;
-
-        //            //narrow emitters
-        //            std::vector<size_t> NarrowEmitters;
-        //            GetEmitterType(Narrow,NarrowEmitters);
-        //            for (size_t i=0;i<NarrowEmitters.size();i++)
-        //                MustDisable[NarrowEmitters[i]]=true;
-
-        //            //narrow emitters
-        //            std::vector<size_t> ConcaveNodes;
-        //            GetConcaveNodes(ConcaveNodes);
-        //            for (size_t i=0;i<ConcaveNodes.size();i++)
-        //                MustDisable[ConcaveNodes[i]]=true;
-
-        //            //set flat emitter receiver, active and non satisfied
-        //            //TODO ENABLE FIRST AND LAST
-        //            std::vector<size_t> EmitterNodes;
-        //            GetReceiverType(Choosen,EmitterNodes);
-        //            for (size_t i=0;i<EmitterNodes.size();i++)
-        //            {
-        //                if (MustDisable[EmitterNodes[i]])continue;
-        //                CanEmit[EmitterNodes[i]]=true;
-        //            }
-
-        //            std::vector<size_t> ReceiverNodes;
-        //            GetReceiverType(Choosen,ReceiverNodes);
-        //            for (size_t i=0;i<ReceiverNodes.size();i++)
-        //            {
-        //                if (MustDisable[ReceiverNodes[i]])continue;
-        //                CanReceive[ReceiverNodes[i]]=true;
-        //            }
-
-        //            //add end node emitters
-        //            std::vector<size_t> EndChoosenEmitters;
-        //            GetChoosenEndNodeEmitters(EndChoosenEmitters);
-        //            for (size_t i=0;i<EndChoosenEmitters.size();i++)
-        //            {
-        //                MustDisable[EndChoosenEmitters[i]]=false;
-        //                CanEmit[EndChoosenEmitters[i]]=true;
-        //            }
-
-        //            //add end node receivers
-        //            std::vector<size_t> EndChoosenReceivers;
-        //            GetChoosenEndNodeReceivers(EndChoosenReceivers);
-        //            for (size_t i=0;i<EndChoosenReceivers.size();i++)
-        //            {
-        //                MustDisable[EndChoosenReceivers[i]]=false;
-        //                CanReceive[EndChoosenReceivers[i]]=true;
-        //            }
-
-        //            return;
-        //        }
 
         if (TracingType==TraceLoop)
         {
@@ -2219,6 +2724,7 @@ private:
             PartitionType[Index]=NonDisk;
             return;
         }
+
 
         PartitionType[Index]=IsOK;
         //PartitionARatio
@@ -3614,7 +4120,10 @@ public:
         if (ChMode==Fartest)
             ChooseGreedyByDistance(UseNodeVal);
         else
+        {
+            //ChoosenPaths=std::vector<CandidateTrace>(Candidates.begin(),Candidates.end());
             ChooseGreedyByLengthVertNeeds(UseNodeVal);
+        }
         //ChooseGreedyByLengthVertNeeds(false,checkOnlylastConfl);
 
         int size1=ChoosenPaths.size();
@@ -4249,6 +4758,8 @@ public:
             std::cout<<"Still "<<UnsatisfiedNum()<<" Non Connected"<<std::endl;
         }
         while (Joined);
+        //JoinConnection(Concave,Flat,DijkstraReceivers);
+
         size_t NumPath1=ChoosenPaths.size();
         if (NumPath1==NumPath0)return;
 

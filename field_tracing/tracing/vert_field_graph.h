@@ -232,14 +232,16 @@ public:
     void AddTwinsConnections()
     {
         std::map<CoordType,std::vector<size_t> > CoordVert;
+        RealBorderVert.clear();
+        RealBorderVert.resize(mesh.vert.size(),false);
         for (size_t i=0;i<mesh.vert.size();i++)
         {
             if (!mesh.vert[i].IsB())continue;
+            RealBorderVert[i]=true;
             CoordType Pos=mesh.vert[i].P();
             CoordVert[Pos].push_back(i);
         }
-        RealBorderVert.clear();
-        RealBorderVert.resize(mesh.vert.size(),false);
+
 
         //set the twins ones
         for (size_t i=0;i<mesh.vert.size();i++)
@@ -247,7 +249,7 @@ public:
             CoordType Pos=mesh.vert[i].P();
             if (CoordVert[Pos].size()<=1)continue;
 
-            RealBorderVert[i]=true;
+            RealBorderVert[i]=false;
             std::vector<size_t> NodesI;
             IndexNodes(i,NodesI);
             for (size_t j=0;j<NodesI.size();j++)
@@ -918,6 +920,13 @@ public:
         Nodes[IndexNode].Selected=true;
     }
 
+    void DeSelect(const size_t &IndexNode)
+    {
+        assert(IndexNode<Nodes.size());
+        //assert(Nodes[IndexNode].Active);
+        Nodes[IndexNode].Selected=false;
+    }
+
     size_t NumSelected()
     {
         size_t NumSel=0;
@@ -950,16 +959,18 @@ public:
         TMark++;
     }
 
-    bool IsRealBorderNode(const size_t &IndexNode)
-    {
-        if (IsBorder(IndexNode))return false;
-        return(RealBorderVert[IndexNode]);
-    }
+//    bool IsRealBorderNode(const size_t &IndexNode)
+//    {
+//        if (IsBorder(IndexNode))return false;
+//        return(RealBorderVert[IndexNode]);
+//    }
 
     bool IsRealBorderVert(const size_t &IndexVert)
     {
-        if (!mesh.vert[IndexVert].IsB())return false;
-        //if (HasTwin(IndexNode))return true;
+        return(RealBorderVert[IndexVert]);
+//        if (!mesh.vert[IndexVert].IsB())return false;
+//        if (HasTwin(IndexNode))return true;
+//        return falsel
     }
 
     bool IsActive(const size_t &IndexNode)const

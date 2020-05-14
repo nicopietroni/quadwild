@@ -76,11 +76,11 @@ public:
             }
         }
         glPopAttrib();
-        for (size_t i=0;i<IndexN.size();i++)
-        {
-            size_t currN=IndexN[i];
-            GLDrawNodeNeigh(currN,2);
-        }
+//        for (size_t i=0;i<IndexN.size();i++)
+//        {
+//            size_t currN=IndexN[i];
+//            GLDrawNodeNeigh(currN,2);
+//        }
     }
 
     void GLDrawNonActiveNodes(const ScalarType &size,bool DrawDir=true)

@@ -840,21 +840,21 @@ void GLWidget::paintGL ()
         if (drawTwins)
             GLGraph.GLDrawTwinsConnections();
         if (drawConcaveEmitters)
-            GLGraph.GLDrawNodes(ConcaveEmittersNode,mesh.bbox.Diag()*0.001);
+            GLGraph.GLDrawNodes(ConcaveEmittersNode,mesh.bbox.Diag()*0.005);
         if (drawConcaveReceivers)
-            GLGraph.GLDrawNodes(ConcaveReceiversNode,mesh.bbox.Diag()*0.001);
+            GLGraph.GLDrawNodes(ConcaveReceiversNode,mesh.bbox.Diag()*0.005);
         if (drawFlatEmitters)
-            GLGraph.GLDrawNodes(FlatEmittersNode,mesh.bbox.Diag()*0.001);
+            GLGraph.GLDrawNodes(FlatEmittersNode,mesh.bbox.Diag()*0.005);
         if (drawChoosenEmitters)
-            GLGraph.GLDrawNodes(ChoosenEmittersNode,mesh.bbox.Diag()*0.001);
+            GLGraph.GLDrawNodes(ChoosenEmittersNode,mesh.bbox.Diag()*0.005);
         if (drawFlatReceivers)
-            GLGraph.GLDrawNodes(FlatReceiversNode,mesh.bbox.Diag()*0.001);
+            GLGraph.GLDrawNodes(FlatReceiversNode,mesh.bbox.Diag()*0.005);
         if (drawNarrowEmitters)
-            GLGraph.GLDrawNodes(NarrowEmittersNode,mesh.bbox.Diag()*0.001);
+            GLGraph.GLDrawNodes(NarrowEmittersNode,mesh.bbox.Diag()*0.005);
         if (drawNarrowReceivers)
-            GLGraph.GLDrawNodes(NarrowReceiversNode,mesh.bbox.Diag()*0.001);
+            GLGraph.GLDrawNodes(NarrowReceiversNode,mesh.bbox.Diag()*0.005);
         if (drawChoosenReceivers)
-            GLGraph.GLDrawNodes(ChoosenReceiversNode,mesh.bbox.Diag()*0.001);
+            GLGraph.GLDrawNodes(ChoosenReceiversNode,mesh.bbox.Diag()*0.005);
 
         if (drawInvalidated)
             GLGraph.GLDrawNonActiveNodes(mesh.bbox.Diag()*0.001);
