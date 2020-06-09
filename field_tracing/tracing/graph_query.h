@@ -1,6 +1,8 @@
 #ifndef GRAPH_QUERY
 #define GRAPH_QUERY
 
+#include "vert_field_graph.h"
+
 template <class MeshType>
 class VertexFieldQuery
 {
@@ -385,6 +387,18 @@ public:
         return Len;
     }
 
+//    static ScalarType TraceLenght(std::vector<size_t> &TraceNodes)
+//    {
+//        ScalarType Lenght=0;
+//        for (size_t i=0;i<TraceNodes.size();i++)
+//        {
+//            CoordType Dir=VertexFieldGraph::NodeDir(TraceNodes)
+//            Dist+=VFGraph.Distance(TraceNodes[i]);
+//        }
+
+//        return (Dist/TraceNodes.size());
+//    }
+
     //return the average distances of an trace
     static ScalarType TraceAVGDistance(const VertexFieldGraph<MeshType> &VFGraph,
                                        std::vector<size_t> &TraceNodes)
@@ -395,6 +409,8 @@ public:
 
         return (Dist/TraceNodes.size());
     }
+
+
 
     struct ShortParam
     {

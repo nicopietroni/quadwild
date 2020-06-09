@@ -50,9 +50,9 @@ int main(int argc, char *argv[])
     float scaleFactor;
     loadSetupFile(std::string("basic_setup.txt"), parameters, scaleFactor);
 
-    parameters.hardParityConstraint=true;
-    parameters.chartSmoothingIterations = 10;
-    parameters.quadrangulationSmoothingIterations = 10; //Fixed borders of the patches
+    //parameters.hardParityConstraint=true;
+    parameters.chartSmoothingIterations = 20;
+    parameters.quadrangulationSmoothingIterations = 20; //Fixed borders of the patches
 
     if(argc<2)
     {
@@ -136,6 +136,11 @@ int main(int argc, char *argv[])
     outputFilename+=std::string("_")+std::to_string(CurrNum)+std::string("_quadrangulation")+std::string(".obj");
     vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, outputFilename.c_str(), vcg::tri::io::Mask::IOM_FACECOLOR);
 
+
+    ReMapBoundaries(trimesh,quadmesh,trimeshCorners,trimeshPartitions,
+                    quadmeshCorners,quadmeshPartitions);
+
+
     //SMOOTH
     std::vector<size_t> QuadPart(quadmesh.face.size(),0);
     for (size_t i=0;i<quadmeshPartitions.size();i++)
@@ -147,8 +152,6 @@ int main(int argc, char *argv[])
         for (size_t j=0;j<trimeshPartitions[i].size();j++)
             TriPart[trimeshPartitions[i][j]]=i;
 
-    //SmoothWithFeatures(trimesh,quadmesh,trimeshFeatures,TriPart,QuadPart,Laplacian,100,0.5,EdgeSize);
-
     std::vector<size_t> QuadCornersVect;
     for (size_t i=0;i<quadmeshCorners.size();i++)
         for (size_t j=0;j<quadmeshCorners[i].size();j++)
@@ -157,7 +160,6 @@ int main(int argc, char *argv[])
     auto last=std::unique(QuadCornersVect.begin(),QuadCornersVect.end());
     QuadCornersVect.erase(last, QuadCornersVect.end());
 
-    //SmoothWithFeatures(trimesh,quadmesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,Laplacian,100,0.5,EdgeSize);
     SmoothSubdivide(trimesh,quadmesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,100,0.5,EdgeSize);
 
     //SAVE OUTPUT

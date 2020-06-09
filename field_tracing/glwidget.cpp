@@ -455,6 +455,18 @@ void TW_CALL BatchProcess(void *)
 //    PTr.GetCornersPos(PatchCornerPos);
 }
 
+void TW_CALL IterativeBatch(void *)
+{
+    InitStructures();
+    //RecursiveProcess<CMesh>(PTr,Drift);
+    RecursiveProcess3<CMesh>(PTr,Drift);
+//    CurrPatchMode=CMPatchCol;
+//    drawField=false;
+//    drawSharpF=false;
+//    drawSing=false;
+//    UpdateVisualNodes();
+}
+
 void TW_CALL RecursiveProcess(void *)
 {
     InitStructures();
@@ -711,12 +723,16 @@ void InitLoopBar(QWidget *w)
     TwAddVarRW(bar,"Sample Ratio",TW_TYPE_DOUBLE,&PTr.sample_ratio,"label='Sample Ratio'");
 
     TwAddButton(bar,"RecursiveProcess",RecursiveProcess,0," label='Recursive Process' ");
+    TwAddButton(bar,"IterativeBatch",IterativeBatch,0," label='Iterative Batch' ");
+
+
 
     TwAddVarRW(bar,"SplitOnRemove",TW_TYPE_BOOLCPP,&PTr.split_on_removal,"label='Split on Remove'");
     TwAddVarRW(bar,"AvoidIncreaseVal",TW_TYPE_BOOLCPP,&PTr.avoid_increase_valence,"label='Avoid Increase Valence'");
     TwAddVarRW(bar,"AvoidCollapseIrr",TW_TYPE_BOOLCPP,&PTr.avoid_collapse_irregular,"label='Avoid Collapse Irregular'");
     TwAddVarRW(bar,"MaxLDistortion",TW_TYPE_DOUBLE,&PTr.max_lenght_distortion,"label='Max Distortion Lenght'");
     TwAddVarRW(bar,"MaxLVariance",TW_TYPE_DOUBLE,&PTr.max_lenght_variance,"label='Max Variance Lenght'");
+    TwAddVarRW(bar,"LoopBorders",TW_TYPE_BOOLCPP,&PTr.TraceLoopsBorders,"label='Trace Loop from Borders'");
     TwAddVarRW(bar,"MaxValence",TW_TYPE_INT32,&PTr.MaxVal,"label='Max Valence'");
 
   //    TwAddVarRW(bar,"testdrawReceiver",TW_TYPE_BOOLCPP,&testdrawReceiver,"label='testdrawReceiver'");
@@ -877,6 +893,7 @@ void GLWidget::paintGL ()
         if (drawPaths)
             GLGraph.GLDrawPaths(ChosenCandidates,ChosenIsLoop,mesh.bbox.Diag()*0.01,drawPathNodes);
 
+        //GLGraph.GLDrawSingNodes(mesh.bbox.Diag()*0.002);
     }
 
     glPopMatrix();

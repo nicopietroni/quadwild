@@ -651,9 +651,10 @@ private:
     std::vector<int> NodeFather;
     std::vector<size_t> NodeJumps;
     std::vector<size_t> NodeTwinJumps;
-    //std::set<CoordType> SingPos;
 
 public:
+
+    std::vector<size_t> SingNodes;
 
     bool HasTwin(size_t IndexN)
     {
@@ -793,6 +794,19 @@ public:
         return (Nodes[IndexN].Neigh[IndexNeigh].twin);
     }
 
+    bool AreTwin(const size_t &IndexN0,
+                const size_t &IndexN1)
+    {
+       if (NodePos(IndexN0)!=NodePos(IndexN1))
+           return false;
+       for (size_t i=0;i<NumNeigh(IndexN0);i++)
+       {
+           if (!TwinNeigh(IndexN0,i))continue;
+           if (NodeNeigh(IndexN0,i)==IndexN1)return true;
+       }
+       return false;
+    }
+
     bool ActiveNeigh(const size_t &IndexN,
                      const size_t &IndexNeigh)const
     {
@@ -855,6 +869,19 @@ public:
         NodeFather=std::vector<int>(NumNodes(),-1);
         NodeJumps=std::vector<size_t> (NumNodes(),0);
         NodeTwinJumps=std::vector<size_t> (NumNodes(),0);
+
+        SingNodes.clear();
+        for (size_t i=0;i<mesh.vert.size();i++)
+        {
+            int Mmatch;
+            if(vcg::tri::CrossField<MeshType>::IsSingularByCross(mesh.vert[i],Mmatch))
+            {
+                std::vector<size_t> CurrN;
+                IndexNodes(i,CurrN);
+                SingNodes.insert(SingNodes.end(),CurrN.begin(),CurrN.end());
+            }
+        }
+        std::cout<<"There are "<<SingNodes.size()<<" singular Nodes"<<std::endl;
     }
 
     int &Father(const size_t &IndexNode)
@@ -1021,6 +1048,17 @@ public:
         return false;
     }
 
+    void DeactivateInternalSingularities()
+    {
+        for (size_t i=0;i<SingNodes.size();i++)
+            SetActive(SingNodes[i],false);
+    }
+
+    void ActivateSingularities()
+    {
+        for (size_t i=0;i<SingNodes.size();i++)
+            SetActive(SingNodes[i],true);
+    }
 
     void SetActive(const size_t &IndexNode,bool ActiveVal)
     {

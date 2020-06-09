@@ -76,11 +76,6 @@ public:
             }
         }
         glPopAttrib();
-//        for (size_t i=0;i<IndexN.size();i++)
-//        {
-//            size_t currN=IndexN[i];
-//            GLDrawNodeNeigh(currN,2);
-//        }
     }
 
     void GLDrawNonActiveNodes(const ScalarType &size,bool DrawDir=true)
@@ -89,6 +84,13 @@ public:
         for (size_t i=0;i<VFGraph.NumNodes();i++)
             if (!VFGraph.IsActive(i))ActiveList.push_back(i);
         GLDrawNodes(ActiveList,size,DrawDir);
+    }
+
+    void GLDrawSingNodes(const ScalarType &size,
+                        bool DrawDir=true,
+                        ScalarType GLSize=10)
+    {
+        GLDrawNodes(VFGraph.SingNodes,size,DrawDir);
     }
 
     //    void GLDrawNode(size_t &IndexNode,
