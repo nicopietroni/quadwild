@@ -16,7 +16,7 @@ std::vector<int> solveILP(
         const bool isometry,
         const bool regularityForQuadrilaterals,
         const bool regularityForNonQuadrilaterals,
-        const double nonQuadrilateralSimilarityFactor,
+        const double regularityNonQuadrilateralWeight,
         const bool hardParityConstraint,
         const double timeLimit,
         const double minimumGap,

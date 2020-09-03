@@ -6,6 +6,6 @@ minimumGap 0.6
 isometry 1
 regularityForQuadrilaterals 1
 regularityForNonQuadrilaterals 1
-nonQuadrilateralSimilarityFactor 1.2
+regularityNonQuadrilateralWeight 0.9
 hardParityConstraint 1
 scaleFact 2

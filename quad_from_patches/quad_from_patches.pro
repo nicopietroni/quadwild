@@ -69,12 +69,20 @@ macx {
 include($$PATTERNSPATH/patterns.pri)
 INCLUDEPATH += $$PATTERNSPATH
 
+#libiglfields
+include($$LIBIGLFIELDS/libiglfields.pri)
+
 #libigl
 INCLUDEPATH += $$LIBIGLPATH/include/
 QMAKE_CXXFLAGS += -isystem $$LIBIGLPATH/include/
 
 #vcglib
 INCLUDEPATH += $$VCGLIBPATH
+#vcg ply
+HEADERS += \
+    $$VCGLIBPATH/wrap/ply/plylib.h
+SOURCES += \
+    $$VCGLIBPATH/wrap/ply/plylib.cpp
 
 #eigen
 INCLUDEPATH += $$EIGENPATH

@@ -18,7 +18,7 @@ inline std::vector<int> solveILP(
         const bool isometry,
         const bool regularityForQuadrilaterals,
         const bool regularityForNonQuadrilaterals,
-        const double nonQuadrilateralSimilarityFactor,
+        const double regularityNonQuadrilateralWeight,
         const bool hardParityConstraint,
         const double timeLimit,
         const double minimumGap,
@@ -89,16 +89,16 @@ inline std::vector<int> solveILP(
         std::cout << chartData.subSides.size() << " subsides!" << std::endl;
 
 
-        const double isoCost = alpha;
-        const double regCost = (1 - alpha);
+        const double isoWeight = alpha;
+        const double regWeight = (1 - alpha);
 
         for (size_t cId = 0; cId < chartData.charts.size(); cId++) {
             const Chart& chart = chartData.charts[cId];
             if (chart.faces.size() > 0) {
                 size_t nSides = chart.chartSides.size();
 
-                size_t numRegularityConstraints = 0;
-                size_t numIsometryConstraints = 0;
+                size_t numRegularityCosts = 0;
+                size_t numIsometryCosts = 0;
 
                 GRBQuadExpr regExpr = 0;
                 GRBQuadExpr isoExpr = 0;
@@ -111,7 +111,7 @@ inline std::vector<int> solveILP(
 
                         //If it is not fixed (free)
                         if (!subside.isFixed) {
-                            numIsometryConstraints++;
+                            numIsometryCosts++;
 
                             double edgeLength = edgeFactor[cId];
 
@@ -124,14 +124,16 @@ inline std::vector<int> solveILP(
                             size_t dId = diff.size();
                             size_t aId = abs.size();
 
+                            GRBLinExpr value = vars[subsideId] - sideSubdivision;
+
                             if (method == LEASTSQUARES) {
-                                isoExpr += ((vars[subsideId] - sideSubdivision) * (vars[subsideId] - sideSubdivision));
+                                isoExpr += value * value;
                             }
                             else {
                                 diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "d" + to_string(dId)));
                                 abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "a" + to_string(aId)));
 
-                                model.addConstr(diff[dId] == vars[subsideId] - sideSubdivision, "dc" + to_string(dId));
+                                model.addConstr(diff[dId] == value, "dc" + to_string(dId));
                                 model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
 
                                 isoExpr += abs[aId];
@@ -141,41 +143,39 @@ inline std::vector<int> solveILP(
                 }
 
                 //Regularity for quad case
-                if (nSides == 4 && regularityForQuadrilaterals) {
-                    for (size_t j = 0; j <= 1; j++) {
-                        bool areFixed = true;
+                if (nSides == 4) {
+                    if (regularityForQuadrilaterals) {
+                        for (size_t j = 0; j < 2; j++) {
+                            const ChartSide& side1 = chart.chartSides[j];
+                            const ChartSide& side2 = chart.chartSides[(j+2)%nSides];
 
-                        const ChartSide& side1 = chart.chartSides[j];
-                        const ChartSide& side2 = chart.chartSides[(j+2)%4];
+                            GRBLinExpr subSide1Sum = 0;
+                            for (const size_t& subSideId : side1.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide1Sum += subSide.size;
+                                }
+                                else {
+                                    subSide1Sum += vars[subSideId];
+                                }
+                            }
+                            GRBLinExpr subSide2Sum = 0;
+                            for (const size_t& subSideId : side2.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide2Sum += subSide.size;
+                                }
+                                else {
+                                    subSide2Sum += vars[subSideId];
+                                }
+                            }
 
-                        GRBLinExpr subSide1Sum = 0;
-                        for (const size_t& subSideId : side1.subsides) {
-                            const ChartSubSide& subSide = chartData.subSides[subSideId];
-                            if (subSide.isFixed) {
-                                subSide1Sum += subSide.size;
-                            }
-                            else {
-                                subSide1Sum += vars[subSideId];
-                                areFixed = false;
-                            }
-                        }
-                        GRBLinExpr subSide2Sum = 0;
-                        for (const size_t& subSideId : side2.subsides) {
-                            const ChartSubSide& subSide = chartData.subSides[subSideId];
-                            if (subSide.isFixed) {
-                                subSide2Sum += subSide.size;
-                            }
-                            else {
-                                subSide2Sum += vars[subSideId];
-                                areFixed = false;
-                            }
-                        }
+                            numRegularityCosts++;
 
-                        if (!areFixed) {
-                            numRegularityConstraints++;
+                            GRBLinExpr value = subSide1Sum - subSide2Sum;
 
                             if (method == LEASTSQUARES) {
-                                regExpr += (subSide1Sum - subSide2Sum) * (subSide1Sum - subSide2Sum);
+                                regExpr += (value * value) / 2.0;
                             }
                             else {
                                 size_t dId = diff.size();
@@ -184,88 +184,272 @@ inline std::vector<int> solveILP(
                                 diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
                                 abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
 
-                                model.addConstr(diff[dId] == subSide1Sum - subSide2Sum, "dc" + to_string(dId));
+                                model.addConstr(diff[dId] == value, "dc" + to_string(dId));
                                 model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
 
-                                regExpr += abs[aId];
+                                regExpr += abs[aId] / 2.0;
                             }
                         }
-
                     }
                 }
-                //Regularity for non-quad case
-                else if (nSides != 4 && regularityForNonQuadrilaterals) {
-                    for (size_t j = 0; j < nSides; j++) {
-                        bool areFixed = true;
+                else if (regularityForNonQuadrilaterals) {
+                    //Regularity for triangular case
+                    if (nSides == 3) {
+                        for (size_t j = 0; j < nSides; j++) {
+                            const ChartSide& side1 = chart.chartSides[j];
+                            const ChartSide& side2 = chart.chartSides[(j+1) % nSides];
+                            const ChartSide& side3 = chart.chartSides[(j+2) % nSides];
 
-                        const ChartSide& side1 = chart.chartSides[j];
-                        double length1 = 0;
-
-                        GRBLinExpr subSide1Sum = 0;
-                        for (const size_t& subSideId : side1.subsides) {
-                            const ChartSubSide& subSide = chartData.subSides[subSideId];
-
-                            length1 += subSide.length;
-                            if (subSide.isFixed) {
-                                subSide1Sum += subSide.size;
+                            GRBLinExpr subSide1Sum = 0;
+                            for (const size_t& subSideId : side1.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide1Sum += subSide.size;
+                                }
+                                else {
+                                    subSide1Sum += vars[subSideId];
+                                }
                             }
-                            else {
-                                subSide1Sum += vars[subSideId];
-                                areFixed = false;
-                            }
-                        }
-
-                        for (size_t k = 0; k < nSides; k++) {
-                            const ChartSide& side2 = chart.chartSides[k];
-                            double length2 = 0;
-
                             GRBLinExpr subSide2Sum = 0;
                             for (const size_t& subSideId : side2.subsides) {
                                 const ChartSubSide& subSide = chartData.subSides[subSideId];
-
-                                length2 += subSide.length;
                                 if (subSide.isFixed) {
                                     subSide2Sum += subSide.size;
                                 }
                                 else {
                                     subSide2Sum += vars[subSideId];
-                                    areFixed = false;
+                                }
+                            }
+                            GRBLinExpr subSide3Sum = 0;
+                            for (const size_t& subSideId : side3.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide3Sum += subSide.size;
+                                }
+                                else {
+                                    subSide3Sum += vars[subSideId];
                                 }
                             }
 
+                            numRegularityCosts++;
 
-                            if (!areFixed) {
-                                double factor = std::max(length1, length2) / std::min(length1, length2);
-                                assert(factor >= 1);
+                            GRBVar c = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "c" + to_string(numRegularityCosts));
+                            model.addConstr(subSide1Sum + 1 <= subSide2Sum + subSide3Sum + c, "cc" + to_string(numRegularityCosts));
 
-                                if (factor <= nonQuadrilateralSimilarityFactor) {
-                                    numRegularityConstraints++;
-                                    if (method == LEASTSQUARES) {
-                                        regExpr += ((subSide1Sum - subSide2Sum) * (subSide1Sum - subSide2Sum));
-                                    }
-                                    else {
-                                        size_t dId = diff.size();
-                                        size_t aId = abs.size();
+                            GRBLinExpr value = c  * regularityNonQuadrilateralWeight;
 
-                                        diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
-                                        abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
+                            if (method == LEASTSQUARES) {
+                                regExpr += (value * value) / nSides;
+                            }
+                            else {
+                                size_t dId = diff.size();
+                                size_t aId = abs.size();
 
-                                        model.addConstr(diff[dId] == subSide1Sum - subSide2Sum, "dc" + to_string(dId));
-                                        model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
+                                diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
+                                abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
 
-                                        regExpr += abs[aId];
-                                    }
-                                }
+                                model.addConstr(diff[dId] == value, "dc" + to_string(dId));
+                                model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
+
+                                regExpr += abs[aId] / nSides;
                             }
                         }
+                    }
+                    //Regularity for pentagonal case
+                    else if (nSides == 5) {
+                        for (size_t j = 0; j < nSides; j++) {
+                            const ChartSide& side1 = chart.chartSides[j];
+                            const ChartSide& side2 = chart.chartSides[(j+1) % nSides];
+                            const ChartSide& side3 = chart.chartSides[(j+2) % nSides];
+                            const ChartSide& side4 = chart.chartSides[(j+3) % nSides];
+                            const ChartSide& side5 = chart.chartSides[(j+4) % nSides];
 
+                            GRBLinExpr subSide1Sum = 0;
+                            for (const size_t& subSideId : side1.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide1Sum += subSide.size;
+                                }
+                                else {
+                                    subSide1Sum += vars[subSideId];
+                                }
+                            }
+                            GRBLinExpr subSide2Sum = 0;
+                            for (const size_t& subSideId : side2.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide2Sum += subSide.size;
+                                }
+                                else {
+                                    subSide2Sum += vars[subSideId];
+                                }
+                            }
+                            GRBLinExpr subSide3Sum = 0;
+                            for (const size_t& subSideId : side3.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide3Sum += subSide.size;
+                                }
+                                else {
+                                    subSide3Sum += vars[subSideId];
+                                }
+                            }
+
+                            GRBLinExpr subSide4Sum = 0;
+                            for (const size_t& subSideId : side4.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide4Sum += subSide.size;
+                                }
+                                else {
+                                    subSide4Sum += vars[subSideId];
+                                }
+                            }
+
+                            GRBLinExpr subSide5Sum = 0;
+                            for (const size_t& subSideId : side5.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide5Sum += subSide.size;
+                                }
+                                else {
+                                    subSide5Sum += vars[subSideId];
+                                }
+                            }
+
+                            numRegularityCosts++;
+
+                            GRBVar c = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "c" + to_string(numRegularityCosts));
+                            model.addConstr(subSide1Sum + subSide2Sum + 1 <= subSide3Sum + subSide4Sum + subSide5Sum + c, "cc" + to_string(numRegularityCosts));
+
+                            GRBLinExpr value = c  * regularityNonQuadrilateralWeight;
+
+                            if (method == LEASTSQUARES) {
+                                regExpr += (value * value) / nSides;
+                            }
+                            else {
+                                size_t dId = diff.size();
+                                size_t aId = abs.size();
+
+                                diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
+                                abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
+
+                                model.addConstr(diff[dId] == value, "dc" + to_string(dId));
+                                model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
+
+                                regExpr += abs[aId] / nSides;
+                            }
+                        }
+                    }
+                    //Regularity for hexagonal case
+                    else if (nSides == 6) {
+                        for (size_t j = 0; j < nSides; j++) {
+                            const ChartSide& side1 = chart.chartSides[j];
+                            const ChartSide& side2 = chart.chartSides[(j+1) % nSides];
+                            const ChartSide& side3 = chart.chartSides[(j+2) % nSides];
+                            const ChartSide& side4 = chart.chartSides[(j+3) % nSides];
+                            const ChartSide& side5 = chart.chartSides[(j+4) % nSides];
+                            const ChartSide& side6 = chart.chartSides[(j+5) % nSides];
+
+                            GRBLinExpr subSide1Sum = 0;
+                            for (const size_t& subSideId : side1.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide1Sum += subSide.size;
+                                }
+                                else {
+                                    subSide1Sum += vars[subSideId];
+                                }
+                            }
+                            GRBLinExpr subSide2Sum = 0;
+                            for (const size_t& subSideId : side2.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide2Sum += subSide.size;
+                                }
+                                else {
+                                    subSide2Sum += vars[subSideId];
+                                }
+                            }
+                            GRBLinExpr subSide3Sum = 0;
+                            for (const size_t& subSideId : side3.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide3Sum += subSide.size;
+                                }
+                                else {
+                                    subSide3Sum += vars[subSideId];
+                                }
+                            }
+
+                            GRBLinExpr subSide4Sum = 0;
+                            for (const size_t& subSideId : side4.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide4Sum += subSide.size;
+                                }
+                                else {
+                                    subSide4Sum += vars[subSideId];
+                                }
+                            }
+
+                            GRBLinExpr subSide5Sum = 0;
+                            for (const size_t& subSideId : side5.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide5Sum += subSide.size;
+                                }
+                                else {
+                                    subSide5Sum += vars[subSideId];
+                                }
+                            }
+
+                            GRBLinExpr subSide6Sum = 0;
+                            for (const size_t& subSideId : side6.subsides) {
+                                const ChartSubSide& subSide = chartData.subSides[subSideId];
+                                if (subSide.isFixed) {
+                                    subSide6Sum += subSide.size;
+                                }
+                                else {
+                                    subSide6Sum += vars[subSideId];
+                                }
+                            }
+
+                            numRegularityCosts++;
+
+                            GRBVar c = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "c" + to_string(numRegularityCosts));
+                            model.addConstr(subSide1Sum + 1 <= subSide3Sum + subSide5Sum + c, "cc" + to_string(numRegularityCosts));
+
+                            GRBLinExpr parityEquation = subSide1Sum + subSide3Sum + subSide5Sum;
+                            GRBVar hexParity = model.addVar(3, GRB_INFINITY, 0.0, GRB_INTEGER, "pc" + to_string(numRegularityCosts));
+                            GRBVar hexFree = model.addVar(0, 1, 0.0, GRB_INTEGER, "pf" + to_string(numRegularityCosts));
+                            model.addConstr(hexParity * 2 == parityEquation + hexFree);
+
+                            GRBLinExpr value = (c  * regularityNonQuadrilateralWeight + hexFree) / 2.0;
+
+                            if (method == LEASTSQUARES) {
+                                regExpr += (value * value) / nSides;
+                            }
+                            else {
+                                size_t dId = diff.size();
+                                size_t aId = abs.size();
+
+                                diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
+                                abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
+
+                                model.addConstr(diff[dId] == value, "dc" + to_string(dId));
+                                model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
+
+                                regExpr += abs[aId] / nSides;
+                            }
+                        }
                     }
                 }
 
-                if (numRegularityConstraints > 0)
-                    obj += regCost * regExpr / numRegularityConstraints;
-                if (numIsometryConstraints > 0)
-                    obj += isoCost * isoExpr / numIsometryConstraints;
+                if (numRegularityCosts > 0)
+                    obj += regWeight * regExpr / numRegularityCosts;
+                if (numIsometryCosts > 0)
+                    obj += isoWeight * isoExpr / numIsometryCosts;
 
 
                 //Even side size sum constraint in a chart
@@ -287,7 +471,7 @@ inline std::vector<int> solveILP(
                     }
 
                     free[cId] = model.addVar(2, GRB_INFINITY, 0.0, GRB_INTEGER, "f" + to_string(cId));
-                    model.addConstr(free[cId]*2 == sumExp);
+                    model.addConstr(free[cId] * 2 == sumExp);
                 }
 
             }

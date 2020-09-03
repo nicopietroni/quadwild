@@ -41,7 +41,7 @@ void quadrangulationFromPatches(
             parameters.isometry,
             parameters.regularityForQuadrilaterals,
             parameters.regularityForNonQuadrilaterals,
-            parameters.nonQuadrilateralSimilarityFactor,
+            parameters.regularityNonQuadrilateralWeight,
             parameters.hardParityConstraint,
             parameters.timeLimit,
             parameters.gapLimit,
@@ -85,7 +85,7 @@ inline std::vector<int> findSubdivisions(
         const bool isometry,
         const bool regularityForQuadrilaterals,
         const bool regularityForNonQuadrilaterals,
-        const double nonQuadrilateralSimilarityFactor,
+        const double regularityNonQuadrilateralWeight,
         const bool hardParityConstraint,
         const double timeLimit,
         const double gapLimit,
@@ -98,7 +98,7 @@ inline std::vector<int> findSubdivisions(
     ILPStatus status;
 
     //Solve ILP to find the best patches
-    std::vector<int> ilpResult = solveILP(chartData, edgeFactor, method, alpha, isometry, regularityForQuadrilaterals, regularityForNonQuadrilaterals, nonQuadrilateralSimilarityFactor, hardParityConstraint, timeLimit, gapLimit, gap, status);
+    std::vector<int> ilpResult = solveILP(chartData, edgeFactor, method, alpha, isometry, regularityForQuadrilaterals, regularityForNonQuadrilaterals, regularityNonQuadrilateralWeight, hardParityConstraint, timeLimit, gapLimit, gap, status);
 
     if (status == ILPStatus::SOLUTIONFOUND && gap < minimumGap) {
         std::cout << "Solution found! Gap: " << gap << std::endl;
@@ -109,20 +109,20 @@ inline std::vector<int> findSubdivisions(
         }
         else if (status == ILPStatus::SOLUTIONWRONG && !hardParityConstraint) {
             std::cout << "Solution wrong! It have been used soft constraints for parity, so trying with hard constraints: " << std::endl;
-            return findSubdivisions(chartData, edgeFactor, method, alpha, isometry, regularityForQuadrilaterals, regularityForNonQuadrilaterals, nonQuadrilateralSimilarityFactor, true, timeLimit, gapLimit, minimumGap);
+            return findSubdivisions(chartData, edgeFactor, method, alpha, isometry, regularityForQuadrilaterals, regularityForNonQuadrilaterals, regularityNonQuadrilateralWeight, true, timeLimit, gapLimit, minimumGap);
         }
         else {
             if (method == ILPMethod::LEASTSQUARES) {
                 std::cout << "Minimum gap has been not reached. Trying with ABS (linear optimization method)." << gap << std::endl;
-                return findSubdivisions(chartData, edgeFactor, ILPMethod::ABS, alpha, isometry, regularityForQuadrilaterals, regularityForNonQuadrilaterals, nonQuadrilateralSimilarityFactor, hardParityConstraint, timeLimit, gapLimit, minimumGap);
+                return findSubdivisions(chartData, edgeFactor, ILPMethod::ABS, alpha, isometry, regularityForQuadrilaterals, regularityForNonQuadrilaterals, regularityNonQuadrilateralWeight, hardParityConstraint, timeLimit, gapLimit, minimumGap);
             }
             else if (regularityForNonQuadrilaterals) {
                 std::cout << "Minimum gap has been not reached. Trying without regularity for non-quadrilaterals." << gap << std::endl;
-                return findSubdivisions(chartData, edgeFactor, ILPMethod::ABS, alpha, isometry, regularityForQuadrilaterals, false, nonQuadrilateralSimilarityFactor, hardParityConstraint, timeLimit, gapLimit, minimumGap);
+                return findSubdivisions(chartData, edgeFactor, ILPMethod::ABS, alpha, isometry, regularityForQuadrilaterals, false, regularityNonQuadrilateralWeight, hardParityConstraint, timeLimit, gapLimit, minimumGap);
             }
             else if (regularityForQuadrilaterals) {
                 std::cout << "Minimum gap has been not reached. Trying without any regularity terms." << gap << std::endl;
-                return findSubdivisions(chartData, edgeFactor, ILPMethod::ABS, alpha, true, false, false, nonQuadrilateralSimilarityFactor, hardParityConstraint, timeLimit, gapLimit, minimumGap);
+                return findSubdivisions(chartData, edgeFactor, ILPMethod::ABS, alpha, true, false, false, regularityNonQuadrilateralWeight, hardParityConstraint, timeLimit, gapLimit, minimumGap);
             }
         }
     }

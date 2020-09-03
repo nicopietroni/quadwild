@@ -7,4 +7,5 @@ LIBIGLPATH = /usr/include/libigl
 VCGLIBPATH = /usr/include/vcglib
 
 PATTERNSPATH = $$PWD/libs/patterns
+LIBIGLFIELDS = $$PWD/libs/libiglfields
 LPSOLVEPATH = $$PATTERNSPATH/patterns/ktmethod/lp_solve

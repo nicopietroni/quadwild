@@ -43,7 +43,6 @@ int main(int argc, char *argv[])
 //    parameters.isometry = true; //Activate isometry
 //    parameters.regularityForQuadrilaterals = true; //Activate regularity for quadrilaterals
 //    parameters.regularityForNonQuadrilaterals = true; //Activate regularity for non-quadrilaterals
-//    parameters.nonQuadrilateralSimilarityFactor = 1.2; //Similarity factor to match sides on non-quad patches
 //    parameters.hardParityConstraint = false; //Flag to choose if use hard constraints or not
 
     qfp::Parameters parameters;
@@ -248,9 +247,9 @@ void loadSetupFile(const std::string& path, qfp::Parameters& parameters, float& 
     else
         parameters.regularityForNonQuadrilaterals=true;
 
-    float similF;
-    fscanf(f,"nonQuadrilateralSimilarityFactor %f\n",&similF);
-    parameters.nonQuadrilateralSimilarityFactor=similF;
+    float regularityNonQuadrilateralWeight;
+    fscanf(f,"regularityNonQuadrilateralWeight %f\n",&regularityNonQuadrilateralWeight);
+    parameters.regularityNonQuadrilateralWeight=regularityNonQuadrilateralWeight;
 
     IntVar=0;
     fscanf(f,"hardParityConstraint %d\n",&IntVar);
@@ -296,8 +295,6 @@ void SaveSetupFile(const std::string& path, qfp::Parameters& parameters, float& 
         fprintf(f,"regularityForNonQuadrilaterals 1\n");
     else
         fprintf(f,"regularityForNonQuadrilaterals 0\n");
-
-    fprintf(f,"nonQuadrilateralSimilarityFactor %f\n",parameters.nonQuadrilateralSimilarityFactor);
 
     if (parameters.hardParityConstraint)
         fprintf(f,"hardParityConstraint 1\n");
