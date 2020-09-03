@@ -236,10 +236,10 @@ inline std::vector<int> solveILP(
                             GRBVar c = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "c" + to_string(numRegularityCosts));
                             model.addConstr(subSide1Sum + 1 <= subSide2Sum + subSide3Sum + c, "cc" + to_string(numRegularityCosts));
 
-                            GRBLinExpr value = c  * regularityNonQuadrilateralWeight;
+                            GRBLinExpr value = c;
 
                             if (method == LEASTSQUARES) {
-                                regExpr += (value * value) / nSides;
+                                regExpr += (value * value) * regularityNonQuadrilateralWeight / nSides;
                             }
                             else {
                                 size_t dId = diff.size();
@@ -251,7 +251,7 @@ inline std::vector<int> solveILP(
                                 model.addConstr(diff[dId] == value, "dc" + to_string(dId));
                                 model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
 
-                                regExpr += abs[aId] / nSides;
+                                regExpr += abs[aId] * regularityNonQuadrilateralWeight / nSides;
                             }
                         }
                     }
@@ -322,10 +322,10 @@ inline std::vector<int> solveILP(
                             GRBVar c = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "c" + to_string(numRegularityCosts));
                             model.addConstr(subSide1Sum + subSide2Sum + 1 <= subSide3Sum + subSide4Sum + subSide5Sum + c, "cc" + to_string(numRegularityCosts));
 
-                            GRBLinExpr value = c  * regularityNonQuadrilateralWeight;
+                            GRBLinExpr value = c;
 
                             if (method == LEASTSQUARES) {
-                                regExpr += (value * value) / nSides;
+                                regExpr += (value * value) * regularityNonQuadrilateralWeight / nSides;
                             }
                             else {
                                 size_t dId = diff.size();
@@ -337,7 +337,7 @@ inline std::vector<int> solveILP(
                                 model.addConstr(diff[dId] == value, "dc" + to_string(dId));
                                 model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
 
-                                regExpr += abs[aId] / nSides;
+                                regExpr += abs[aId] * regularityNonQuadrilateralWeight / nSides;
                             }
                         }
                     }
@@ -425,10 +425,10 @@ inline std::vector<int> solveILP(
                             GRBVar hexFree = model.addVar(0, 1, 0.0, GRB_INTEGER, "pf" + to_string(numRegularityCosts));
                             model.addConstr(hexParity * 2 == parityEquation + hexFree);
 
-                            GRBLinExpr value = (c  * regularityNonQuadrilateralWeight + hexFree) / 2.0;
+                            GRBLinExpr value = (c + hexFree) / 2.0;
 
                             if (method == LEASTSQUARES) {
-                                regExpr += (value * value) / nSides;
+                                regExpr += (value * value) * regularityNonQuadrilateralWeight / nSides;
                             }
                             else {
                                 size_t dId = diff.size();
@@ -440,7 +440,7 @@ inline std::vector<int> solveILP(
                                 model.addConstr(diff[dId] == value, "dc" + to_string(dId));
                                 model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
 
-                                regExpr += abs[aId] / nSides;
+                                regExpr += abs[aId] * regularityNonQuadrilateralWeight / nSides;
                             }
                         }
                     }
