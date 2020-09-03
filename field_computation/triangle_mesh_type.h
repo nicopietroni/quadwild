@@ -782,12 +782,18 @@ public:
 
     void InitSharpFeatures(ScalarType SharpAngleDegree)
     {
+        if (SharpAngleDegree<=0)return;
         vcg::tri::UpdateFlags<MeshType>::FaceEdgeSelCrease(*this,vcg::math::ToRad(SharpAngleDegree));
         InitEdgeType();
         for (size_t i=0;i<face.size();i++)
             for (size_t j=0;j<3;j++)
             {
                 if (vcg::face::IsBorder(face[i],j))
+                {
+                    face[i].SetFaceEdgeS(j);
+                    face[i].FKind[j]=ETConvex;
+                }
+                if (!vcg::face::IsManifold(face[i],j))
                 {
                     face[i].SetFaceEdgeS(j);
                     face[i].FKind[j]=ETConvex;
@@ -808,10 +814,10 @@ public:
             {
                 if (!face[i].IsFaceEdgeS(j))continue;
 
-                //if (face[i].FKind[j]==ETConcave)
-                vcg::glColor(vcg::Color4b(255,0,255,255));
-                //                else
-                //                    vcg::glColor(vcg::Color4b(255,255,0,255));
+                if (face[i].FKind[j]==ETConcave)
+                    vcg::glColor(vcg::Color4b(0,0,255,255));
+                                else
+                    vcg::glColor(vcg::Color4b(255,0,0,255));
 
                 CoordType Pos0=face[i].P0(j);
                 CoordType Pos1=face[i].P1(j);

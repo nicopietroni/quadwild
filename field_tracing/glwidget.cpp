@@ -46,6 +46,7 @@
 #include <QDir>
 #include "tracing/GL_vert_field_graph.h"
 #include "tracing/patch_tracer.h"
+#include "tracing/tracer_interface.h"
 
 TwBar *bar;
 char * filename;/// filename of the mesh to load
@@ -85,6 +86,10 @@ bool drawNarrowCandidates=false;
 bool batch_process=false;
 bool has_features=false;
 
+bool add_only_needed=true;
+bool interleave_removal=true;
+bool final_removal=true;
+
 int CurrNum=0;
 
 std::vector<size_t> ConcaveEmittersNode,ConcaveReceiversNode,
@@ -104,7 +109,10 @@ std::vector<std::vector<size_t> > ChosenCandidates;
 std::vector<typename CMesh::CoordType> PatchCornerPos;
 CMesh::ScalarType Drift=100;
 
-enum PatchColorMode{CMPatchNone, CMPatchCol,CMPatchQuality, CMPatchValence, CMPatchTopo};
+enum PatchColorMode{CMPatchNone, CMPatchCol, CMPatchValence,
+                    CMPatchTopo,CMPatchLengthDist,CMPatchLenghtVar,
+                    CMArapDistortion,CMCClarkability};
+
 PatchColorMode CurrPatchMode=CMPatchNone;
 PatchColorMode OldPatchMode=CMPatchNone;
 
@@ -133,17 +141,17 @@ void SaveSetupFile(const std::string pathProject,
     else
         fprintf(f,"Split 0\n");
 
-    if (PTr.avoid_increase_valence)
-        fprintf(f,"IncreaseValRem 1\n");
-    else
-        fprintf(f,"IncreaseValRem 0\n");
+//    if (PTr.avoid_increase_valence)
+//        fprintf(f,"IncreaseValRem 1\n");
+//    else
+//        fprintf(f,"IncreaseValRem 0\n");
 
-    if (PTr.avoid_collapse_irregular)
-        fprintf(f,"IrregularRem 1\n");
-    else
-        fprintf(f,"IrregularRem 0\n");
+//    if (PTr.avoid_collapse_irregular)
+//        fprintf(f,"IrregularRem 1\n");
+//    else
+//        fprintf(f,"IrregularRem 0\n");
 
-    fprintf(f,"DistortionL %f\n",PTr.max_lenght_distortion);
+    //fprintf(f,"DistortionL %f\n",PTr.max_lenght_distortion);
 
     fclose(f);
 }
@@ -172,23 +180,23 @@ void LoadSetupFile(std::string path)
 
     fscanf(f,"IncreaseValRem %d\n",&IntVar);
     std::cout<<"INCREASE VAL "<<IntVar<<std::endl;
-    if (IntVar==0)
-        PTr.avoid_increase_valence=false;
-    else
-        PTr.avoid_increase_valence=true;
+//    if (IntVar==0)
+//        PTr.avoid_increase_valence=false;
+//    else
+//        PTr.avoid_increase_valence=true;
 
-    fscanf(f,"IrregularRem %d\n",&IntVar);
-    std::cout<<"IRR VAL "<<IntVar<<std::endl;
-    if (IntVar==0)
-        PTr.avoid_collapse_irregular=false;
-    else
-        PTr.avoid_collapse_irregular=true;
+//    fscanf(f,"IrregularRem %d\n",&IntVar);
+//    std::cout<<"IRR VAL "<<IntVar<<std::endl;
+//    if (IntVar==0)
+//        PTr.avoid_collapse_irregular=false;
+//    else
+//        PTr.avoid_collapse_irregular=true;
 
-    float MaxDistortionf;
-    fscanf(f,"DistortionL %f\n",&MaxDistortionf);
-    PTr.max_lenght_distortion=(CMesh::ScalarType)MaxDistortionf;
-    std::cout<<"DistortionL "<<MaxDistortionf<<std::endl;
-    fclose(f);
+//    float MaxDistortionf;
+//    fscanf(f,"DistortionL %f\n",&MaxDistortionf);
+//    PTr.max_lenght_distortion=(CMesh::ScalarType)MaxDistortionf;
+//    std::cout<<"DistortionL "<<MaxDistortionf<<std::endl;
+//    fclose(f);
 
     if ((batch_process)&&(BatchSample>0))
         PTr.sample_ratio=BatchSample;
@@ -202,20 +210,20 @@ void LoadSetupFile(std::string path)
     if ((batch_process)&&(BatchSplit==1))
         PTr.split_on_removal=true;
 
-    if ((batch_process)&&(BatchIncreaseValRem==0))
-        PTr.avoid_increase_valence=false;
+//    if ((batch_process)&&(BatchIncreaseValRem==0))
+//        PTr.avoid_increase_valence=false;
 
-    if ((batch_process)&&(BatchIncreaseValRem==1))
-        PTr.avoid_increase_valence=true;
+//    if ((batch_process)&&(BatchIncreaseValRem==1))
+//        PTr.avoid_increase_valence=true;
 
-    if ((batch_process)&&(BatchIrregularRem==0))
-        PTr.avoid_collapse_irregular=false;
+//    if ((batch_process)&&(BatchIrregularRem==0))
+//        PTr.avoid_collapse_irregular=false;
 
-    if ((batch_process)&&(BatchIrregularRem==1))
-        PTr.avoid_collapse_irregular=true;
+//    if ((batch_process)&&(BatchIrregularRem==1))
+//        PTr.avoid_collapse_irregular=true;
 
-    if ((batch_process)&&(BatchDistortionL>0))
-        PTr.max_lenght_distortion=BatchDistortionL;
+//    if ((batch_process)&&(BatchDistortionL>0))
+//        PTr.max_lenght_distortion=BatchDistortionL;
 
 
 
@@ -296,12 +304,19 @@ void UpdatePatchColor()
      vcg::tri::UpdateColor<CMesh>::PerFaceConstant(mesh);
  if (CurrPatchMode==CMPatchCol)
      PTr.ColorByPartitions();
- if (CurrPatchMode==CMPatchQuality)
-     PTr.ColorByPatchQuality();
+     //PTr.ColorByPatchQuality();
  if (CurrPatchMode==CMPatchValence)
      PTr.ColorByValence();
  if (CurrPatchMode==CMPatchTopo)
      PTr.ColorByTopology();
+ if (CurrPatchMode==CMPatchLenghtVar)
+     PTr.ColorByLenghtVariance();
+ if (CurrPatchMode==CMPatchLengthDist)
+     PTr.ColorByLenghtDistortion();
+ if (CurrPatchMode==CMArapDistortion)
+     PTr.ColorByArapDistortion();
+ if (CurrPatchMode==CMCClarkability)
+     PTr.ColorByCClarkability();
 }
 
 void UpdateVisualNodes()
@@ -320,24 +335,32 @@ void UpdateVisualNodes()
 
     //return;
 
-    PTr.GetConcaveEmitters(ConcaveEmittersNode);
+    //PTr.GetConcaveEmitters(ConcaveEmittersNode);
+    PTr.GetActiveEmittersType(TVConcave,ConcaveEmittersNode);
 
-    PTr.GetConcaveReceivers(ConcaveReceiversNode);
+    //PTr.GetConcaveReceivers(ConcaveReceiversNode);
+    PTr.GetActiveReceiversType(TVConcave,ConcaveReceiversNode);
 
-    PTr.GetFlatEmitters(FlatEmittersNode);
+    //PTr.GetFlatEmitters(FlatEmittersNode);
+    PTr.GetActiveEmittersType(TVFlat,FlatEmittersNode);
 
-    PTr.GetFlatReceivers(FlatReceiversNode);
+    //PTr.GetFlatReceivers(FlatReceiversNode);
+    PTr.GetActiveReceiversType(TVFlat,FlatReceiversNode);
 
-    PTr.GetNarrowActiveEmitters(NarrowEmittersNode);
+    //PTr.GetNarrowActiveEmitters(NarrowEmittersNode);
+    PTr.GetActiveEmittersType(TVNarrow,NarrowEmittersNode);
 
-    PTr.GetNarrowActiveReceivers(NarrowReceiversNode);
+    //PTr.GetNarrowActiveReceivers(NarrowReceiversNode);
+    PTr.GetActiveReceiversType(TVNarrow,NarrowReceiversNode);
 
-    PTr.GetChoosenEmitters(ChoosenEmittersNode);
+    //PTr.GetChoosenEmitters(ChoosenEmittersNode);
+    PTr.GetActiveEmittersType(TVChoosen,ChoosenEmittersNode);
 
-    PTr.GetChoosenReceivers(ChoosenReceiversNode);
+    //PTr.GetChoosenReceivers(ChoosenReceiversNode);
+    PTr.GetActiveReceiversType(TVChoosen,ChoosenReceiversNode);
 
     PTr.GetUnsatisfied(UnsatisfiedNodes);
-    PTr.GetCornersPos(PatchCornerPos);
+    PTr.GetVisualCornersPos(PatchCornerPos);
 }
 
 void InitStructures()
@@ -350,12 +373,13 @@ void InitStructures()
     NarrowReceiversNode.clear();
     UnsatisfiedNodes.clear();
 
+
     PreProcessMesh(mesh);
 
     VGraph.Init();//SingPos);
+
     GLGraph.InitDisplacedPos();
     PTr.Init(Drift);
-
     //std::cout<<"Here"<<std::endl;
     UpdateVisualNodes();
 }
@@ -396,35 +420,36 @@ void TW_CALL TraceBorder(void *)
 void TW_CALL SmoothPathes(void *)
 {
     PTr.SmoothPatches();
-    PTr.GetCornersPos(PatchCornerPos);
+    PTr.GetVisualCornersPos(PatchCornerPos);
 }
 
 
-void TW_CALL RemovePath(void *)
-{
-    PTr.RemovePaths();
-    CurrCandidates.clear();
-    PTr.GetCurrCandidates(CurrCandidates);
+//void TW_CALL RemovePath(void *)
+//{
+//    PTr.RemovePaths();
+//    CurrCandidates.clear();
+//    PTr.GetCurrCandidates(CurrCandidates);
 
-    ChosenCandidates.clear();
-    PTr.GetCurrChosen(ChosenCandidates);
+//    ChosenCandidates.clear();
+//    PTr.GetCurrChosen(ChosenCandidates);
 
-    ChosenIsLoop.clear();
-    PTr.GetCurrChosenIsLoop(ChosenIsLoop);
+//    ChosenIsLoop.clear();
+//    PTr.GetCurrChosenIsLoop(ChosenIsLoop);
 
-    PTr.GetUnsatisfied(UnsatisfiedNodes);
+//    PTr.GetUnsatisfied(UnsatisfiedNodes);
 
-    PTr.GetCornersPos(PatchCornerPos);
+//    PTr.GetVisualCornersPos(PatchCornerPos);
 
-//    PTr.GetChoosenEmitters(ChoosenEmittersNode);
-//    PTr.GetChoosenReceivers(ChoosenReceiversNode);
-}
+////    PTr.GetChoosenEmitters(ChoosenEmittersNode);
+////    PTr.GetChoosenReceivers(ChoosenReceiversNode);
+//}
 
 
 void TW_CALL BatchProcess(void *)
 {
     InitStructures();
-    PTr.BatchProcess();
+    //PTr.BatchProcess();
+    PTr.BatchAddLoops(false,false,false,true);
     CurrPatchMode=CMPatchCol;
 //    CurrCandidates.clear();
 //    PTr.GetCurrCandidates(CurrCandidates);
@@ -455,23 +480,23 @@ void TW_CALL BatchProcess(void *)
 //    PTr.GetCornersPos(PatchCornerPos);
 }
 
-void TW_CALL IterativeBatch(void *)
-{
-    InitStructures();
-    //RecursiveProcess<CMesh>(PTr,Drift);
-    RecursiveProcess3<CMesh>(PTr,Drift);
-//    CurrPatchMode=CMPatchCol;
-//    drawField=false;
-//    drawSharpF=false;
-//    drawSing=false;
-//    UpdateVisualNodes();
-}
+//void TW_CALL IterativeBatch(void *)
+//{
+//    InitStructures();
+//    //RecursiveProcess<CMesh>(PTr,Drift);
+//    RecursiveProcess3<CMesh>(PTr,Drift);
+////    CurrPatchMode=CMPatchCol;
+////    drawField=false;
+////    drawSharpF=false;
+////    drawSing=false;
+////    UpdateVisualNodes();
+//}
 
 void TW_CALL RecursiveProcess(void *)
 {
     InitStructures();
     //RecursiveProcess<CMesh>(PTr,Drift);
-    RecursiveProcess2<CMesh>(PTr,Drift);
+    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,interleave_removal,final_removal);
     CurrPatchMode=CMPatchCol;
     drawField=false;
     drawSharpF=false;
@@ -484,11 +509,33 @@ void TW_CALL RecursiveProcess(void *)
 //    PTr.GetUnsatisfied(UnsatisfiedNodes);
 }
 
+void TW_CALL ParametrizePatches(void *)
+{
+    PTr.ComputePatchesUV();
+//    InitStructures();
+//    //RecursiveProcess<CMesh>(PTr,Drift);
+//    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,interleave_removal,final_removal);
+//    CurrPatchMode=CMPatchCol;
+//    drawField=false;
+//    drawSharpF=false;
+//    drawSing=false;
+//    UpdateVisualNodes();
+}
+
+void TW_CALL SubdividePatches(void *)
+{
+    PTr.SubdivideIrrPatches();
+    PTr.GetVisualCornersPos(PatchCornerPos);
+    CurrPatchMode=CMPatchCol;
+
+    CurrCandidates.clear();
+    ChosenCandidates.clear();
+    ChosenIsLoop.clear();
+}
+
 void TW_CALL BatchRemoval(void *)
 {
-//    InitStructures();
-//    RecursiveProcess<CMesh>(PTr,Drift);
-   PTr.BatchRemoval();
+    PTr.BatchRemoval();
     CurrPatchMode=CMPatchCol;
     drawField=false;
     drawSharpF=false;
@@ -548,48 +595,48 @@ bool testdrawDisables=false;
 
 void TW_CALL TestNarrowNarrow(void *)
 {
-    PTr.TestGetNodes(Narrow,
-                     Narrow,
+    PTr.TestGetNodes(TVNarrow,
+                     TVNarrow,
                      TraceDirect,
                      Emitter,Receiver,Disabled);
 }
 
 void TW_CALL TestNarrowConcave(void *)
 {
-    PTr.TestGetNodes(Narrow,
-                     Concave,
+    PTr.TestGetNodes(TVNarrow,
+                     TVConcave,
                      TraceDirect,
                      Emitter,Receiver,Disabled);
 }
 
 void TW_CALL TestNarrowFlat(void *)
 {
-    PTr.TestGetNodes(Narrow,
-                     Flat,
+    PTr.TestGetNodes(TVNarrow,
+                     TVFlat,
                      TraceDirect,
                      Emitter,Receiver,Disabled);
 }
 
 void TW_CALL TestConcaveConcave(void *)
 {
-    PTr.TestGetNodes(Concave,
-                     Concave,
+    PTr.TestGetNodes(TVConcave,
+                     TVConcave,
                      TraceDirect,
                      Emitter,Receiver,Disabled);
 }
 
 void TW_CALL TestConcaveFlat(void *)
 {
-    PTr.TestGetNodes(Concave,
-                     Flat,
+    PTr.TestGetNodes(TVConcave,
+                     TVFlat,
                      TraceDirect,
                      Emitter,Receiver,Disabled);
 }
 
 void TW_CALL TestFlatFlat(void *)
 {
-    PTr.TestGetNodes(Flat,
-                     Flat,
+    PTr.TestGetNodes(TVFlat,
+                     TVFlat,
                      TraceDirect,
                      Emitter,Receiver,Disabled);
 }
@@ -597,8 +644,8 @@ void TW_CALL TestFlatFlat(void *)
 
 void TW_CALL TestLoops(void *)
 {
-    PTr.TestGetNodes(Internal,
-                     Internal,
+    PTr.TestGetNodes(TVInternal,
+                     TVInternal,
                      TraceLoop,
                      Emitter,Receiver,Disabled);
 }
@@ -616,7 +663,7 @@ void TW_CALL SplitSupPatches(void *)
 
     PTr.GetUnsatisfied(UnsatisfiedNodes);
 
-    PTr.GetCornersPos(PatchCornerPos);
+    PTr.GetVisualCornersPos(PatchCornerPos);
 }
 
 
@@ -629,7 +676,7 @@ void TW_CALL SaveData(void *)
 void  ProcessAllBatch()
 {
     InitStructures();
-    RecursiveProcess2<CMesh>(PTr,Drift);
+    RecursiveProcess<CMesh>(PTr,Drift,true,true,true);
     CurrPatchMode=CMPatchCol;
     PTr.BatchRemoval();
     CurrPatchMode=CMPatchCol;
@@ -665,11 +712,13 @@ void InitLoopBar(QWidget *w)
     TwType drawMode = TwDefineEnum("DrawMode", drawmodes, 4);
     TwAddVarRW(bar, "Draw Mode", drawMode, &drawmode, " keyIncr='<' keyDecr='>' help='Change draw mode.' ");
 
-    TwEnumVal patchcolmodes[5] = { {CMPatchNone, "None"}, {CMPatchCol, "Per Patch"},
-                                   {CMPatchQuality, "Quality"},{CMPatchValence, "Valence"},
-                                   {CMPatchTopo, "Topology"}};
+    TwEnumVal patchcolmodes[8] = { {CMPatchNone, "None"}, {CMPatchCol, "Per Patch"},
+                                   {CMPatchValence, "Valence"},{CMPatchTopo, "Topology"},
+                                   {CMPatchLengthDist,"Length Dist"},{CMPatchLenghtVar,"Length Var"},
+                                   {CMArapDistortion,"Arap Dist"},{CMCClarkability,"Catmull Clarkability"}
+                                 };
     // Create a type for the enum shapeEV
-    TwType patchColMode = TwDefineEnum("PatchColMode", patchcolmodes, 5);
+    TwType patchColMode = TwDefineEnum("PatchColMode", patchcolmodes, 8);
     TwAddVarRW(bar, "Patch Col Mode", patchColMode, &CurrPatchMode, " keyIncr='<' keyDecr='>' help='Change col mode.' ");
 
 
@@ -710,34 +759,40 @@ void InitLoopBar(QWidget *w)
     TwAddButton(bar,"InitGraph",InitGraph,0," label='Init Graph' ");
     TwAddButton(bar,"JoinNarrow",JoinNarrow,0," label='Trace Narrow' ");
     TwAddButton(bar,"JoinConcave",JoinConcave,0," label='Trace Concave' ");
-    TwAddButton(bar,"AddLoops",AddLoops,0," label='Add Loops' ");
+    TwAddButton(bar,"TraceLoops",AddLoops,0," label='Trace Loops' ");
     TwAddButton(bar,"TraceBorders",TraceBorder,0," label='Trace Borders' ");
     //TwAddButton(bar,"TraceChosen",TraceChosen,0," label='Trace Chosen' ");
     TwAddButton(bar,"BatchProcess",BatchProcess,0," label='Batch Process' ");
     TwAddButton(bar,"Split",SplitSupPatches,0," label='Split sub' ");
-    TwAddButton(bar,"RemovePath",RemovePath,0," label='Remove Path' ");
+    TwAddButton(bar,"BatchRemoval",BatchRemoval,0," label='Batch Removal' ");
+    //TwAddButton(bar,"RemovePath",RemovePath,0," label='Remove Path' ");
     TwAddButton(bar,"SmoothPaths",SmoothPathes,0," label='Smooth Paths' ");
 
     TwAddSeparator(bar,NULL,NULL);
 
     TwAddVarRW(bar,"Sample Ratio",TW_TYPE_DOUBLE,&PTr.sample_ratio,"label='Sample Ratio'");
 
-    TwAddButton(bar,"RecursiveProcess",RecursiveProcess,0," label='Recursive Process' ");
-    TwAddButton(bar,"IterativeBatch",IterativeBatch,0," label='Iterative Batch' ");
+     //TwAddButton(bar,"IterativeBatch",IterativeBatch,0," label='Iterative Batch' ");
 
 
 
     TwAddVarRW(bar,"SplitOnRemove",TW_TYPE_BOOLCPP,&PTr.split_on_removal,"label='Split on Remove'");
-    TwAddVarRW(bar,"AvoidIncreaseVal",TW_TYPE_BOOLCPP,&PTr.avoid_increase_valence,"label='Avoid Increase Valence'");
-    TwAddVarRW(bar,"AvoidCollapseIrr",TW_TYPE_BOOLCPP,&PTr.avoid_collapse_irregular,"label='Avoid Collapse Irregular'");
-    TwAddVarRW(bar,"MaxLDistortion",TW_TYPE_DOUBLE,&PTr.max_lenght_distortion,"label='Max Distortion Lenght'");
-    TwAddVarRW(bar,"MaxLVariance",TW_TYPE_DOUBLE,&PTr.max_lenght_variance,"label='Max Variance Lenght'");
-    TwAddVarRW(bar,"LoopBorders",TW_TYPE_BOOLCPP,&PTr.TraceLoopsBorders,"label='Trace Loop from Borders'");
+    //TwAddVarRW(bar,"AvoidIncreaseVal",TW_TYPE_BOOLCPP,&PTr.avoid_increase_valence,"label='Avoid Increase Valence'");
+    //TwAddVarRW(bar,"AvoidCollapseIrr",TW_TYPE_BOOLCPP,&PTr.avoid_collapse_irregular,"label='Avoid Collapse Irregular'");
+    //TwAddVarRW(bar,"MaxLDistortion",TW_TYPE_DOUBLE,&PTr.max_lenght_distortion,"label='Max Distortion Lenght'");
+    //TwAddVarRW(bar,"MaxLVariance",TW_TYPE_DOUBLE,&PTr.max_lenght_variance,"label='Max Variance Lenght'");
+    //TwAddVarRW(bar,"LoopBorders",TW_TYPE_BOOLCPP,&PTr.TraceLoopsBorders,"label='Trace Loop from Borders'");
     TwAddVarRW(bar,"MaxValence",TW_TYPE_INT32,&PTr.MaxVal,"label='Max Valence'");
+    TwAddVarRW(bar,"CCLarkability",TW_TYPE_DOUBLE,&PTr.CClarkability,"label='CCLarkability'");
+    TwAddVarRW(bar,"AddNeed",TW_TYPE_BOOLCPP,&add_only_needed,"label='Add Only need'");
+    TwAddVarRW(bar,"InterRem",TW_TYPE_BOOLCPP,&interleave_removal,"label='Interleave removal'");
+    TwAddVarRW(bar,"FinalRem",TW_TYPE_BOOLCPP,&final_removal,"label='Final removal'");
+    TwAddButton(bar,"RecursiveProcess",RecursiveProcess,0," label='Recursive Process' ");
+    TwAddButton(bar,"Subdivide",SubdividePatches,0," label='Subdivide Patches' ");
+    TwAddButton(bar,"ParametrizePatches",ParametrizePatches,0," label='Parametrize Patches' ");
 
   //    TwAddVarRW(bar,"testdrawReceiver",TW_TYPE_BOOLCPP,&testdrawReceiver,"label='testdrawReceiver'");
   //    TwAddVarRW(bar,"testdrawDisables",TW_TYPE_BOOLCPP,&testdrawDisables,"label='testdrawDisables'");
-    TwAddButton(bar,"BatchRemoval",BatchRemoval,0," label='Batch Removal' ");
 
     TwAddButton(bar,"SaveData",SaveData,0," label='Save Data' ");
 

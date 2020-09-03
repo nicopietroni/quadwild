@@ -168,7 +168,8 @@ public:
         return false;
     }
 
-    void UpdateFromCoordPairs(const std::vector<std::pair<CoordType,CoordType> > &SharpCoords)
+    void UpdateFromCoordPairs(const std::vector<std::pair<CoordType,CoordType> > &SharpCoords,
+                              bool check=true)
     {
         std::map<std::pair<CoordType,CoordType>,std::pair<size_t,size_t> > EdgeMap;
         for (size_t i=0;i<face.size();i++)
@@ -185,9 +186,18 @@ public:
             CoordType P0=SharpCoords[i].first;
             CoordType P1=SharpCoords[i].second;
             std::pair<CoordType,CoordType> key(std::min(P0,P1),std::max(P0,P1));
-            assert(EdgeMap.count(key)>0);
-            SharpFeatures.push_back(EdgeMap[key]);
+            if (check)
+            {
+                assert(EdgeMap.count(key)>0);
+                SharpFeatures.push_back(EdgeMap[key]);
+            }
+            else
+            {
+                if (EdgeMap.count(key)>0)
+                    SharpFeatures.push_back(EdgeMap[key]);
+            }
         }
+        std::cout<<"There are "<<SharpFeatures.size()<<" Sharp edges"<<std::endl;
     }
 
     void GetSharpCoordPairs(std::vector<std::pair<CoordType,CoordType> > &SharpCoords)
@@ -291,33 +301,33 @@ public:
         }
     }
 
-    int GenusOfSelectedFaces()
-    {
-        vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(*this);
-        std::set<std::pair<size_t,size_t> > EdgeSet;
-        size_t NumF=0;
-        size_t NumV=0;
-        size_t NumE=0;
-        for (size_t i=0;i<face.size();i++)
-        {
-            if (!face[i].IsS())continue;
-            NumF++;
-            for (size_t j=0;j<3;j++)
-            {
-               size_t IndV0=vcg::tri::Index(*this,face[i].V0(j));
-               size_t IndV1=vcg::tri::Index(*this,face[i].V1(j));
-               EdgeSet.insert(std::pair<size_t,size_t>(std::min(IndV0,IndV1),std::max(IndV0,IndV1)));
-            }
-        }
-        for (size_t i=0;i<vert.size();i++)
-        {
-             if (vert[i].IsD())continue;
-            if (vert[i].IsS())NumV++;
-        }
+//    int GenusOfSelectedFaces()
+//    {
+//        vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(*this);
+//        std::set<std::pair<size_t,size_t> > EdgeSet;
+//        size_t NumF=0;
+//        size_t NumV=0;
+//        size_t NumE=0;
+//        for (size_t i=0;i<face.size();i++)
+//        {
+//            if (!face[i].IsS())continue;
+//            NumF++;
+//            for (size_t j=0;j<3;j++)
+//            {
+//               size_t IndV0=vcg::tri::Index(*this,face[i].V0(j));
+//               size_t IndV1=vcg::tri::Index(*this,face[i].V1(j));
+//               EdgeSet.insert(std::pair<size_t,size_t>(std::min(IndV0,IndV1),std::max(IndV0,IndV1)));
+//            }
+//        }
+//        for (size_t i=0;i<vert.size();i++)
+//        {
+//             if (vert[i].IsD())continue;
+//            if (vert[i].IsS())NumV++;
+//        }
 
-        NumE=EdgeSet.size();
-        return ( NumV + NumF - NumE );
-    }
+//        NumE=EdgeSet.size();
+//        return ( NumV + NumF - NumE );
+//    }
 
     void SelectPos(const  std::vector<std::vector<vcg::face::Pos<FaceType> > > &ToSel,bool SetSel)
     {

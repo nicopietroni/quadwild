@@ -2,6 +2,7 @@
 #define GRAPH_QUERY
 
 #include "vert_field_graph.h"
+#include <vcg/complex/algorithms/voronoi_processing.h>
 
 template <class MeshType>
 class VertexFieldQuery
@@ -114,8 +115,9 @@ public:
     //return true if two traces collides
     static bool CollideTraces(const VertexFieldGraph<MeshType> &VFGraph,
                               const std::vector<size_t > &TraceN0,
+                              bool IsLoopTr0,
                               const std::vector<size_t > &TraceN1,
-                              bool IsLoopTr0,bool IsLoopTr1)
+                              bool IsLoopTr1)
     {
         //quick rejection test based on vertex indexes
         std::set<CoordType> VIndexTrace0;
@@ -158,17 +160,17 @@ public:
         std::set<size_t> PathNodes0(TraceN0.begin(),TraceN0.end());
 
         //in this case add also the opposite
-//        if (IsLoopTr0)
-//        {
-            for (size_t i=0;i<TraceN0.size();i++)
-                PathNodes0.insert(VertexFieldGraph<MeshType>::TangentNode(TraceN0[i]));
-//        }
-//        else
-//        {
-//            //otherwise not the first and the last
-//            for (size_t i=1;i<TraceN0.size()-1;i++)
-//                PathNodes0.insert(VertexFieldGraph<MeshType>::TangentNode(TraceN0[i]));
-//        }
+        //        if (IsLoopTr0)
+        //        {
+        for (size_t i=0;i<TraceN0.size();i++)
+            PathNodes0.insert(VertexFieldGraph<MeshType>::TangentNode(TraceN0[i]));
+        //        }
+        //        else
+        //        {
+        //            //otherwise not the first and the last
+        //            for (size_t i=1;i<TraceN0.size()-1;i++)
+        //                PathNodes0.insert(VertexFieldGraph<MeshType>::TangentNode(TraceN0[i]));
+        //        }
 
         for (size_t i=0;i<TraceN1.size();i++)
         {
@@ -223,6 +225,21 @@ public:
         return false;
     }
 
+    //    static bool CollideWithTracesSet(const VertexFieldGraph<MeshType> &VFGraph,
+    //                                     const std::vector<size_t > &TestPath,
+    //                                     const bool IsLoop,
+    //                                     const std::vector<std::vector<size_t > > &AllTraces,
+    //                                     const std::vector<std::vector<bool > > &AllTracesLoop)
+    //    {
+    //        assert(AllTraces.size()==AllTracesLoop.size());
+    //        for (size_t i=0;i<AllTraces.size();i++)
+    //        {
+    //            bool collide=CollideTraces(VFGraph,TestPath,IsLoop,
+    //                                       AllTraces[i],AllTracesLoop[i]);
+    //            if (collide)return true;
+    //        }
+    //        return false;
+    //    }
 
     //trace from one Index of Vertex toward a direction
     //it can be also tuned to stop when it encounter a selected vertex
@@ -293,24 +310,6 @@ public:
         }
     };
 
-    //        static void RetrievePath(VertexFieldGraph<MeshType> &VFGraph,
-    //                                 size_t IndexN,std::vector<size_t> &PathN)
-    //        {
-    //            PathN.clear();
-    //            size_t CurrN=IndexN;
-    //            //retrieve the sequence
-    //            do {
-    //                PathN.push_back(CurrN);
-    //                assert(VFGraph.IsMarked(CurrN));
-    //                CurrN=VFGraph.Father(CurrN);
-    //            }while ((CurrN!=VFGraph.Father(CurrN))||(CurrN==IndexN));
-
-    //            //in case of loops no need to add again
-    //            if (CurrN!=IndexN)
-    //                PathN.push_back(CurrN);
-
-    //            std::reverse(PathN.begin(),PathN.end());
-    //        }
 
     static void RetrievePath(VertexFieldGraph<MeshType> &VFGraph,
                              size_t IndexN,std::vector<size_t> &PathN)
@@ -331,20 +330,6 @@ public:
         std::reverse(PathN.begin(),PathN.end());
     }
 
-    //    inline ScalarType geoDistance(const ScalarType &max_angle = 45,
-    //                                  const ScalarType &drift_penalty = 2)
-    //    {
-    //        if (max_angle == ScalarType(0))
-    //            return (length*Weight);
-    //        //return length * (ScalarType(1) + drift_penalty * angle / max_angle)*Weight;
-    //        ScalarType drift=pow(angle/max_angle,2);
-    //        //ScalarType drift=angle/max_angle;
-    ////            if (Weight<1)
-    ////                std::cout<<"W "<<Weight<<std::endl;
-    ////            else
-    ////                std::cout<<"W 1"<<Weight<<std::endl;
-    //        return length * (ScalarType(1) + drift_penalty * drift)*Weight;
-    //    }
 
     static ScalarType Weight(const ScalarType Lenght,
                              const ScalarType Angle,
@@ -387,17 +372,17 @@ public:
         return Len;
     }
 
-//    static ScalarType TraceLenght(std::vector<size_t> &TraceNodes)
-//    {
-//        ScalarType Lenght=0;
-//        for (size_t i=0;i<TraceNodes.size();i++)
-//        {
-//            CoordType Dir=VertexFieldGraph::NodeDir(TraceNodes)
-//            Dist+=VFGraph.Distance(TraceNodes[i]);
-//        }
+    //    static ScalarType TraceLenght(std::vector<size_t> &TraceNodes)
+    //    {
+    //        ScalarType Lenght=0;
+    //        for (size_t i=0;i<TraceNodes.size();i++)
+    //        {
+    //            CoordType Dir=VertexFieldGraph::NodeDir(TraceNodes)
+    //            Dist+=VFGraph.Distance(TraceNodes[i]);
+    //        }
 
-//        return (Dist/TraceNodes.size());
-//    }
+    //        return (Dist/TraceNodes.size());
+    //    }
 
     //return the average distances of an trace
     static ScalarType TraceAVGDistance(const VertexFieldGraph<MeshType> &VFGraph,
@@ -439,233 +424,6 @@ public:
             AvoidBorder=false;
         }
     };
-
-    //    static bool ShortestPath(VertexFieldGraph<MeshType> &VFGraph,
-    //                             const ShortParam& SParam,
-    //                             std::vector<size_t> &PathN)
-    //    {
-    //        std::vector<HeapEntry> Heap;
-    //        VFGraph.UnMarkAll();
-    //        if (SParam.LoopMode)
-    //        {
-    //            assert(SParam.StartNode.size()==1);
-    //            assert(SParam.StartNode[0]==SParam.TargetNode);
-    //        }
-    //        size_t VisitedSource=0;
-
-    //        for (size_t i=0;i<SParam.StartNode.size();i++)
-    //        {
-    //            size_t IndexN0=SParam.StartNode[i];
-    //            assert(VFGraph.IsActive(IndexN0));
-    //            VFGraph.Mark(IndexN0);
-    //            VFGraph.Distance(IndexN0)=0;
-    //            VFGraph.Jumps(IndexN0)=0;
-    //            VFGraph.Father(IndexN0)=IndexN0;
-    //            VFGraph.TwinJumps(IndexN0)=0;
-    //            Heap.push_back(HeapEntry(IndexN0,0));
-    //        }
-
-    //        //set initial
-    //        std::make_heap(Heap.begin(),Heap.end());
-    //        do
-    //        {
-    //            pop_heap(Heap.begin(),Heap.end());
-    //            size_t CurrN=(Heap.back()).NodeI;
-    //            ScalarType CurrWeight=(Heap.back()).Weight;
-    //            Heap.pop_back();
-
-    //            if (!SParam.LoopMode)
-    //                assert(VFGraph.IsMarked(CurrN));
-    //            else
-    //            {
-    //                if (CurrN!=SParam.TargetNode)
-    //                    assert(VFGraph.IsMarked(CurrN));
-    //                else
-    //                    VisitedSource++;
-    //            }
-
-    //            //then had found the final step
-    //            bool HasTerminated=(SParam.StopAtSel)&&(VFGraph.IsSelected(CurrN));
-    //            HasTerminated|=(SParam.TargetNode==CurrN);
-
-    ////            if (SParam.LoopMode)
-    ////                HasTerminated&=(VisitedSource>1);
-
-
-    //            //check minimal number of jumps (useful for loops)
-    //            int CurrJump=VFGraph.Jumps(CurrN);
-    ////            if (SParam.MinJump>0)
-    ////                HasTerminated&=(CurrJump>=SParam.MinJump);
-
-    //            if (HasTerminated)
-    //            {
-    //                RetrievePath(VFGraph,CurrN,PathN);
-    //                return true;
-    //            }
-
-    //            size_t CurrTwin=VFGraph.TwinJumps(CurrN);
-
-    //            if ((SParam.MaxTwin>0)&&(CurrTwin>SParam.MaxTwin))continue;
-
-    //            //std::cout<<"test at "<<CurrJump<<std::endl;
-    //            if ((SParam.MaxJump>0)&&(CurrJump==SParam.MaxJump))continue;//(pow(PropagationSteps,2)+1))continue;//maximum number of jumps reached
-
-    //            if ((SParam.MaxWeight>0)&&(CurrWeight>SParam.MaxWeight))continue;
-
-    //            for (size_t i=0;i<VFGraph.NumNeigh(CurrN);i++)
-    //            {
-    //                if ((SParam.OnlyDirect) && (!VFGraph.DirectNeigh(CurrN,i)))continue;
-    //                if (!VFGraph.ActiveNeigh(CurrN,i))continue;
-
-    //                size_t NextN=VFGraph.NodeNeigh(CurrN,i);
-
-    //                bool IsTwin=VFGraph.TwinNeigh(CurrN,i);
-    //                assert(CurrN!=NextN);
-
-    //                if (!VFGraph.IsActive(NextN))continue;
-
-    //                ScalarType AngleNeigh=VFGraph.AngleNeigh(CurrN,i);
-    //                if ((SParam.MaxAngle>0)&&(AngleNeigh>SParam.MaxAngle))continue;
-
-    //                ScalarType LenNeigh=VFGraph.DistNeigh(CurrN,i);
-
-    //                ScalarType NextWeight=CurrWeight+Weight(LenNeigh,AngleNeigh,SParam.DriftPenalty,SParam.MaxAngle);
-
-    //                bool AddHeap=((!VFGraph.IsMarked(NextN))||(VFGraph.Distance(NextN)>NextWeight));
-    ////                if (!SParam.LoopMode)
-    ////                    AddHeap|=(NextN==SParam.TargetNode);
-    //                if (AddHeap)
-    //                {
-    //                    VFGraph.Mark(NextN);
-    //                    VFGraph.Distance(NextN)=NextWeight;
-    //                    VFGraph.Father(NextN)=CurrN;
-    //                    VFGraph.Jumps(NextN)=CurrJump+1;
-    //                    VFGraph.TwinJumps(NextN)=CurrTwin;
-    //                    if (IsTwin)VFGraph.TwinJumps(NextN)++;
-    //                    Heap.push_back(HeapEntry(NextN,NextWeight));
-    //                    push_heap(Heap.begin(),Heap.end());
-    //                }
-    //            }
-    //        }while (!Heap.empty());
-    //        return false;
-    //    }
-
-    //    static bool ShortestPath(VertexFieldGraph<MeshType> &VFGraph,
-    //                             const ShortParam& SParam,
-    //                             std::vector<size_t> &PathN)
-    //    {
-    //        std::vector<HeapEntry> Heap;
-    //        VFGraph.UnMarkAll();
-
-    //        if (SParam.LoopMode)
-    //        {
-    //            assert(SParam.StartNode.size()==1);
-    //            assert(SParam.StartNode[0]==SParam.TargetNode);
-    //        }
-    //        size_t VisitedSource=0;
-
-    //        for (size_t i=0;i<SParam.StartNode.size();i++)
-    //        {
-    //            size_t IndexN0=SParam.StartNode[i];
-    //            assert(VFGraph.IsActive(IndexN0));
-    //            VFGraph.Mark(IndexN0);
-    //            VFGraph.Distance(IndexN0)=0;
-    //            VFGraph.Jumps(IndexN0)=0;
-    //            VFGraph.Father(IndexN0)=IndexN0;
-    //            VFGraph.TwinJumps(IndexN0)=0;
-    //            Heap.push_back(HeapEntry(IndexN0,0));
-    //        }
-
-    //        //set initial
-    //        std::make_heap(Heap.begin(),Heap.end());
-    //        do
-    //        {
-    //            pop_heap(Heap.begin(),Heap.end());
-    //            size_t CurrN=(Heap.back()).NodeI;
-    //            ScalarType CurrWeight=(Heap.back()).Weight;
-    //            Heap.pop_back();
-
-    //            if (!SParam.LoopMode)
-    //                assert(VFGraph.IsMarked(CurrN));
-    //            else
-    //            {
-    //                if (CurrN!=SParam.TargetNode)
-    //                    assert(VFGraph.IsMarked(CurrN));
-    //                else
-    //                {
-    //                    VisitedSource++;
-    //                    std::cout<<"DE "<<VisitedSource<<std::endl;
-    //                }
-    //            }
-
-    //            //then had found the final step
-    //            bool HasTerminated=(SParam.StopAtSel)&&(VFGraph.IsSelected(CurrN));
-    //            HasTerminated|=(SParam.TargetNode==CurrN);
-
-    //            if (SParam.LoopMode)
-    //                HasTerminated&=(VisitedSource>1);
-
-
-    //            //check minimal number of jumps (useful for loops)
-    //            int CurrJump=VFGraph.Jumps(CurrN);
-    //            //            if (SParam.MinJump>0)
-    //            //                HasTerminated&=(CurrJump>=SParam.MinJump);
-
-    //            if (HasTerminated)
-    //            {
-    //                std::cout<<"Retrieving"<<std::endl;
-    //                RetrievePath(VFGraph,CurrN,PathN);
-    //                std::cout<<"Done"<<std::endl;
-    //                return true;
-    //            }
-
-    //            size_t CurrTwin=VFGraph.TwinJumps(CurrN);
-
-    //            if ((SParam.MaxTwin>0)&&(CurrTwin>SParam.MaxTwin))continue;
-
-    //            //std::cout<<"test at "<<CurrJump<<std::endl;
-    //            if ((SParam.MaxJump>0)&&(CurrJump==SParam.MaxJump))continue;//(pow(PropagationSteps,2)+1))continue;//maximum number of jumps reached
-
-    //            if ((SParam.MaxWeight>0)&&(CurrWeight>SParam.MaxWeight))continue;
-
-    //            for (size_t i=0;i<VFGraph.NumNeigh(CurrN);i++)
-    //            {
-    //                if ((SParam.OnlyDirect) && (!VFGraph.DirectNeigh(CurrN,i)))continue;
-    //                if (!VFGraph.ActiveNeigh(CurrN,i))continue;
-
-    //                size_t NextN=VFGraph.NodeNeigh(CurrN,i);
-
-    //                bool IsTwin=VFGraph.TwinNeigh(CurrN,i);
-    //                assert(CurrN!=NextN);
-
-    //                if (!VFGraph.IsActive(NextN))continue;
-
-    //                ScalarType AngleNeigh=VFGraph.AngleNeigh(CurrN,i);
-    //                if ((SParam.MaxAngle>0)&&(AngleNeigh>SParam.MaxAngle))continue;
-
-    //                ScalarType LenNeigh=VFGraph.DistNeigh(CurrN,i);
-
-    //                ScalarType NextWeight=CurrWeight+Weight(LenNeigh,AngleNeigh,SParam.DriftPenalty,SParam.MaxAngle);
-
-    //                bool AddHeap=((!VFGraph.IsMarked(NextN))||(VFGraph.Distance(NextN)>NextWeight));
-    //                if (SParam.LoopMode)
-    //                    AddHeap|=(NextN==SParam.TargetNode);
-
-    //                if (AddHeap)
-    //                {
-    //                    VFGraph.Mark(NextN);
-    //                    VFGraph.Distance(NextN)=NextWeight;
-    //                    VFGraph.Father(NextN)=CurrN;
-    //                    VFGraph.Jumps(NextN)=CurrJump+1;
-    //                    VFGraph.TwinJumps(NextN)=CurrTwin;
-    //                    if (IsTwin)VFGraph.TwinJumps(NextN)++;
-    //                    Heap.push_back(HeapEntry(NextN,NextWeight));
-    //                    push_heap(Heap.begin(),Heap.end());
-    //                }
-    //            }
-    //        }while (!Heap.empty());
-    //        return false;
-    //    }
 
     static bool ShortestPath(VertexFieldGraph<MeshType> &VFGraph,
                              const ShortParam& SParam,
@@ -813,7 +571,8 @@ public:
 
     static bool FindLoop(VertexFieldGraph<MeshType> &VFGraph,
                          //ScalarType MaxAngle,ScalarType DriftPenalty,
-                         size_t &StartN,std::vector<size_t> &Loop,
+                         const size_t &StartN,
+                         std::vector<size_t> &Loop,
                          ScalarType Drift)
     {
         ShortParam SParam;
@@ -902,6 +661,43 @@ public:
 
         Path=SwapTraceNode;
         return true;
+    }
+
+    static void GetEdgeDir(const VertexFieldGraph<MeshType> &VFGraph,
+                           const size_t &IndexV0,
+                           const size_t &IndexV1,
+                           size_t &DirN0,
+                           size_t &DirN1)
+    {
+        CoordType Dir=VFGraph.Mesh().vert[IndexV1].P()-
+                VFGraph.Mesh().vert[IndexV0].P();
+        Dir.Normalize();
+        DirN0=VFGraph.GetClosestDirTo(IndexV0,Dir);
+        DirN1=VFGraph.GetClosestDirTo(IndexV1,-Dir);
+    }
+
+    static void SamplePoissonNodes(VertexFieldGraph<MeshType> &VFGraph,
+                                   size_t sampleNum,
+                                   std::vector<size_t> &PoissonNodes)
+    {
+        PoissonNodes.clear();
+        std::vector<CoordType> pointVec;
+        ScalarType radius=0;
+        std::cout<<"Poisson Sampling "<<sampleNum<<" Target samples"<<std::endl;
+        vcg::tri::PoissonSampling<MeshType>(VFGraph.Mesh(),pointVec,sampleNum,radius,1,0.04f,276519752);
+        std::vector<VertexType*> seedVec;
+        vcg::tri::VoronoiProcessing<MeshType>::SeedToVertexConversion(VFGraph.Mesh(),pointVec,seedVec);
+        for (size_t i=0;i<seedVec.size();i++)
+        {
+            size_t IndexV=vcg::tri::Index(VFGraph.Mesh(),seedVec[i]);
+            std::vector<size_t> IndexN;
+            VertexFieldGraph<MeshType>::IndexNodes(IndexV,IndexN);
+            if(VFGraph.IsActive(IndexN[0]))
+                PoissonNodes.push_back(IndexN[0]);
+            if(VFGraph.IsActive(IndexN[1]))
+                PoissonNodes.push_back(IndexN[1]);
+        }
+        std::cout<<"Sampled "<<PoissonNodes.size()<<" samples"<<std::endl;
     }
 };
 

@@ -178,7 +178,7 @@ public:
     //return the direction for a vertex that is closest to an
     //input direction expressed as a CoordType
     size_t GetClosestDirTo(const size_t IndexV0,
-                           const CoordType Dir)
+                           const CoordType Dir)const
     {
         ScalarType Norm=-1;
         size_t BestD=4;
@@ -788,14 +788,14 @@ public:
     }
 
     bool TwinNeigh(const size_t &IndexN,
-                   const size_t &IndexNeigh)
+                   const size_t &IndexNeigh)const
     {
         assert(IndexNeigh<Nodes[IndexN].Neigh.size());
         return (Nodes[IndexN].Neigh[IndexNeigh].twin);
     }
 
     bool AreTwin(const size_t &IndexN0,
-                const size_t &IndexN1)
+                const size_t &IndexN1)const
     {
        if (NodePos(IndexN0)!=NodePos(IndexN1))
            return false;
@@ -896,6 +896,21 @@ public:
         return (NodeJumps[IndexNode]);
     }
 
+    ScalarType FieldL(const size_t &IndexNode0,
+                       const size_t &IndexNode1)
+    {
+        CoordType Dir0=NodeDir(IndexNode0);
+        CoordType Dir1=NodeDir(IndexNode1);
+        CoordType AvgDir=(Dir0+Dir1);
+        AvgDir.Normalize();
+        CoordType Pos0=NodePos(IndexNode0);
+        CoordType Pos1=NodePos(IndexNode1);
+        ScalarType L=(Pos1-Pos0)*AvgDir;
+        return L;
+//        assert(IndexNode<NodeJumps.size());
+//        return (NodeJumps[IndexNode]);
+    }
+
     size_t &TwinJumps(const size_t &IndexNode)
     {
         assert(IndexNode<NodeTwinJumps.size());
@@ -946,6 +961,14 @@ public:
         //assert(Nodes[IndexNode].Active);
         Nodes[IndexNode].Selected=true;
     }
+
+    void Select(const std::vector<bool> &ToSelect)
+    {
+       assert(ToSelect.size()==Nodes.size());
+       for (size_t i=0;i<ToSelect.size();i++)
+           Nodes[i].Selected=ToSelect[i];
+    }
+
 
     void DeSelect(const size_t &IndexNode)
     {
@@ -1072,14 +1095,15 @@ public:
             Nodes[i].Active=true;
     }
 
-    vcg::face::Pos<FaceType> GetNodesPos(const size_t &IndexN0,const size_t &IndexN1)
+    vcg::face::Pos<FaceType> GetNodesPos(const size_t &IndexN0,const size_t &IndexN1)const
     {
         size_t IndexV0=NodeVertI(IndexN0);
         size_t IndexV1=NodeVertI(IndexN1);
         std::pair<size_t,size_t> key(std::min(IndexV0,IndexV1),
                                      std::max(IndexV0,IndexV1));
         assert(VertPos.count(key)>0);
-        return(VertPos[key]);
+        return (VertPos.at(key));
+        //return(VertPos[key]);
     }
 
     void GetNodesPos(const std::vector<size_t> &PathNodes,bool IsLoop,
