@@ -1,10 +1,10 @@
 ############################ CONFIGURATION ############################
 
-EIGENPATH = /usr/include/eigen3
+LIBIGLPATH = /Users/nicopietroni/Desktop/sandbox/pietroni/lib/libigl
+EIGENPATH = $$LIBIGLPATH/external/nanogui/ext/eigen
 BOOSTPATH = /usr/include/boost
-GUROBIPATH = /usr/include/gurobi900/linux64
-LIBIGLPATH = /usr/include/libigl
-VCGLIBPATH = /usr/include/vcglib
+GUROBIPATH = /Library/gurobi900/mac64/
+VCGLIBPATH = /Users/nicopietroni/Desktop/vcglib
 
 PATTERNSPATH = $$PWD/libs/patterns
 LPSOLVEPATH = $$PATTERNSPATH/patterns/ktmethod/lp_solve

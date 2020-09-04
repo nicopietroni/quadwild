@@ -5133,17 +5133,19 @@ public:
 
     void SubdivideIrrPatches()
     {
-        std::vector<bool> MustSplit(Partitions.size(),true);
+        std::vector<bool> MustSplit(Partitions.size(),false);
+        for (size_t i=0;i<PartitionCorners.size();i++)
+            if (PartitionCorners[i].size()!=4)
+                MustSplit[i]=true;
+
         std::vector<std::vector<ScalarType> > SplitSide(PartitionCorners.size());
         for (size_t i=0;i<SplitSide.size();i++)
             SplitSide[i].resize(PartitionCorners[i].size(),0.5);
 
-        std::vector<vcg::Point2<ScalarType> > CenterSplit;
-        CenterSplit.resize(Partitions.size(),vcg::Point2<ScalarType>(0,0));
 
         PatchSplitter<MeshType> PSplit(Mesh());
         std::vector<std::vector<size_t> > NewFacePaches,NewCorners;
-        PSplit.Subdivide(Partitions,PartitionCorners,MustSplit,SplitSide,CenterSplit,NewFacePaches,NewCorners);
+        PSplit.Subdivide(Partitions,PartitionCorners,MustSplit,SplitSide,NewFacePaches,NewCorners);
 
         Partitions=NewFacePaches;
         PartitionCorners=NewCorners;

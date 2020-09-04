@@ -375,7 +375,7 @@ class PatchSplitter
                 //assert(NewIndex[i].size()==1);
                 //size_t IndexP=NewIndex[i][0];
                 CornerPos.resize(CornerPos.size()+1);
-                assert(PartitionExtremes[i].size()==0);
+                //assert(PartitionExtremes[i].size()==0);
                 for (size_t j=0;j<CornersIDX[i].size();j++)
                 {
                     CoordType Pos=(*currM).vert[CornersIDX[i][j]].cP();
@@ -608,7 +608,6 @@ public:
                    const std::vector<std::vector<size_t> > &CornersIDX,
                    const std::vector<bool> &MustSplit,
                    const std::vector<std::vector<ScalarType> > & SideSplit,
-                   const std::vector<Point2x > &CenterUV0,
                    std::vector<std::vector<size_t> > &NewFacePaches,
                    std::vector<std::vector<size_t> > &NewCorners)
     {
@@ -618,7 +617,6 @@ public:
         //assert(MustSplit.size()==CenterUV.size());
 
         std::vector<MeshType*> ParamPatches;
-
 
         //parametrize
         std::vector<std::vector<size_t> > PatchCorners;
@@ -647,8 +645,11 @@ public:
         //split centers
         for (size_t i=0;i<ParamPatches.size();i++)
         {
-            SplitCenter(*ParamPatches[i],CenterUV[i]);
-            ParamPatches[i]->UpdateAttributes();
+            if (MustSplit[i])
+            {
+                SplitCenter(*ParamPatches[i],CenterUV[i]);
+                ParamPatches[i]->UpdateAttributes();
+            }
         }
         //then collect the split map
         bool refined=false;
@@ -663,12 +664,13 @@ public:
             SplitMap.clear();
 
             for (size_t i=0;i<SplitSegs.size();i++)
-                for (size_t j=0;j<SplitSegs[i].size();j++)
-                    UpdateSplitMap(*ParamPatches[i],SplitSegs[i][j],SharpSet);
-
+                if (MustSplit[i]){
+                    for (size_t j=0;j<SplitSegs[i].size();j++)
+                        UpdateSplitMap(*ParamPatches[i],SplitSegs[i][j],SharpSet);
+                }
 
             for (size_t i=0;i<ParamPatches.size();i++)
-                refined|=SubdivideParametrizedSubMesh(*ParamPatches[i]);
+                    refined|=SubdivideParametrizedSubMesh(*ParamPatches[i]);
         }while (refined);
 
         std::vector<std::vector<size_t> > NewIndex;
