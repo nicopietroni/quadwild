@@ -9,7 +9,7 @@
 #define DEFAULTISOMETRY true
 #define DEFAULTREGULARITYFORQUADRILATERAL true
 #define DEFAULTREGULARITYFORNONQUADRILATERAL true
-#define DEFAULTNONQUADRILATERALSIMILARITYFACTOR 1.2
+#define DEFAULTregularityNonQuadrilateralWeight 0.9
 #define DEFAULTHARDPARITYCONSTRAINT false
 
 #define DEFAULTTIMELIMIT 60 //1 minute
@@ -30,7 +30,7 @@ struct Parameters {
     bool isometry;
     bool regularityForQuadrilaterals;
     bool regularityForNonQuadrilaterals;
-    double nonQuadrilateralSimilarityFactor;
+    double regularityNonQuadrilateralWeight;
     bool hardParityConstraint;
 
     double timeLimit;
@@ -47,7 +47,7 @@ struct Parameters {
         isometry = DEFAULTISOMETRY;
         regularityForQuadrilaterals = DEFAULTREGULARITYFORQUADRILATERAL;
         regularityForNonQuadrilaterals = DEFAULTREGULARITYFORNONQUADRILATERAL;
-        nonQuadrilateralSimilarityFactor = DEFAULTNONQUADRILATERALSIMILARITYFACTOR;
+        regularityNonQuadrilateralWeight = DEFAULTregularityNonQuadrilateralWeight;
         hardParityConstraint = DEFAULTHARDPARITYCONSTRAINT;
 
         timeLimit = DEFAULTTIMELIMIT;

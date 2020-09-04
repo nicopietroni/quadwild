@@ -5,7 +5,7 @@ gapLimit 0.4
 minimumGap 0.6
 isometry 1
 regularityForQuadrilaterals 1
-regularityForNonQuadrilaterals 0
-nonQuadrilateralSimilarityFactor 1.2
-hardParityConstraint 0
-scaleFact 4
+regularityForNonQuadrilaterals 1
+regularityNonQuadrilateralWeight 0.9
+hardParityConstraint 1
+scaleFact 2
