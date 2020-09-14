@@ -38,3 +38,21 @@ HEADERS += \
     $$PWD/patterns/ktmethod/patchgen/generate_subtopology.h \
     $$PWD/patterns/ktmethod/patchgen/decl.h \
     $$PWD/patterns/ktmethod/patchgen/edgeloop.h
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/patterns/ktmethod/lp_solve/release/ -llpsolve55
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/patterns/ktmethod/lp_solve/debug/ -llpsolve55
+else:unix: LIBS += -L$$PWD/patterns/ktmethod/lp_solve/ -llpsolve55
+
+DEPENDPATH += $$PWD/patterns/ktmethod/lp_solve
+
+win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/patterns/ktmethod/lp_solve/release/liblpsolve55.a
+else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/patterns/ktmethod/lp_solve/debug/liblpsolve55.a
+else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/patterns/ktmethod/lp_solve/release/lpsolve55.lib
+else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/patterns/ktmethod/lp_solve/debug/lpsolve55.lib
+else:unix: PRE_TARGETDEPS += $$PWD/patterns/ktmethod/lp_solve/liblpsolve55.a
+
+LIBS += -ldl -lm -llpsolve55
+INCLUDEPATH += $$PWD/patterns/ktmethod/lp_solve
+
+HEADERS += \
+    $$PWD/patterns/ktmethod/lp_solve/lp_lib.h

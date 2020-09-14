@@ -2,10 +2,9 @@
 
 EIGENPATH = /usr/include/eigen3
 BOOSTPATH = /usr/include/boost
-GUROBIPATH = /usr/include/gurobi900/linux64
-LIBIGLPATH = /usr/include/libigl
-VCGLIBPATH = /usr/include/vcglib
+GUROBIPATH = /opt/gurobi903/linux64
+LIBIGLPATH = /opt/libigl
+VCGLIBPATH = /opt/vcglib
 
 PATTERNSPATH = $$PWD/libs/patterns
 LIBIGLFIELDS = $$PWD/libs/libiglfields
-LPSOLVEPATH = $$PATTERNSPATH/patterns/ktmethod/lp_solve

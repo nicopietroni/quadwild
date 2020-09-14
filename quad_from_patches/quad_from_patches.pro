@@ -25,9 +25,10 @@ HEADERS += \
     load_save.h \
     mesh_types.h \
     quad_from_patches.h \
-    smooth_mesh.h
+    smooth_mesh.h \
+    field_smoother.h
 
-#DEFINES += SAVEMESHESFORDEBUG
+DEFINES += SAVEMESHESFORDEBUG
 
 
 ############################ TARGET ############################
@@ -92,9 +93,13 @@ INCLUDEPATH += $$GUROBIPATH/include
 LIBS += -L$$GUROBIPATH/lib -lgurobi_g++5.2 -lgurobi90
 DEFINES += GUROBI_DEFINED
 
-#lpsolve
-LIBS += -llpsolve55
-LIBS += -lm -ldl
-INCLUDEPATH += $$LPSOLVEPATH
-HEADERS += \
-    $$LPSOLVEPATH/lp_lib.h \
+#Parallel computation
+unix:!mac {
+    QMAKE_CXXFLAGS += -fopenmp
+    LIBS += -fopenmp
+}
+macx{
+    QMAKE_CXXFLAGS += -Xpreprocessor -fopenmp -lomp -I/usr/local/include
+    QMAKE_LFLAGS += -lomp
+    LIBS += -L /usr/local/lib /usr/local/lib/libomp.dylib
+}
