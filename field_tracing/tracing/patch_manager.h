@@ -12,7 +12,6 @@
 template <class MeshType>
 typename MeshType::ScalarType MeshArea(MeshType &mesh)
 {
-    typedef typename MeshType::CoordType CoordType;
     typedef typename MeshType::ScalarType ScalarType;
 
     ScalarType currA=0;
@@ -30,6 +29,7 @@ struct PatchInfo
     std::vector<ScalarType> CornerL;
     std::vector<ScalarType> CurvedL;
     ScalarType CClarkability;
+    int PossibleSing;
     std::vector<ScalarType> Q;
 
     PatchInfo()
@@ -38,6 +38,7 @@ struct PatchInfo
         NumCorners=0;
         Genus=0;
         CClarkability=std::numeric_limits<ScalarType>::max();
+        //PossibleSing=-1;
     }
 };
 
@@ -166,7 +167,6 @@ void ParametrizeCorners(MeshType &mesh,bool scaleEdges,
 template <class MeshType>
 void SelectCorners(MeshType &mesh,const std::vector<size_t> &CornersIDX)
 {
-    typedef typename MeshType::ScalarType ScalarType;
     vcg::tri::UpdateSelection<MeshType>::VertexClear(mesh);
     for (size_t i=0;i<CornersIDX.size();i++)
     {
@@ -278,7 +278,6 @@ typename MeshType::ScalarType FieldLenght(const MeshType &mesh,
                                           std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
     typedef typename MeshType::ScalarType ScalarType;
-    typedef typename MeshType::CoordType CoordType;
     ScalarType currL=0;
     for (size_t i=0;i<BorderSeq.size()-1;i++)
     {
@@ -313,8 +312,6 @@ void GetLenghts(const MeshType &mesh,
                 const std::vector<std::vector<size_t> > &BorderSeq,
                 std::vector<typename MeshType::ScalarType> &BorderLen)
 {
-    typedef typename MeshType::ScalarType ScalarType;
-    typedef typename MeshType::CoordType CoordType;
     for (size_t i=0;i<BorderSeq.size();i++)
         BorderLen.push_back(Lenght(mesh,BorderSeq[i]));
 }
@@ -698,7 +695,6 @@ void PatchesSideLenght(MeshType &mesh,
                        std::vector<std::vector<typename MeshType::ScalarType> > &EuclL,
                        std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
-    typedef typename MeshType::ScalarType ScalarType;
     typedef typename MeshType::CoordType CoordType;
 
 
@@ -803,6 +799,7 @@ void ColorByCatmullClarkability(MeshType &mesh,
     for (size_t i=0;i<SideL.size();i++)
     {
         ScalarType CC=CatmullClarkability(SideL[i]);
+
         for (size_t j=0;j<PatchFaces[i].size();j++)
         {
             size_t IndexF=PatchFaces[i][j];
@@ -812,9 +809,27 @@ void ColorByCatmullClarkability(MeshType &mesh,
     //    std::pair<ScalarType, ScalarType> minmax = Stat<MeshType>::ComputePerFaceQualityMinMax(mesh);
     //    std::cout<<"Min CC: "<<minmax.first<<std::endl;
     //    std::cout<<"Max CC: "<<minmax.second<<std::endl;
+
+    std::cout<<"TEST CC"<<std::endl;
+    ScalarType CC=CatmullClarkability(SideL[11]);
+    for (size_t i=0;i<SideL[11].size();i++)
+        std::cout<<"Value L: "<<SideL[11][i]<<std::endl;
+
+    std::cout<<"Value CC: "<<CC<<std::endl;
+
     std::pair<ScalarType, ScalarType> minmax(0,ScaleVal);
     if (ScaleVal<0)ScaleVal=3;
     vcg::tri::UpdateColor<MeshType>::PerFaceQualityRamp(mesh,minmax.second,minmax.first);
+
+//    for (size_t i=11;i<12;i++)
+//    {
+//    size_t i=11;
+//    for (size_t j=0;j<PatchFaces[i].size();j++)
+//    {
+//        size_t IndexF=PatchFaces[i][j];
+//        mesh.face[IndexF].C()=vcg::Color4b::Gray;
+//    }
+ //   }
 }
 
 template <class MeshType>
@@ -825,7 +840,8 @@ void ParametrizePatches(MeshType &mesh,
                         ParamType PType,
                         bool FixBorders,
                         bool ScaleEdges,
-                        bool Arrange=true)
+                        bool Arrange=true,
+                        bool Save=false)
 {
     std::vector<MeshType*> ParamPatches;
     for (size_t i=0;i<PatchFaces.size();i++)
@@ -846,8 +862,11 @@ void ParametrizePatches(MeshType &mesh,
         vcg::tri::Append<MeshType,MeshType>::Mesh(splittedUV,*ParamPatches[i]);
         delete(ParamPatches[i]);
     }
+    if (Save)
+    {
         SetUVtoPos(splittedUV);
         vcg::tri::io::ExporterPLY<MeshType>::Save(splittedUV,"parametrize.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+    }
 }
 
 
@@ -921,9 +940,14 @@ void GetPatchInfo(MeshType &mesh,
         PInfo[i].CornerL=EuclL[i];
 
         if ((PInfo[i].NumCorners<3)||(PInfo[i].NumCorners>6))
+        {
             PInfo[i].CClarkability=std::numeric_limits<ScalarType>::max();
+
+        }
         else
+        {
             PInfo[i].CClarkability=CatmullClarkability(CurvedL[i]);
+        }
     }
 }
 
@@ -1004,30 +1028,36 @@ bool BetterConfiguaration(MeshType &mesh,
     size_t NonOKEmitters1=0;
     size_t NonOKSize0=0;
     size_t NonOKSize1=0;
-    size_t NonOKCC0=0;
-    size_t NonOKCC1=0;
-
+//    size_t NonOKCC0=0;
+//    size_t NonOKCC1=0;
+    size_t Sing0=0;
+    size_t Sing1=0;
     for (size_t i=0;i<PInf0.size();i++)
     {
         if (PInf0[i].Genus!=1)NonOKGenus0++;
         if (PInf0[i].NumEmitters>0)NonOKEmitters0++;
-        if (PInf0[i].NumCorners<MinSides)NonOKSize0++;
-        if (PInf0[i].NumCorners>MaxSides)NonOKSize0++;
-        if ((CClarkability>0)&&(PInf0[i].CClarkability>CClarkability))NonOKCC0++;
+        if (PInf0[i].NumCorners<(int)MinSides)NonOKSize0++;
+        if (PInf0[i].NumCorners>(int)MaxSides)NonOKSize0++;
+        if (CClarkability>1)
+            Sing0=AddedSingularities(PInf0[i].CurvedL,CClarkability);
+        //if ((CClarkability>0)&&(PInf0[i].CClarkability>CClarkability))NonOKCC0++;
     }
 
     for (size_t i=0;i<PInf1.size();i++)
     {
         if (PInf1[i].Genus!=1)NonOKGenus1++;
         if (PInf1[i].NumEmitters>0)NonOKEmitters1++;
-        if (PInf1[i].NumCorners<MinSides)NonOKSize1++;
-        if (PInf1[i].NumCorners>MaxSides)NonOKSize1++;
-        if ((CClarkability>0)&&(PInf1[i].CClarkability>CClarkability))NonOKCC1++;
+        if (PInf1[i].NumCorners<(int)MinSides)NonOKSize1++;
+        if (PInf1[i].NumCorners>(int)MaxSides)NonOKSize1++;
+        if (CClarkability>1)
+            Sing1=AddedSingularities(PInf1[i].CurvedL,CClarkability);
+        //if ((CClarkability>0)&&(PInf1[i].CClarkability>CClarkability))NonOKCC1++;
     }
     if (NonOKGenus1!=NonOKGenus0)return (NonOKGenus1<NonOKGenus0);
     if (NonOKEmitters1!=NonOKEmitters0)return (NonOKEmitters1<NonOKEmitters0);
     if (NonOKSize1!=NonOKSize0)return (NonOKSize1<NonOKSize0);
-    if (NonOKCC1!=NonOKCC0)return (NonOKCC1<NonOKCC0);
+    //if (NonOKCC1!=NonOKCC0)return (NonOKCC1<NonOKCC0);
+    if (Sing0!=Sing1)return (Sing1<Sing0);
     return true;
     //    size_t Num0=NonOkPartitions(mesh,PInf0,MinSides,MaxSides,CatmullClarkability,QThresold);
     //    size_t Num1=NonOkPartitions(mesh,PInf1,MinSides,MaxSides,CatmullClarkability,QThresold);

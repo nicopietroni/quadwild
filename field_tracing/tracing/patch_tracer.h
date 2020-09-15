@@ -738,7 +738,6 @@ bool SplitSomeNonOKPartition(const VertexFieldGraph<MeshType> &VFGraph,
                              const std::vector<PatchType> &PartitionType)
 {
     typedef typename MeshType::FaceType FaceType;
-    typedef typename MeshType::VertexType VertexType;
 
     bool IsCurrLoop=TestTrace.IsLoop;
     size_t TestL=TestTrace.PathNodes.size()-1;
@@ -1138,7 +1137,7 @@ private:
         std::vector<size_t> ConvexV,ConcaveV,FlatV,NarrowV;
         VertexClassifier<MeshType>::FindConvexV(VFGraph,ConvexV);
         VertexClassifier<MeshType>::FindConcaveV(VFGraph,ConcaveV);
-        //VertexClassifier<MeshType>::FindNarrowV(VFGraph,NarrowV);
+        VertexClassifier<MeshType>::FindNarrowV(VFGraph,NarrowV);
         VertexClassifier<MeshType>::FindFlatV(VFGraph,ConvexV,ConcaveV,NarrowV,FlatV);
         InitVertType(ConvexV,ConcaveV,NarrowV,FlatV);
     }
@@ -3037,13 +3036,13 @@ private:
             return;
         }
 
-        if (PatchInfos[Index].NumCorners<MinVal)
+        if (PatchInfos[Index].NumCorners<(int)MinVal)
         {
             PartitionType[Index]=LowCorners;
             return;
         }
 
-        if (PatchInfos[Index].NumCorners>MaxVal)
+        if (PatchInfos[Index].NumCorners>(int)MaxVal)
         {
             PartitionType[Index]=HighCorners;
             return;
@@ -3055,7 +3054,7 @@ private:
             return;
         }
 
-        if ((CClarkability>0)&&(PatchInfos[Index].CClarkability>CClarkability))
+        if ((CClarkability>1)&&(PatchInfos[Index].CClarkability>CClarkability))
         {
             PartitionType[Index]=MaxCClarkability;
             return;
@@ -3793,6 +3792,8 @@ public:
             case HasEmitter  :
                 PInfo.HasEmit++;
                 break;
+            default:
+                break;
                 //            case MoreSing  :
                 //                HasMoreSing++;
                 //                break;
@@ -4401,6 +4402,7 @@ public:
 
     void ColorByCClarkability()
     {
+        //InitEdgeL();
         ColorByCatmullClarkability(Mesh(),Partitions,PartitionCorners,EdgeL,CClarkability);
     }
 
@@ -5128,7 +5130,7 @@ public:
     void ComputePatchesUV()
     {
         MeshType splittedUV;
-        ParametrizePatches(Mesh(),splittedUV,Partitions,PartitionCorners,Arap,true,true);
+        ParametrizePatches(Mesh(),splittedUV,Partitions,PartitionCorners,Arap,false,true,true,true);
     }
 
     void SubdivideIrrPatches()
@@ -5177,7 +5179,7 @@ public:
         away_from_singular=true;
         //        max_lenght_distortion=-1;//1.2;
         //        max_lenght_variance=-1;//2;
-        CClarkability=-1;
+        CClarkability=1;
         sample_ratio=0.1;
         MinVal=3;
         MaxVal=5;

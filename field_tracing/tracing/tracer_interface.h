@@ -81,10 +81,7 @@ public:
 template <class MeshType>
 void SplitAlongShap(MeshType &mesh)
 {
-    typedef typename MeshType::VertexType VertexType;
-    typedef typename MeshType::FaceType FaceType;
     typedef typename MeshType::CoordType CoordType;
-    typedef typename MeshType::ScalarType ScalarType;
     typedef std::pair<CoordType,CoordType> EdgeCoordKey;
 
     //first mark the ones that must be splitted

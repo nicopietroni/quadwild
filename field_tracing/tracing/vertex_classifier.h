@@ -55,48 +55,48 @@ public:
     static void FindNarrowV(VertexFieldGraph<MeshType> &VFGraph,
                             std::vector<size_t> &NarrowV)
     {
-        //first cumulate the angle for each vertex
-        std::map<CoordType,ScalarType> VertAngle;
-        std::vector<ScalarType > angle(VFGraph.Mesh().vert.size(),0);
+//        //first cumulate the angle for each vertex
+//        std::map<CoordType,ScalarType> VertAngle;
+//        std::vector<ScalarType > angle(VFGraph.Mesh().vert.size(),0);
 
-        for(size_t i=0;i<VFGraph.Mesh().face.size();i++)
-        {
-            for(size_t j=0;j<VFGraph.Mesh().face[i].VN();++j)
-            {
-                size_t IndexV=vcg::tri::Index(VFGraph.Mesh(),VFGraph.Mesh().face[i].V(j));
-                angle[IndexV] += vcg::face::WedgeAngleRad(VFGraph.Mesh().face[i],j);
-            }
-        }
+//        for(size_t i=0;i<VFGraph.Mesh().face.size();i++)
+//        {
+//            for(size_t j=0;j<VFGraph.Mesh().face[i].VN();++j)
+//            {
+//                size_t IndexV=vcg::tri::Index(VFGraph.Mesh(),VFGraph.Mesh().face[i].V(j));
+//                angle[IndexV] += vcg::face::WedgeAngleRad(VFGraph.Mesh().face[i],j);
+//            }
+//        }
 
-        //then cumulate across shared borders (considering that they have been splitted)
-        for(size_t i=0;i<VFGraph.Mesh().vert.size();i++)
-        {
-            CoordType testP=VFGraph.Mesh().vert[i].P();
-            if (VertAngle.count(testP)==0)
-                VertAngle[testP]=angle[i];
-            else
-                VertAngle[testP]+=angle[i];
-        }
+//        //then cumulate across shared borders (considering that they have been splitted)
+//        for(size_t i=0;i<VFGraph.Mesh().vert.size();i++)
+//        {
+//            CoordType testP=VFGraph.Mesh().vert[i].P();
+//            if (VertAngle.count(testP)==0)
+//                VertAngle[testP]=angle[i];
+//            else
+//                VertAngle[testP]+=angle[i];
+//        }
 
-        //then check the borders ont
-        for(size_t i=0;i<VFGraph.Mesh().vert.size();i++)
-        {
-            if (!VFGraph.Mesh().vert[i].IsB())continue;
-            ScalarType sideAngle=angle[i];
-            if (VFGraph.IsRealBorderVert(i))
-            {
-                if(sideAngle>(2*M_PI-M_PI/NARROW_THR))
-                    NarrowV.push_back(i);
-            }
-            else
-            {
-                CoordType testP=VFGraph.Mesh().vert[i].P();
-                assert(VertAngle.count(testP)>0);
-                ScalarType currAngle=VertAngle[testP];
-                if (sideAngle>(currAngle-M_PI/NARROW_THR))
-                    NarrowV.push_back(i);
-            }
-        }
+//        //then check the borders ont
+//        for(size_t i=0;i<VFGraph.Mesh().vert.size();i++)
+//        {
+//            if (!VFGraph.Mesh().vert[i].IsB())continue;
+//            ScalarType sideAngle=angle[i];
+//            if (VFGraph.IsRealBorderVert(i))
+//            {
+//                if(sideAngle>(2*M_PI-M_PI/NARROW_THR))
+//                    NarrowV.push_back(i);
+//            }
+//            else
+//            {
+//                CoordType testP=VFGraph.Mesh().vert[i].P();
+//                assert(VertAngle.count(testP)>0);
+//                ScalarType currAngle=VertAngle[testP];
+//                if (sideAngle>(currAngle-M_PI/NARROW_THR))
+//                    NarrowV.push_back(i);
+//            }
+//        }
 
         //finally add the one that are on a single border
         std::map<CoordType,size_t> BorderCount;
@@ -108,6 +108,7 @@ public:
         for(size_t i=0;i<VFGraph.Mesh().vert.size();i++)
         {
             if (!VFGraph.Mesh().vert[i].IsB())continue;
+            if (VFGraph.IsRealBorderVert(i))continue;
             if (BorderCount[VFGraph.Mesh().vert[i].P()]==1)NarrowV.push_back(i);
         }
         std::sort(NarrowV.begin(),NarrowV.end());
