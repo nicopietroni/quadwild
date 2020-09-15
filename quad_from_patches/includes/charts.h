@@ -12,7 +12,7 @@ namespace qfp {
 
 struct ChartSubSide {
     std::array<int, 2> incidentCharts;
-    std::array<int, 2> incidentChartSideId;
+    std::array<int, 2> incidentChartSubSideId;
     std::vector<size_t> vertices;
 
     double length;

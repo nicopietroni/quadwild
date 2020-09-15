@@ -27,8 +27,9 @@ void computeQuadrangulation(
         const Eigen::MatrixXi& chartF,
         const Eigen::MatrixXd& patchV,
         const Eigen::MatrixXi& patchF,
-        const std::vector<std::vector<size_t>>& chartSides,
-        const std::vector<double>& chartSideLength,
+        const std::vector<std::vector<std::vector<size_t>>>& chartSideVertices,
+        const std::vector<std::vector<double>>& chartSideLength,
+        const std::vector<std::vector<size_t>>& chartSideSubdivision,
         const std::vector<std::vector<size_t>>& patchSides,
         Eigen::MatrixXd& uvMapV,
         Eigen::MatrixXi& uvMapF,
@@ -39,45 +40,54 @@ void computeQuadrangulation(
     Eigen::MatrixXd bc;
 
     int chartBorderSize = 0;
-    for (const std::vector<size_t>& side : chartSides)
-        chartBorderSize += side.size()-1;
+    for (const std::vector<std::vector<size_t>>& side : chartSideVertices) {
+        for (const std::vector<size_t>& subside : side) {
+            chartBorderSize += subside.size()-1;
+        }
+    }
 
     b.resize(chartBorderSize);
     bc.resize(chartBorderSize, 2);
 
     int fixedId = 0;
-    for (size_t sId = 0; sId < chartSides.size(); sId++) {
-        //Get first and last corner of the side
-        const size_t& firstPatchSideCornerId = patchSides[sId][0];
-        const size_t& lastPatchSideCornerId = patchSides[sId][patchSides[sId].size() - 1];
+    for (size_t i = 0; i < chartSideVertices.size(); i++) {
+        size_t patchStart = 0;
 
-        //Coordinate of the current corner
-        const Eigen::VectorXd& cornerCoord = patchV.row(firstPatchSideCornerId);
+        for (size_t j = 0; j < chartSideVertices[i].size(); j++) {
+            size_t patchEnd = patchStart + chartSideSubdivision[i][j];
 
-        //Get vector of the side
-        const Eigen::VectorXd vector = patchV.row(lastPatchSideCornerId) - patchV.row(firstPatchSideCornerId);
-        double currentLength = 0;
-        for (size_t i = 0; i < chartSides[sId].size() - 1; i++) {
-            const std::vector<size_t>& chartSide = chartSides[sId];
+            //Get first and last corner of the side
+            const size_t& firstPatchSideCornerId = patchSides[i][patchStart];
+            const size_t& lastPatchSideCornerId = patchSides[i][patchEnd];
 
-            if (i > 0) {
-                currentLength += (chartV.row(chartSide[i]) - chartV.row(chartSide[i-1])).norm();
+            //Coordinate of the current corner
+            const Eigen::VectorXd& cornerCoord = patchV.row(firstPatchSideCornerId);
+
+            //Get vector of the side
+            const Eigen::VectorXd vector = patchV.row(lastPatchSideCornerId) - patchV.row(firstPatchSideCornerId);
+            double currentLength = 0;
+            for (size_t k = 0; k < chartSideVertices[i][j].size() - 1; k++) {
+                if (k > 0) {
+                    currentLength += (chartV.row(chartSideVertices[i][j][k]) - chartV.row(chartSideVertices[i][j][k-1])).norm();
+                }
+
+                size_t vId = chartSideVertices[i][j][k];
+
+                double lengthRatio = currentLength / chartSideLength[i][j];
+                assert(lengthRatio >= 0 && lengthRatio < 1);
+
+                const Eigen::VectorXd uv = cornerCoord + (vector * lengthRatio);
+
+                b(fixedId) = static_cast<int>(vId);
+
+                //Flip x with y
+                bc(fixedId, 0) = uv(1);
+                bc(fixedId, 1) = uv(0);
+
+                fixedId++;
             }
 
-            size_t vId = chartSide[i];
-
-            double lengthRatio = currentLength / chartSideLength[sId];
-            assert(lengthRatio >= 0 && lengthRatio < 1);
-
-            const Eigen::VectorXd uv = cornerCoord + (vector * lengthRatio);
-
-            b(fixedId) = static_cast<int>(vId);
-
-            //Flip x with y
-            bc(fixedId, 0) = uv(1);
-            bc(fixedId, 1) = uv(0);
-
-            fixedId++;
+            patchStart += chartSideSubdivision[i][j];
         }
     }
 

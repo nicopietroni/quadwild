@@ -4,8 +4,9 @@
 #include <vector>
 #include <vcg/complex/algorithms/polygonal_algorithms.h>
 #include <wrap/io_trimesh/export.h>
-#include <wrap/igl/smooth_field.h>
 #include <vcg/complex/algorithms/implicit_smooth.h>
+
+#include "field_smoother.h"
 
 ///* ----- Triangle mesh ----- */
 

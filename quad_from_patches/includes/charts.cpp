@@ -293,7 +293,7 @@ ChartData getPatchDecompositionChartData(
 
                     currentSubSide.length = length;
 
-                    currentSubSide.incidentChartSideId[0] = chartSubSideId;
+                    currentSubSide.incidentChartSubSideId[0] = chartSubSideId;
 
                     if (adjChartLabel >= 0) {
                         currentSubSide.isOnBorder = false;
@@ -302,7 +302,7 @@ ChartData getPatchDecompositionChartData(
                     }
                     else {
                         currentSubSide.isOnBorder = true;
-                        currentSubSide.incidentChartSideId[1] = -1;
+                        currentSubSide.incidentChartSubSideId[1] = -1;
                     }
 
                     assert(currentSubSide.vertices.size() >= 2);
@@ -328,11 +328,11 @@ ChartData getPatchDecompositionChartData(
 
                     //Add the side to other chart
                     if (adjChartLabel >= 0) {
-                        int chartSideId = chart.chartSubSides.size();
+                        int chartSubSideId = chart.chartSubSides.size();
                         chart.chartSubSides.push_back(subSideId);
 
                         assert(chartData.subSides[subSideId].incidentCharts[1] == chart.label);
-                        chartData.subSides[subSideId].incidentChartSideId[1] = chartSideId;
+                        chartData.subSides[subSideId].incidentChartSubSideId[1] = chartSubSideId;
 
                         chart.adjacentCharts.push_back(adjChartLabel);
 

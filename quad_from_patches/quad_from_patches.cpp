@@ -6,7 +6,11 @@
 #include "includes/mapping.h"
 #include "includes/convert.h"
 
+#ifdef SAVEMESHESFORDEBUG
 #include <igl/writeOBJ.h>
+#include <wrap/io_trimesh/export_obj.h>
+#endif
+
 
 namespace qfp {
 
@@ -97,6 +101,11 @@ inline std::vector<int> findSubdivisions(
     double gap;
     ILPStatus status;
 
+//    //Fix the chart on border
+//    for (ChartSubSide& subside : chartData.subSides) {
+//        subside.isFixed = subside.isOnBorder;
+//    }
+
     //Solve ILP to find the best patches
     std::vector<int> ilpResult = solveILP(chartData, edgeFactor, method, alpha, isometry, regularityForQuadrilaterals, regularityForNonQuadrilaterals, regularityNonQuadrilateralWeight, hardParityConstraint, timeLimit, gapLimit, gap, status);
 
@@ -178,6 +187,10 @@ void quadrangulate(
         }
     }
 
+#ifdef SAVEMESHESFORDEBUG
+        vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, "res/corner_vertices.obj", vcg::tri::io::Mask::IOM_NONE);
+#endif
+
     //Fill subside map for fixed borders
     std::set<size_t> finalMeshBorders;
     for (size_t i = 0; i < chartData.subSides.size(); i++) {
@@ -209,6 +222,10 @@ void quadrangulate(
             }
         }
     }
+
+#ifdef SAVEMESHESFORDEBUG
+        vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, "res/fixed_vertices.obj", vcg::tri::io::Mask::IOM_NONE);
+#endif
 
 
     //For each chart
@@ -252,15 +269,37 @@ void quadrangulate(
         //Input subdivisions
         Eigen::VectorXi l(chartSides.size());
 
-        std::vector<double> chartSideLength(chartSides.size());
-        std::vector<std::vector<size_t>> chartEigenSides(chartSides.size());
+        std::vector<std::vector<double>> chartSideLength(chartSides.size());
+        std::vector<std::vector<std::vector<size_t>>> chartSideVertices(chartSides.size());
+        std::vector<std::vector<size_t>> chartSideSubdivision(chartSides.size());
 
         for (size_t i = 0; i < chartSides.size(); i++) {
             const ChartSide& chartSide = chartSides[i];
 
-            size_t targetSize = 0;
-            for (const size_t& subSideId : chartSides[i].subsides) {
-                targetSize += ilpResult[subSideId];
+            chartSideLength[i].resize(chartSide.subsides.size());
+            chartSideVertices[i].resize(chartSide.subsides.size());
+            chartSideSubdivision[i].resize(chartSide.subsides.size());
+
+            size_t targetSideSubdivision = 0;
+            for (size_t j = 0; j < chartSide.subsides.size(); j++) {
+                const size_t& subSideId = chartSides[i].subsides[j];
+                const ChartSubSide& subSide = chartData.subSides[subSideId];
+
+                targetSideSubdivision += ilpResult[subSideId];
+
+                chartSideLength[i][j] = subSide.length;
+                chartSideVertices[i][j] = subSide.vertices;
+                chartSideSubdivision[i][j] = ilpResult[subSideId];
+
+                if (chartSide.reversedSubside[j]) {
+                    std::reverse(chartSideVertices[i][j].begin(), chartSideVertices[i][j].end());
+                }
+
+                for (size_t k = 0; k < chartSideVertices[i][j].size(); k++) {
+                    size_t vId = chartSideVertices[i][j][k];
+                    assert(vMap[vId] >= 0);
+                    chartSideVertices[i][j][k] = vMap[vId];
+                }
 
                 if (ilpResult[subSideId] < 0) {
                     std::cout << "Warning: ILP not valid" << std::endl;
@@ -268,17 +307,7 @@ void quadrangulate(
                 }
             }
 
-            l(static_cast<int>(i)) = targetSize;
-
-            chartSideLength[i] = chartSide.length;
-
-            chartEigenSides[i].resize(chartSide.vertices.size());
-
-            for (size_t j = 0; j < chartSide.vertices.size(); j++) {
-                size_t vId = chartSide.vertices[j];
-                assert(vMap[vId] >= 0);
-                chartEigenSides[i][j] = vMap[vId];
-            }
+            l(static_cast<int>(i)) = targetSideSubdivision;
         }
 
         //Pattern quadrangulation
@@ -295,6 +324,10 @@ void quadrangulate(
 
         std::vector<std::vector<size_t>> patchEigenSides = qfp::getPatchSides(patchV, patchF, patchBorders, patchCorners, l);
 
+#ifdef SAVEMESHESFORDEBUG
+        igl::writeOBJ(std::string("res/") + std::to_string(cId) + std::string("_patch_adjusted.obj"), patchV, patchF);
+#endif
+
         assert(chartSides.size() == patchCorners.size());
         assert(chartSides.size() == patchEigenSides.size());
 
@@ -307,7 +340,7 @@ void quadrangulate(
         Eigen::MatrixXi uvMapF;
         Eigen::MatrixXd quadrangulationV;
         Eigen::MatrixXi quadrangulationF;
-        qfp::computeQuadrangulation(chartV, chartF, patchV, patchF, chartEigenSides, chartSideLength, patchEigenSides, uvMapV, uvMapF, quadrangulationV, quadrangulationF);
+        qfp::computeQuadrangulation(chartV, chartF, patchV, patchF, chartSideVertices, chartSideLength, chartSideSubdivision, patchEigenSides, uvMapV, uvMapF, quadrangulationV, quadrangulationF);
 
 #ifdef SAVEMESHESFORDEBUG
         Eigen::MatrixXd uvMesh(uvMapV.rows(), 3);
@@ -344,42 +377,54 @@ void quadrangulate(
         //Map subsides on the vertices of the current mesh (create if necessary)
         for (size_t i = 0; i < chartSides.size(); i++) {
             const ChartSide& side = chartSides[i];
-            const std::vector<size_t>& patchSide = patchEigenSides[i];
+            const std::vector<size_t>& patchSideVertices = patchEigenSides[i];
 
-            size_t currentPatchSideVertex = 0;
+            size_t currentPatchSideVertexId = 0;
 
             for (size_t j = 0; j < side.subsides.size(); j++) {
                 const size_t& subSideId = side.subsides[j];
-                const bool& reversed = side.reversedSubside[j];
+                const bool& subsideReversed = side.reversedSubside[j];
                 const ChartSubSide& subside = chartData.subSides[subSideId];
 
                 //Create new vertices of the subsides
                 if (vertexSubsideMap[subSideId].empty()) {
-                    //Get fixed corners of the subside
-                    size_t vStart = subside.vertices[0];
-                    size_t vEnd = subside.vertices[subside.vertices.size() - 1];
-                    assert(cornerVertices[vStart] >= 0 && cornerVertices[vEnd] >= 0);
+                    std::vector<size_t> subsideOrderedVertices = subside.vertices;
+                    if (subsideReversed) {
+                        std::reverse(subsideOrderedVertices.begin(), subsideOrderedVertices.end());
+                    }
 
-                    currentVertexMap[patchSide[currentPatchSideVertex]] = cornerVertices[vStart];
-                    currentVertexMap[patchSide[currentPatchSideVertex + ilpResult[subSideId]]] = cornerVertices[vEnd];
+                    //Get fixed corners of the subside
+                    size_t vStart = subsideOrderedVertices[0];
+                    size_t vEnd = subsideOrderedVertices[subsideOrderedVertices.size() - 1];
+
+                    size_t patchVStart = currentPatchSideVertexId;
+                    size_t patchVEnd = (currentPatchSideVertexId + ilpResult[subSideId]) % patchSideVertices.size();
+
+                    assert(patchVStart < patchSideVertices.size());
+                    assert(patchVEnd < patchSideVertices.size());
+                    assert(cornerVertices[vStart] >= 0 && cornerVertices[vEnd] >= 0);
+                    assert(currentVertexMap[patchSideVertices[patchVStart]] == cornerVertices[vStart] || currentVertexMap[patchSideVertices[patchVStart]] == -1);
+                    assert(currentVertexMap[patchSideVertices[patchVEnd]] == cornerVertices[vEnd] || currentVertexMap[patchSideVertices[patchVEnd]] == -1);
+
+                    currentVertexMap[patchSideVertices[patchVStart]] = cornerVertices[vStart];
+                    currentVertexMap[patchSideVertices[patchVEnd]] = cornerVertices[vEnd];
 
                     for (int k = 0; k <= ilpResult[subSideId]; k++) {
-                        size_t patchSideVId = patchSide[currentPatchSideVertex];
+                        assert(currentPatchSideVertexId < patchSideVertices.size());
+                        size_t patchSideVId = patchSideVertices[currentPatchSideVertexId];
 
                         if (currentVertexMap[patchSideVId] == -1) {
                             assert(k > 0 && k < ilpResult[subSideId]);
 
                             //Add new vertex
                             size_t newVertexId = quadmesh.vert.size();
-
                             const typename PolyMesh::CoordType& coord = quadrangulatedChartMesh.vert[patchSideVId].P();
                             vcg::tri::Allocator<PolyMesh>::AddVertex(quadmesh, coord);
 
-                            fixedVertices.push_back(newVertexId);
-
-                            currentVertexMap[patchSideVId] = newVertexId;
-
                             vertexSubsideMap[subSideId].push_back(newVertexId);
+
+                            fixedVertices.push_back(newVertexId);
+                            currentVertexMap[patchSideVId] = newVertexId;
                         }
                         else {
                             //Use the existing vertex
@@ -388,21 +433,18 @@ void quadrangulate(
                             vertexSubsideMap[subSideId].push_back(existingVertexId);
                         }
 
-                        currentPatchSideVertex++;
-                    }
-
-                    if (reversed) {
-                        std::reverse(vertexSubsideMap[subSideId].begin(), vertexSubsideMap[subSideId].end());
+                        currentPatchSideVertexId++;
                     }
                 }
                 //Set the existing vertices
                 else {
                     assert(vertexSubsideMap[subSideId].size() == ilpResult[subSideId] + 1);
 
-                    for (int k = 0; k <= ilpResult[subSideId]; k++) {
-                        int patchSideVId = patchSide[currentPatchSideVertex];
+                    for (int k = 0; k <= ilpResult[subSideId]; k++) {                        
+                        assert(currentPatchSideVertexId < patchSideVertices.size());
+                        int patchSideVId = patchSideVertices[currentPatchSideVertexId];
 
-                        size_t subSideVertexIndex = reversed ? ilpResult[subSideId] - k : k;
+                        size_t subSideVertexIndex = subsideReversed ? ilpResult[subSideId] - k : k;
 
                         currentVertexMap[patchSideVId] = vertexSubsideMap[subSideId][subSideVertexIndex];
 
@@ -412,17 +454,17 @@ void quadrangulate(
                         if (!subside.isFixed && k > 0 && k < ilpResult[subSideId]) {
                             //Average
                             const typename PolyMesh::CoordType& coord = quadrangulatedChartMesh.vert[patchSideVId].P();
-                            quadmesh.vert.at(existingVertexId).P() = (coord + quadmesh.vert.at(existingVertexId).P())/2;
+                            quadmesh.vert.at(existingVertexId).P() = (coord + quadmesh.vert.at(existingVertexId).P()) / 2.0;
                         }
 
-                        currentPatchSideVertex++;
+                        currentPatchSideVertexId++;
                     }
                 }
 
-                currentPatchSideVertex--;
+                currentPatchSideVertexId--;
             }
 
-            assert(currentPatchSideVertex+1 == patchSide.size());
+            assert(currentPatchSideVertexId+1 == patchSideVertices.size());
         }
 
         //Internal vertices
@@ -463,7 +505,15 @@ void quadrangulate(
 
             quadmeshCorners[chart.label].push_back(cornerVertices.at(vStart));
         }
+
+#ifdef SAVEMESHESFORDEBUG
+        vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, ("res/" + std::to_string(cId) + "_tmp_quadrangulation.obj").c_str(), vcg::tri::io::Mask::IOM_NONE);
+#endif
     }
+
+#ifdef SAVEMESHESFORDEBUG
+    vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, "res/total_quadrangulation.obj", vcg::tri::io::Mask::IOM_NONE);
+#endif
 
     vcg::tri::UpdateTopology<PolyMesh>::FaceFace(quadmesh);
     vcg::PolygonalAlgorithm<PolyMesh>::UpdateFaceNormalByFitting(quadmesh);
@@ -508,6 +558,10 @@ void quadrangulate(
     vcg::PolygonalAlgorithm<PolyMesh>::UpdateFaceNormalByFitting(quadmesh);
     vcg::tri::UpdateNormal<PolyMesh>::PerVertexNormalized(quadmesh);
     vcg::tri::UpdateBounding<PolyMesh>::Box(quadmesh);
+
+#ifdef SAVEMESHESFORDEBUG
+    vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, "res/quadrangulation_reprojected.obj", vcg::tri::io::Mask::IOM_NONE);
+#endif
 }
 
 
