@@ -28,7 +28,6 @@ HEADERS += \
     smooth_mesh.h
 
 #DEFINES += SAVEMESHESFORDEBUG
-SOURCES += $$VCGLIBPATH/wrap/ply/plylib.cpp
 
 ############################ TARGET ############################
 
@@ -89,12 +88,16 @@ INCLUDEPATH += $$EIGENPATH
 
 #gurobi
 INCLUDEPATH += $$GUROBIPATH/include
-LIBS += -L$$GUROBIPATH/lib -lgurobi_g++4.2 -lgurobi90
+LIBS += -L$$GUROBIPATH/lib -lgurobi_g++5.2 -lgurobi90
 DEFINES += GUROBI_DEFINED
 
-#lpsolve
-LIBS += -L "/Users/nicopietroni/Desktop/quadrangulate_patches/quad_from_patches/quad_from_patches/libs/patterns/patterns/ktmethod/lp_solve" -llpsolve55
-LIBS += -lm -ldl
-INCLUDEPATH += $$LPSOLVEPATH
-HEADERS += \
-    $$LPSOLVEPATH/lp_lib.h \
+#Parallel computation
+unix:!mac {
+    QMAKE_CXXFLAGS += -fopenmp
+    LIBS += -fopenmp
+}
+macx{
+    QMAKE_CXXFLAGS += -Xpreprocessor -fopenmp -lomp -I/usr/local/include
+    QMAKE_LFLAGS += -lomp
+    LIBS += -L /usr/local/lib /usr/local/lib/libomp.dylib
+}
