@@ -91,18 +91,37 @@ void computeQuadrangulation(
         }
     }
 
-    if (b.size() < chartV.rows()) {
+    if (b.size() <= chartV.rows()) {
         //Apply Least Square Conformal Maps
         igl::lscm(chartV, chartF, b, bc, uvMapV);
     }
     else {
         //Get the UV map with all fixed border
-        uvMapV = bc;
+        uvMapV.resize(chartV.rows(), 2);
+        for (int i = 0; i < bc.rows(); i++) {
+            uvMapV.row(b(i)) = bc.row(i);
+        }
 
         std::cout << "No fixed border! UVMap setted as bc." << std::endl;
     }
 
     uvMapF = chartF;
+
+    #ifndef NDEBUG
+    for (int i = 0; i < uvMapF.rows(); ++i) {
+        Eigen::VectorXd v1 = uvMapV.row(uvMapF(i,0));
+        Eigen::VectorXd v2 = uvMapV.row(uvMapF(i,1));
+        Eigen::VectorXd v3 = uvMapV.row(uvMapF(i,2));
+        double A = std::abs(
+            (v1.x()*v2.y() - v2.x()*v1.y()) +
+            (v2.x()*v3.y() - v3.x()*v2.y()) +
+            (v3.x()*v1.y() - v1.x()*v3.y())
+        ) / 2.0;
+        if (A <= 0) {
+            std::cout << "Warning: degenerate triangle found!" << std::endl;
+        }
+    }
+    #endif
 
 //    const Eigen::Vector2d& v1 = uvMapV.row(uvMapF(0,0));
 //    const Eigen::Vector2d& v2 = uvMapV.row(uvMapF(0,1));
@@ -216,7 +235,9 @@ Eigen::VectorXd pointToBarycentric(
     baryc(1) = ((t3.y() - t1.y()) * (p.x() - t3.x()) + (t1.x() - t3.x()) * (p.y() - t3.y())) / det;
 
     if (baryc(0) > 1.0 || baryc(1) > 1.0 || baryc(0) < 0.0 || baryc(1) < 0.0) {
-//        std::cout << "Barycentric coordinates not between 0 and 1. Fixing it." << std::endl;
+        #ifndef NDEBUG
+        std::cout << "Valid barycenter coordinates not found." << std::endl;
+        #endif
 
         vcg::Point3d t1vcg(t1.x(), t1.y(), 0);
         vcg::Point3d t2vcg(t2.x(), t2.y(), 0);
