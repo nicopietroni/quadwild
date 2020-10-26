@@ -172,7 +172,7 @@ void computeQuadrangulation(
 
                 double currentSquareDistance = sqrD(0);
                 triIndex = I(0);
-                for (Eigen::Index k = 1; k < I.size(); k++) {
+                for (int k = 1; k < I.size(); k++) {
                     if (sqrD(k) < currentSquareDistance) {
                         triIndex = I(k);
                         currentSquareDistance = sqrD(k);
