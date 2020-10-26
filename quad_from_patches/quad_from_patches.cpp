@@ -515,6 +515,19 @@ void quadrangulate(
     vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, "res/total_quadrangulation.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
+    int numDuplicateVertices = vcg::tri::Clean<PolyMesh>::RemoveDuplicateVertex(quadmesh);
+    if (numDuplicateVertices > 0) {
+        std::cout << "Removed " << numDuplicateVertices << " duplicate vertices." << std::endl;
+    }
+    int numUnreferencedVertices = vcg::tri::Clean<PolyMesh>::RemoveUnreferencedVertex(quadmesh);
+    if (numUnreferencedVertices > 0) {
+        std::cout << "Removed " << numUnreferencedVertices << " unreferenced vertices." << std::endl;
+    }
+
+#ifdef SAVEMESHESFORDEBUG
+    vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, "res/quadrangulation_cleaned.obj", vcg::tri::io::Mask::IOM_NONE);
+#endif
+
     vcg::tri::UpdateTopology<PolyMesh>::FaceFace(quadmesh);
     vcg::PolygonalAlgorithm<PolyMesh>::UpdateFaceNormalByFitting(quadmesh);
     OrientFaces<PolyMesh>::AutoOrientFaces(quadmesh);
@@ -563,6 +576,5 @@ void quadrangulate(
     vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, "res/quadrangulation_reprojected.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 }
-
 
 }

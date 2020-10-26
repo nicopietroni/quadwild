@@ -28,6 +28,7 @@ HEADERS += \
     smooth_mesh.h
 
 #DEFINES += SAVEMESHESFORDEBUG
+#DEFINES += ASSERTFORSIDES
 
 ############################ TARGET ############################
 

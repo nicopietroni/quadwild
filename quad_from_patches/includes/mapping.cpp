@@ -91,7 +91,7 @@ void computeQuadrangulation(
         }
     }
 
-    if (b.size() <= chartV.rows()) {
+    if (b.size() < chartV.rows()) {
         //Apply Least Square Conformal Maps
         igl::lscm(chartV, chartF, b, bc, uvMapV);
     }
@@ -155,19 +155,32 @@ void computeQuadrangulation(
         Q2D(0,0) = Q.x();
         Q2D(0,1) = Q.y();
 
-        Eigen::VectorXi I;
-        igl::in_element(uvMapV, uvMapF, Q2D, tree, I);
-
-        int triIndex = I(0);
-
-        if (triIndex < 0) {
-            Eigen::VectorXi sqrD;
-            Eigen::MatrixXd C;
-            tree.squared_distance(uvMapV, uvMapF, Q2D, sqrD, I, C);
+        int triIndex;
+        if (uvMapF.rows() == 1) {
+            triIndex = 0;
+        }
+        else {
+            Eigen::VectorXi I;
+            igl::in_element(uvMapV, uvMapF, Q2D, tree, I);
 
             triIndex = I(0);
 
-            assert(triIndex > -1);
+            if (triIndex < 0) {
+                Eigen::VectorXd sqrD;
+                Eigen::MatrixXd C;
+                tree.squared_distance(uvMapV, uvMapF, Q2D, sqrD, I, C);
+
+                double currentSquareDistance = sqrD(0);
+                triIndex = I(0);
+                for (Eigen::Index k = 1; k < I.size(); k++) {
+                    if (sqrD(k) < currentSquareDistance) {
+                        triIndex = I(k);
+                        currentSquareDistance = sqrD(k);
+                    }
+                }
+
+                assert(triIndex > -1);
+            }
         }
 
         const Eigen::VectorXi& tri = chartF.row(triIndex);

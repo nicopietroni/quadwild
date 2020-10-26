@@ -455,6 +455,9 @@ inline std::vector<int> solveILP(
                 //Even side size sum constraint in a chart
                 if (chart.chartSides.size() < 3 || chart.chartSides.size() > 6) {
                     std::cout << "Chart " << cId << " has " << chart.chartSides.size() << " sides." << std::endl;
+                    #ifdef ASSERTFORSIDES
+                    assert(chart.chartSides.size() >= 3 && chart.chartSides.size() <= 6);
+                    #endif
                     continue;
                 }
 
