@@ -88,6 +88,7 @@ bool has_features=false;
 
 bool add_only_needed=true;
 bool interleave_removal=true;
+bool interleave_smooth=false;
 bool final_removal=true;
 
 int CurrNum=0;
@@ -111,17 +112,17 @@ CMesh::ScalarType Drift=100;
 
 enum PatchColorMode{CMPatchNone, CMPatchCol, CMPatchValence,
                     CMPatchTopo,CMPatchLengthDist,CMPatchLenghtVar,
-                    CMArapDistortion,CMCClarkability};
+                    CMArapDistortion,CMCClarkability,CMExpValence};
 
 PatchColorMode CurrPatchMode=CMPatchNone;
 PatchColorMode OldPatchMode=CMPatchNone;
 
-float BatchSample=-1;
-float BatchDrift=-1;
-int BatchSplit=-1;
-int BatchIncreaseValRem=-1;
-int BatchIrregularRem=-1;
-float BatchDistortionL=-1;
+//float BatchSample=-1;
+//float BatchDrift=-1;
+//int BatchSplit=-1;
+//int BatchIncreaseValRem=-1;
+//int BatchIrregularRem=-1;
+//float BatchDistortionL=-1;
 
 
 void SaveSetupFile(const std::string pathProject,
@@ -133,13 +134,107 @@ void SaveSetupFile(const std::string pathProject,
     FILE *f=fopen(pathSetupFinal.c_str(),"wt");
     assert(f!=NULL);
 
-    fprintf(f,"Srate %f\n",PTr.sample_ratio);
+//    fprintf(f,"Srate %f\n",PTr.sample_ratio);
+//    fprintf(f,"Drift %f\n",Drift);
+
+//    if (PTr.split_on_removal)
+//        fprintf(f,"Split 1\n");
+//    else
+//        fprintf(f,"Split 0\n");
+
+
+//    FILE *f=fopen(path.c_str(),"rt");
+//    assert(f!=NULL);
+
+//    float Driftf;
+//    fscanf(f,"Drift %f\n",&Driftf);
+//    Drift=(CMesh::ScalarType)Driftf;
+//    std::cout<<"DRIFT "<<Drift<<std::endl;
     fprintf(f,"Drift %f\n",Drift);
 
+//    float SRatef;
+//    fscanf(f,"Srate %f\n",&SRatef);
+//    PTr.sample_ratio=(CMesh::ScalarType)SRatef;
+//    std::cout<<"SAMPLE RATE "<<PTr.sample_ratio<<std::endl;
+    fprintf(f,"Srate %f\n",PTr.sample_ratio);
+
+//    int IntVar=0;
+//    fscanf(f,"SplitOnRem %d\n",&IntVar);
+//    std::cout<<"SPLIT "<<IntVar<<std::endl;
+//    if (IntVar==0)
+//        PTr.split_on_removal=false;
+//    else
+//        PTr.split_on_removal=true;
+
     if (PTr.split_on_removal)
-        fprintf(f,"Split 1\n");
+        fprintf(f,"SplitOnRem 1\n");
     else
-        fprintf(f,"Split 0\n");
+        fprintf(f,"SplitOnRem 0\n");
+
+    //fscanf(f,"MaxVal %d\n",&PTr.MaxVal);
+    fprintf(f,"MaxVal %d\n",PTr.MaxVal);
+    //std::cout<<"INCREASE VAL "<<PTr.MaxVal<<std::endl;
+
+//    float CCbility;
+//    fscanf(f,"CCability %f\n",&CCbility);
+//    PTr.CClarkability=(CMesh::ScalarType)CCbility;
+//    std::cout<<"CCABILITY "<<PTr.CClarkability<<std::endl;
+    fprintf(f,"CCability %f\n",PTr.CClarkability);
+
+//    fscanf(f,"MatchVal %d\n",&IntVar);
+//    std::cout<<"MATCH VAL "<<IntVar<<std::endl;
+//    if (IntVar==0)
+//        PTr.match_valence=false;
+//    else
+//        PTr.match_valence=true;
+    if (PTr.match_valence)
+        fprintf(f,"MatchVal 1\n");
+    else
+        fprintf(f,"MatchVal 0\n");
+
+//    fscanf(f,"AddNeed %d\n",&IntVar);
+//    std::cout<<"ADD NEED "<<IntVar<<std::endl;
+//    if (IntVar==0)
+//        add_only_needed=false;
+//    else
+//        add_only_needed=true;
+    if (add_only_needed)
+        fprintf(f,"AddNeed 1\n");
+    else
+        fprintf(f,"AddNeed 0\n");
+
+//    fscanf(f,"InterleaveRem %d\n",&IntVar);
+//    std::cout<<"INTERLEAVE REMOVE "<<IntVar<<std::endl;
+//    if (IntVar==0)
+//        interleave_removal=false;
+//    else
+//        interleave_removal=true;
+    if (interleave_removal)
+        fprintf(f,"InterleaveRem 1\n");
+    else
+        fprintf(f,"InterleaveRem 0\n");
+
+//    fscanf(f,"InterleaveSmooth %d\n",&IntVar);
+//    std::cout<<"INTERLEAVE SMOOTH "<<IntVar<<std::endl;
+//    if (IntVar==0)
+//        interleave_smooth=false;
+//    else
+//        interleave_smooth=true;
+    if (interleave_smooth)
+        fprintf(f,"InterleaveSmooth 1\n");
+    else
+        fprintf(f,"InterleaveSmooth 0\n");
+
+//    fscanf(f,"FinalRem %d\n",&IntVar);
+//    std::cout<<"FINAL REMOVE "<<IntVar<<std::endl;
+//    if (IntVar==0)
+//        final_removal=false;
+//    else
+//        final_removal=true;
+    if (final_removal)
+        fprintf(f,"FinalRem 1\n");
+    else
+        fprintf(f,"FinalRem 0\n");
 
 //    if (PTr.avoid_increase_valence)
 //        fprintf(f,"IncreaseValRem 1\n");
@@ -156,77 +251,87 @@ void SaveSetupFile(const std::string pathProject,
     fclose(f);
 }
 
+
+
+
+
 void LoadSetupFile(std::string path)
 {
     FILE *f=fopen(path.c_str(),"rt");
     assert(f!=NULL);
-    float SRatef;
-    fscanf(f,"Srate %f\n",&SRatef);
-    PTr.sample_ratio=(CMesh::ScalarType)SRatef;
-    std::cout<<"SAMPLE RATE "<<PTr.sample_ratio<<std::endl;
 
     float Driftf;
     fscanf(f,"Drift %f\n",&Driftf);
     Drift=(CMesh::ScalarType)Driftf;
     std::cout<<"DRIFT "<<Drift<<std::endl;
 
+    float SRatef;
+    fscanf(f,"Srate %f\n",&SRatef);
+    PTr.sample_ratio=(CMesh::ScalarType)SRatef;
+    std::cout<<"SAMPLE RATE "<<PTr.sample_ratio<<std::endl;   
+
     int IntVar=0;
-    fscanf(f,"Split %d\n",&IntVar);
+    fscanf(f,"SplitOnRem %d\n",&IntVar);
     std::cout<<"SPLIT "<<IntVar<<std::endl;
     if (IntVar==0)
         PTr.split_on_removal=false;
     else
         PTr.split_on_removal=true;
 
-    fscanf(f,"IncreaseValRem %d\n",&IntVar);
-    std::cout<<"INCREASE VAL "<<IntVar<<std::endl;
-//    if (IntVar==0)
-//        PTr.avoid_increase_valence=false;
-//    else
-//        PTr.avoid_increase_valence=true;
+    fscanf(f,"MaxVal %d\n",&PTr.MaxVal);
+    std::cout<<"INCREASE VAL "<<PTr.MaxVal<<std::endl;
 
-//    fscanf(f,"IrregularRem %d\n",&IntVar);
-//    std::cout<<"IRR VAL "<<IntVar<<std::endl;
-//    if (IntVar==0)
-//        PTr.avoid_collapse_irregular=false;
-//    else
-//        PTr.avoid_collapse_irregular=true;
+    float CCbility;
+    fscanf(f,"CCability %f\n",&CCbility);
+    PTr.CClarkability=(CMesh::ScalarType)CCbility;
+    std::cout<<"CCABILITY "<<PTr.CClarkability<<std::endl;
 
-//    float MaxDistortionf;
-//    fscanf(f,"DistortionL %f\n",&MaxDistortionf);
-//    PTr.max_lenght_distortion=(CMesh::ScalarType)MaxDistortionf;
-//    std::cout<<"DistortionL "<<MaxDistortionf<<std::endl;
-//    fclose(f);
+    fscanf(f,"MatchVal %d\n",&IntVar);
+    std::cout<<"MATCH VAL "<<IntVar<<std::endl;
+    if (IntVar==0)
+        PTr.match_valence=false;
+    else
+        PTr.match_valence=true;
 
-    if ((batch_process)&&(BatchSample>0))
-        PTr.sample_ratio=BatchSample;
+    fscanf(f,"AddNeed %d\n",&IntVar);
+    std::cout<<"ADD NEED "<<IntVar<<std::endl;
+    if (IntVar==0)
+        add_only_needed=false;
+    else
+        add_only_needed=true;
 
-    if ((batch_process)&&(BatchDrift>0))
-        Drift=BatchDrift;
+    fscanf(f,"InterleaveRem %d\n",&IntVar);
+    std::cout<<"INTERLEAVE REMOVE "<<IntVar<<std::endl;
+    if (IntVar==0)
+        interleave_removal=false;
+    else
+        interleave_removal=true;
 
-    if ((batch_process)&&(BatchSplit==0))
-        PTr.split_on_removal=false;
+    fscanf(f,"InterleaveSmooth %d\n",&IntVar);
+    std::cout<<"INTERLEAVE SMOOTH "<<IntVar<<std::endl;
+    if (IntVar==0)
+        interleave_smooth=false;
+    else
+        interleave_smooth=true;
 
-    if ((batch_process)&&(BatchSplit==1))
-        PTr.split_on_removal=true;
+    fscanf(f,"FinalRem %d\n",&IntVar);
+    std::cout<<"FINAL REMOVE "<<IntVar<<std::endl;
+    if (IntVar==0)
+        final_removal=false;
+    else
+        final_removal=true;
 
-//    if ((batch_process)&&(BatchIncreaseValRem==0))
-//        PTr.avoid_increase_valence=false;
+//    if ((batch_process)&&(BatchSample>0))
+//        PTr.sample_ratio=BatchSample;
 
-//    if ((batch_process)&&(BatchIncreaseValRem==1))
-//        PTr.avoid_increase_valence=true;
+//    if ((batch_process)&&(BatchDrift>0))
+//        Drift=BatchDrift;
 
-//    if ((batch_process)&&(BatchIrregularRem==0))
-//        PTr.avoid_collapse_irregular=false;
+//    if ((batch_process)&&(BatchSplit==0))
+//        PTr.split_on_removal=false;
 
-//    if ((batch_process)&&(BatchIrregularRem==1))
-//        PTr.avoid_collapse_irregular=true;
-
-//    if ((batch_process)&&(BatchDistortionL>0))
-//        PTr.max_lenght_distortion=BatchDistortionL;
-
-
-
+//    if ((batch_process)&&(BatchSplit==1))
+//        PTr.split_on_removal=true;
 }
 
 void FindCurrentNum()
@@ -317,6 +422,8 @@ void UpdatePatchColor()
      PTr.ColorByArapDistortion();
  if (CurrPatchMode==CMCClarkability)
      PTr.ColorByCClarkability();
+ if (CurrPatchMode==CMExpValence)
+     PTr.ColorByExpValence();
 }
 
 void UpdateVisualNodes()
@@ -360,6 +467,8 @@ void UpdateVisualNodes()
     PTr.GetActiveReceiversType(TVChoosen,ChoosenReceiversNode);
 
     PTr.GetUnsatisfied(UnsatisfiedNodes);
+//    for (size_t i=0;i<UnsatisfiedNodes.size();i++)
+//        std::cout<<"Unsatisfied "<<UnsatisfiedNodes[i]<<std::endl;
     PTr.GetVisualCornersPos(PatchCornerPos);
 }
 
@@ -378,7 +487,9 @@ void InitStructures()
 
     VGraph.Init();//SingPos);
 
+
     GLGraph.InitDisplacedPos();
+
     PTr.Init(Drift);
     //std::cout<<"Here"<<std::endl;
     UpdateVisualNodes();
@@ -449,7 +560,7 @@ void TW_CALL BatchProcess(void *)
 {
     InitStructures();
     //PTr.BatchProcess();
-    PTr.BatchAddLoops(false,false,false,true);
+    PTr.BatchAddLoops(true,false,false,true,false);
     CurrPatchMode=CMPatchCol;
 //    CurrCandidates.clear();
 //    PTr.GetCurrCandidates(CurrCandidates);
@@ -496,7 +607,7 @@ void TW_CALL RecursiveProcess(void *)
 {
     InitStructures();
     //RecursiveProcess<CMesh>(PTr,Drift);
-    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,interleave_removal,final_removal);
+    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,interleave_removal,final_removal,interleave_smooth);
     CurrPatchMode=CMPatchCol;
     drawField=false;
     drawSharpF=false;
@@ -535,12 +646,13 @@ void TW_CALL SubdividePatches(void *)
 
 void TW_CALL BatchRemoval(void *)
 {
-    PTr.BatchRemoval();
+    PTr.BatchRemoval(false);
     CurrPatchMode=CMPatchCol;
     drawField=false;
     drawSharpF=false;
     drawSing=false;
     UpdateVisualNodes();
+    PTr.GetVisualCornersPos(PatchCornerPos);
 }
 
 void LoadAll()
@@ -676,9 +788,11 @@ void TW_CALL SaveData(void *)
 void  ProcessAllBatch()
 {
     InitStructures();
-    RecursiveProcess<CMesh>(PTr,Drift,true,true,true);
+    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,interleave_removal,final_removal,interleave_smooth);
+    //RecursiveProcess<CMesh>(PTr,Drift,true,true,true);
     CurrPatchMode=CMPatchCol;
     PTr.BatchRemoval();
+    PTr.FixValences();
     CurrPatchMode=CMPatchCol;
     drawField=false;
     drawSharpF=false;
@@ -712,13 +826,14 @@ void InitLoopBar(QWidget *w)
     TwType drawMode = TwDefineEnum("DrawMode", drawmodes, 4);
     TwAddVarRW(bar, "Draw Mode", drawMode, &drawmode, " keyIncr='<' keyDecr='>' help='Change draw mode.' ");
 
-    TwEnumVal patchcolmodes[8] = { {CMPatchNone, "None"}, {CMPatchCol, "Per Patch"},
+    TwEnumVal patchcolmodes[9] = { {CMPatchNone, "None"}, {CMPatchCol, "Per Patch"},
                                    {CMPatchValence, "Valence"},{CMPatchTopo, "Topology"},
                                    {CMPatchLengthDist,"Length Dist"},{CMPatchLenghtVar,"Length Var"},
-                                   {CMArapDistortion,"Arap Dist"},{CMCClarkability,"Catmull Clarkability"}
+                                   {CMArapDistortion,"Arap Dist"},{CMCClarkability,"Catmull Clarkability"},
+                                   {CMExpValence,"Expected Valence"}
                                  };
     // Create a type for the enum shapeEV
-    TwType patchColMode = TwDefineEnum("PatchColMode", patchcolmodes, 8);
+    TwType patchColMode = TwDefineEnum("PatchColMode", patchcolmodes, 9);
     TwAddVarRW(bar, "Patch Col Mode", patchColMode, &CurrPatchMode, " keyIncr='<' keyDecr='>' help='Change col mode.' ");
 
 
@@ -784,8 +899,10 @@ void InitLoopBar(QWidget *w)
     //TwAddVarRW(bar,"LoopBorders",TW_TYPE_BOOLCPP,&PTr.TraceLoopsBorders,"label='Trace Loop from Borders'");
     TwAddVarRW(bar,"MaxValence",TW_TYPE_INT32,&PTr.MaxVal,"label='Max Valence'");
     TwAddVarRW(bar,"CCLarkability",TW_TYPE_DOUBLE,&PTr.CClarkability,"label='CCLarkability'");
+    TwAddVarRW(bar,"MatchSing",TW_TYPE_BOOLCPP,&PTr.match_valence,"label='Match Valence'");
     TwAddVarRW(bar,"AddNeed",TW_TYPE_BOOLCPP,&add_only_needed,"label='Add Only need'");
     TwAddVarRW(bar,"InterRem",TW_TYPE_BOOLCPP,&interleave_removal,"label='Interleave removal'");
+    TwAddVarRW(bar,"InterSmth",TW_TYPE_BOOLCPP,&interleave_smooth,"label='Interleave smooth'");
     TwAddVarRW(bar,"FinalRem",TW_TYPE_BOOLCPP,&final_removal,"label='Final removal'");
     TwAddButton(bar,"RecursiveProcess",RecursiveProcess,0," label='Recursive Process' ");
     TwAddButton(bar,"Subdivide",SubdividePatches,0," label='Subdivide Patches' ");
@@ -871,6 +988,7 @@ void GLWidget::resizeGL (int w, int h)
 
 void GLWidget::paintGL ()
 {
+
     if (CurrPatchMode!=OldPatchMode)
     {
         UpdatePatchColor();

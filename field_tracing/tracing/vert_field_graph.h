@@ -129,6 +129,8 @@ class VertexFieldGraph
 
     std::vector<bool> RealBorderVert;
 
+    bool DebugMsg;
+
 public:
 
     struct NeighInfo
@@ -229,15 +231,43 @@ public:
                 AddTwinsConnections(VertIndexes[i],VertIndexes[j]);
     }
 
-    void AddTwinsConnections()
+    void InitRealBorderVert()
     {
-        std::map<CoordType,std::vector<size_t> > CoordVert;
         RealBorderVert.clear();
         RealBorderVert.resize(mesh.vert.size(),false);
+
+        MeshType swap;
+        vcg::tri::Append<MeshType,MeshType>::Mesh(swap,mesh);
+        vcg::tri::Clean<MeshType>::RemoveDuplicateVertex(swap);
+        swap.UpdateAttributes();
+
+        std::map<CoordType,size_t> CoordVert;
+        for (size_t i=0;i<swap.vert.size();i++)
+        {
+            if (!swap.vert[i].IsB())continue;
+            CoordType Pos=swap.vert[i].P();
+            CoordVert[Pos]=i;
+        }
+
         for (size_t i=0;i<mesh.vert.size();i++)
         {
             if (!mesh.vert[i].IsB())continue;
+            CoordType Pos=mesh.vert[i].P();
+            if (CoordVert.count(Pos)==0)continue;
             RealBorderVert[i]=true;
+        }
+
+    }
+
+    void AddTwinsConnections()
+    {
+        std::map<CoordType,std::vector<size_t> > CoordVert;
+        //        RealBorderVert.clear();
+        //        RealBorderVert.resize(mesh.vert.size(),false);
+        for (size_t i=0;i<mesh.vert.size();i++)
+        {
+            if (!mesh.vert[i].IsB())continue;
+            //RealBorderVert[i]=true;
             CoordType Pos=mesh.vert[i].P();
             CoordVert[Pos].push_back(i);
         }
@@ -249,7 +279,7 @@ public:
             CoordType Pos=mesh.vert[i].P();
             if (CoordVert[Pos].size()<=1)continue;
 
-            RealBorderVert[i]=false;
+            //RealBorderVert[i]=false;
             std::vector<size_t> NodesI;
             IndexNodes(i,NodesI);
             for (size_t j=0;j<NodesI.size();j++)
@@ -263,6 +293,8 @@ public:
             CoordType Pos=mesh.vert[i].P();
             AddTwinsConnections(CoordVert[Pos]);
         }
+
+        InitRealBorderVert();
     }
 
     bool IsBorder(const size_t &IndexN)const
@@ -332,7 +364,8 @@ public:
             }
         }while (Removed);
 
-        std::cout<<"permormed removed steps "<<step<<std::endl;
+        if (DebugMsg)
+            std::cout<<"permormed removed steps "<<step<<std::endl;
     }
 
 private:
@@ -630,21 +663,26 @@ private:
 
         AddConnections(VNeigh);
 
-        std::cout<<"removing dead end links"<<std::endl;
+        if (DebugMsg)
+            std::cout<<"removing dead end links"<<std::endl;
+
         RemoveDeadEnd();
 
         //then add twins Connection along sharp features
-        std::cout<<"adding twins connections"<<std::endl;
+        if (DebugMsg)
+            std::cout<<"adding twins connections"<<std::endl;
         AddTwinsConnections();
 
-        std::cout<<"removing dead end links"<<std::endl;
+        if (DebugMsg)
+            std::cout<<"removing dead end links"<<std::endl;
         RemoveDeadEnd();
 
         for (size_t i=0;i<Nodes.size();i++)
             std::sort(Nodes[i].Neigh.begin(),Nodes[i].Neigh.end());
 
         InitDirectConnections();
-        std::cout<<"terminated initialization connections"<<std::endl;
+        if (DebugMsg)
+            std::cout<<"terminated initialization connections"<<std::endl;
     }
 
     std::vector<ScalarType> NodeDist;
@@ -695,6 +733,7 @@ public:
 
     static size_t IndexNode(size_t IndexV,size_t IndexDir)
     {
+        assert(IndexDir<4);
         return ((IndexV*4)+IndexDir);
     }
 
@@ -757,6 +796,7 @@ public:
     CoordType NodePos(size_t IndexN)const
     {
         size_t IndexV=NodeVertI(IndexN);
+        assert(IndexV<mesh.vert.size());
         CoordType Pos=mesh.vert[IndexV].P();
         return Pos;
     }
@@ -795,16 +835,16 @@ public:
     }
 
     bool AreTwin(const size_t &IndexN0,
-                const size_t &IndexN1)const
+                 const size_t &IndexN1)const
     {
-       if (NodePos(IndexN0)!=NodePos(IndexN1))
-           return false;
-       for (size_t i=0;i<NumNeigh(IndexN0);i++)
-       {
-           if (!TwinNeigh(IndexN0,i))continue;
-           if (NodeNeigh(IndexN0,i)==IndexN1)return true;
-       }
-       return false;
+        if (NodePos(IndexN0)!=NodePos(IndexN1))
+            return false;
+        for (size_t i=0;i<NumNeigh(IndexN0);i++)
+        {
+            if (!TwinNeigh(IndexN0,i))continue;
+            if (NodeNeigh(IndexN0,i)==IndexN1)return true;
+        }
+        return false;
     }
 
     bool ActiveNeigh(const size_t &IndexN,
@@ -822,12 +862,12 @@ public:
     }
 
     void GetNodeNeigh(const size_t &IndexN,
-                     std::vector<size_t> &NeighNodes)const
+                      std::vector<size_t> &NeighNodes)const
     {
         assert(IndexN<Nodes.size());
         NeighNodes.clear();
         for (size_t i=0;i<NumNeigh(IndexN);i++)
-             NeighNodes.push_back(NodeNeigh(IndexN,i));
+            NeighNodes.push_back(NodeNeigh(IndexN,i));
     }
 
     bool DirectNeigh(const size_t &IndexN,
@@ -855,8 +895,9 @@ public:
         return mesh;
     }
 
-    void Init()//std::vector<CoordType> &_Sing)
+    void Init(bool _DebugMsg=false)//std::vector<CoordType> &_Sing)
     {
+        DebugMsg=_DebugMsg;
         //SingPos=std::set<CoordType>(_Sing.begin(),_Sing.end());
         //check if everything is ok
         CheckTangentField();
@@ -881,7 +922,9 @@ public:
                 SingNodes.insert(SingNodes.end(),CurrN.begin(),CurrN.end());
             }
         }
-        std::cout<<"There are "<<SingNodes.size()<<" singular Nodes"<<std::endl;
+        if (DebugMsg)
+            std::cout<<"There are "<<SingNodes.size()<<" singular Nodes"<<std::endl;
+        RemoveSingularities();
     }
 
     int &Father(const size_t &IndexNode)
@@ -896,20 +939,20 @@ public:
         return (NodeJumps[IndexNode]);
     }
 
-    ScalarType FieldL(const size_t &IndexNode0,
-                       const size_t &IndexNode1)
-    {
-        CoordType Dir0=NodeDir(IndexNode0);
-        CoordType Dir1=NodeDir(IndexNode1);
-        CoordType AvgDir=(Dir0+Dir1);
-        AvgDir.Normalize();
-        CoordType Pos0=NodePos(IndexNode0);
-        CoordType Pos1=NodePos(IndexNode1);
-        ScalarType L=(Pos1-Pos0)*AvgDir;
-        return L;
-//        assert(IndexNode<NodeJumps.size());
-//        return (NodeJumps[IndexNode]);
-    }
+//    ScalarType FieldL(const size_t &IndexNode0,
+//                      const size_t &IndexNode1)
+//    {
+//        CoordType Dir0=NodeDir(IndexNode0);
+//        CoordType Dir1=NodeDir(IndexNode1);
+//        CoordType AvgDir=(Dir0+Dir1);
+//        AvgDir.Normalize();
+//        CoordType Pos0=NodePos(IndexNode0);
+//        CoordType Pos1=NodePos(IndexNode1);
+//        ScalarType L=(Pos1-Pos0)*AvgDir;
+//        return L;
+//        //        assert(IndexNode<NodeJumps.size());
+//        //        return (NodeJumps[IndexNode]);
+//    }
 
     size_t &TwinJumps(const size_t &IndexNode)
     {
@@ -964,9 +1007,9 @@ public:
 
     void Select(const std::vector<bool> &ToSelect)
     {
-       assert(ToSelect.size()==Nodes.size());
-       for (size_t i=0;i<ToSelect.size();i++)
-           Nodes[i].Selected=ToSelect[i];
+        assert(ToSelect.size()==Nodes.size());
+        for (size_t i=0;i<ToSelect.size();i++)
+            Nodes[i].Selected=ToSelect[i];
     }
 
 
@@ -1009,18 +1052,18 @@ public:
         TMark++;
     }
 
-//    bool IsRealBorderNode(const size_t &IndexNode)
-//    {
-//        if (IsBorder(IndexNode))return false;
-//        return(RealBorderVert[IndexNode]);
-//    }
+    //    bool IsRealBorderNode(const size_t &IndexNode)
+    //    {
+    //        if (IsBorder(IndexNode))return false;
+    //        return(RealBorderVert[IndexNode]);
+    //    }
 
     bool IsRealBorderVert(const size_t &IndexVert)
     {
         return(RealBorderVert[IndexVert]);
-//        if (!mesh.vert[IndexVert].IsB())return false;
-//        if (HasTwin(IndexNode))return true;
-//        return falsel
+        //        if (!mesh.vert[IndexVert].IsB())return false;
+        //        if (HasTwin(IndexNode))return true;
+        //        return falsel
     }
 
     bool IsActive(const size_t &IndexNode)const
@@ -1083,6 +1126,28 @@ public:
             SetActive(SingNodes[i],true);
     }
 
+    void RemoveConnections(const size_t &IndexNode)
+    {
+        Nodes[IndexNode].Neigh.clear();
+        for (size_t i=0;i<Nodes.size();i++)
+        {
+            std::vector<NeighInfo> SwapNeigh;
+            for (size_t j=0;j<Nodes[i].Neigh.size();j++)
+            {
+                if (Nodes[i].Neigh[j].Node==IndexNode)continue;
+                SwapNeigh.push_back(Nodes[i].Neigh[j]);
+            }
+            if (SwapNeigh.size()==Nodes[i].Neigh.size())continue;
+            Nodes[i].Neigh=SwapNeigh;
+        }
+    }
+
+    void RemoveSingularities()
+    {
+        for (size_t i=0;i<SingNodes.size();i++)
+            RemoveConnections(SingNodes[i]);
+    }
+
     void SetActive(const size_t &IndexNode,bool ActiveVal)
     {
         assert(IndexNode<Nodes.size());
@@ -1139,11 +1204,163 @@ public:
     }
 };
 
+
+
 template <class MeshType>
-void PreProcessMesh(MeshType &mesh)
+bool SplitAdjacentSingularities(MeshType &mesh)
 {
+    typedef typename MeshType::VertexType VertexType;
+    typedef typename MeshType::FaceType FaceType;
+    typedef typename MeshType::CoordType CoordType;
+    typedef typename MeshType::ScalarType ScalarType;
+    typedef std::pair<CoordType,CoordType> CoordPair;
+
+    // Basic subdivision class
+    struct SplitLev : public   std::unary_function<vcg::face::Pos<FaceType> ,CoordType >
+    {
+        std::map<CoordPair,CoordType> *SplitOps;
+
+        void operator()(VertexType &nv,vcg::face::Pos<FaceType>  ep)
+        {
+            VertexType* v0=ep.f->V0(ep.z);
+            VertexType* v1=ep.f->V1(ep.z);
+
+            assert(v0!=v1);
+
+            CoordType Pos0=v0->P();
+            CoordType Pos1=v1->P();
+
+            CoordPair CoordK(std::min(Pos0,Pos1),std::max(Pos0,Pos1));
+            assert(SplitOps->count(CoordK)>0);
+            nv.P()=(*SplitOps)[CoordK];
+        }
+
+        vcg::TexCoord2<ScalarType> WedgeInterp(vcg::TexCoord2<ScalarType> &t0,
+                                               vcg::TexCoord2<ScalarType> &t1)
+        {
+            (void)t0;
+            (void)t1;
+            return (vcg::TexCoord2<ScalarType>(0,0));
+        }
+
+        SplitLev(std::map<CoordPair,CoordType> *_SplitOps){SplitOps=_SplitOps;}
+    };
+
+    class EdgePred
+    {
+
+        std::map<CoordPair,CoordType> *SplitOps;
+
+    public:
+
+        bool operator()(vcg::face::Pos<FaceType> ep) const
+        {
+            VertexType* v0=ep.f->V0(ep.z);
+            VertexType* v1=ep.f->V1(ep.z);
+
+            assert(v0!=v1);
+
+            CoordType Pos0=v0->P();
+            CoordType Pos1=v1->P();
+
+            CoordPair CoordK(std::min(Pos0,Pos1),std::max(Pos0,Pos1));
+
+            return (SplitOps->count(CoordK)>0);
+        }
+
+        EdgePred(std::map<CoordPair,CoordType> *_SplitOps){SplitOps=_SplitOps;}
+    };
+
+
+    //InitFeatureCoordsTable();
+    vcg::tri::UpdateSelection<MeshType>::VertexClear(mesh);
+    for (size_t i=0;i<mesh.vert.size();i++)
+    {
+        int Mmatch;
+        if(!vcg::tri::CrossField<MeshType>::IsSingularByCross(mesh.vert[i],Mmatch))continue;
+        mesh.vert[i].SetS();
+    }
+
+    //then also split single sharp edges
+    std::vector<size_t> VertCreases(mesh.vert.size(),0);
+    for (size_t i=0;i<mesh.face.size();i++)
+    {
+        for (size_t j=0;j<3;j++)
+        {
+            size_t IndexV0=vcg::tri::Index(mesh,mesh.face[i].V0(j));
+            size_t IndexV1=vcg::tri::Index(mesh,mesh.face[i].V1(j));
+            if (!mesh.face[i].IsFaceEdgeS(j))continue;
+            if (vcg::face::IsBorder(mesh.face[i],j))continue;
+            if (mesh.face[i].FFp(j)>&mesh.face[i])continue;
+            VertCreases[IndexV0]++;
+            VertCreases[IndexV1]++;
+        }
+    }
+
+    std::map<CoordPair,CoordType> ToBeSplitted;
+    std::vector<CoordPair> Creases;
+    for (size_t i=0;i<mesh.face.size();i++)
+    {
+        for (size_t j=0;j<3;j++)
+        {
+            CoordType P0=mesh.face[i].P0(j);
+            CoordType P1=mesh.face[i].P1(j);
+            std::pair<CoordType,CoordType> key(std::min(P0,P1),std::max(P0,P1));
+            if (mesh.face[i].IsFaceEdgeS(j))
+                Creases.push_back(key);
+
+            bool SplitForSing=((mesh.face[i].V0(j)->IsS())||(mesh.face[i].V1(j)->IsS()));
+            size_t IndexV0=vcg::tri::Index(mesh,mesh.face[i].V0(j));
+            size_t IndexV1=vcg::tri::Index(mesh,mesh.face[i].V1(j));
+            bool SplitForSingleE=((VertCreases[IndexV0]==1)&&(VertCreases[IndexV1]==1));
+            if (SplitForSing || SplitForSingleE)
+            {
+                CoordType Avg=(P0+P1)/2;
+                ToBeSplitted[key]=Avg;
+                if (mesh.face[i].IsFaceEdgeS(j))
+                {
+                    std::pair<CoordType,CoordType> Key0(std::min(P0,Avg),std::max(P0,Avg));
+                    std::pair<CoordType,CoordType> Key1(std::min(P1,Avg),std::max(P1,Avg));
+                    Creases.push_back(Key0);
+                    Creases.push_back(Key1);
+                }
+            }
+        }
+    }
+
+    SplitLev splMd(&ToBeSplitted);
+    EdgePred eP(&ToBeSplitted);
+
+    //do the final split
+    vcg::tri::RefineE<MeshType,SplitLev,EdgePred>(mesh,splMd,eP);
+    mesh.UpdateFromCoordPairs(Creases,false);
+
+//    for (size_t i=0;i<mesh.face.size();i++)
+//    {
+//        for (size_t j=0;j<3;j++)
+//        {
+//            CoordType P0=mesh.face[i].P0(j);
+//            CoordType P1=mesh.face[i].P1(j);
+//            std::pair<CoordType,CoordType> key(std::min(P0,P1),std::max(P0,P1));
+//            if (Creases.count(key)==0);
+//            mesh.face[i].SetFaceEdgeS(j);
+//        }
+//    }
+
+    mesh.UpdateAttributes();
+    //    SetFeatureFromTable();
+    //    return done;
+}
+
+template <class MeshType>
+void PreProcessMesh(MeshType &mesh,bool DebugMsg=false)
+{
+    mesh.SelectSharpFeatures();
+    SplitAdjacentSingularities(mesh);
+
     //split along marked sharp features
-    std::cout<<"splitting along sharp features"<<std::endl;
+    if (DebugMsg)
+        std::cout<<"splitting along sharp features"<<std::endl;
     VertSplitter<MeshType>::SplitAlongEdgeSel(mesh);
     vcg::tri::Allocator<MeshType>::CompactEveryVector(mesh);
     //then update attributes
@@ -1151,6 +1368,17 @@ void PreProcessMesh(MeshType &mesh)
     //then reupdate the vert cross field
     vcg::tri::CrossField<MeshType>::UpdateSingularByCross(mesh);
     vcg::tri::CrossField<MeshType>::SetVertCrossVectorFromFace(mesh);
+
+    if (DebugMsg)
+        std::cout<<"setting rest pos"<<std::endl;
+
+    for (size_t i=0;i<mesh.vert.size();i++)
+        mesh.vert[i].RPos=mesh.vert[i].P();
+
+    if (DebugMsg)
+        std::cout<<"done"<<std::endl;
+
+    mesh.InitSingVert();
 }
 
 #endif

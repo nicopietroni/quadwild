@@ -678,12 +678,16 @@ public:
 
     static void SamplePoissonNodes(VertexFieldGraph<MeshType> &VFGraph,
                                    size_t sampleNum,
-                                   std::vector<size_t> &PoissonNodes)
+                                   std::vector<size_t> &PoissonNodes,
+                                   bool DebugMsg=false)
     {
         PoissonNodes.clear();
         std::vector<CoordType> pointVec;
         ScalarType radius=0;
-        std::cout<<"Poisson Sampling "<<sampleNum<<" Target samples"<<std::endl;
+
+        if (DebugMsg)
+            std::cout<<"Poisson Sampling "<<sampleNum<<" Target samples"<<std::endl;
+
         vcg::tri::PoissonSampling<MeshType>(VFGraph.Mesh(),pointVec,sampleNum,radius,1,0.04f,276519752);
         std::vector<VertexType*> seedVec;
         vcg::tri::VoronoiProcessing<MeshType>::SeedToVertexConversion(VFGraph.Mesh(),pointVec,seedVec);
@@ -697,7 +701,8 @@ public:
             if(VFGraph.IsActive(IndexN[1]))
                 PoissonNodes.push_back(IndexN[1]);
         }
-        std::cout<<"Sampled "<<PoissonNodes.size()<<" samples"<<std::endl;
+        if (DebugMsg)
+            std::cout<<"Sampled "<<PoissonNodes.size()<<" samples"<<std::endl;
     }
 };
 

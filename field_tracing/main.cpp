@@ -54,12 +54,12 @@ extern std::string pathProject;
 extern bool has_features;
 extern bool batch_process;
 
-extern float BatchSample;
-extern float BatchDrift;
-extern int BatchSplit;
-extern int BatchIncreaseValRem;
-extern int BatchIrregularRem;
-extern float BatchDistortionL;
+//extern float BatchSample;
+//extern float BatchDrift;
+//extern int BatchSplit;
+//extern int BatchIncreaseValRem;
+//extern int BatchIrregularRem;
+//extern float BatchDistortionL;
 
 int main(int argc, char *argv[])
 {
@@ -153,23 +153,23 @@ int main(int argc, char *argv[])
         }
     }
 
-    if ((batch_process)&&(argc>=4))
-        BatchSample=atof(argv[3]);
+//    if ((batch_process)&&(argc>=4))
+//        BatchSample=atof(argv[3]);
 
-    if ((batch_process)&&(argc>=5))
-        BatchDrift=atof(argv[4]);
+//    if ((batch_process)&&(argc>=5))
+//        BatchDrift=atof(argv[4]);
 
-    if ((batch_process)&&(argc>=6))
-        BatchSplit=atoi(argv[5]);
+//    if ((batch_process)&&(argc>=6))
+//        BatchSplit=atoi(argv[5]);
 
-    if ((batch_process)&&(argc>=7))
-        BatchIncreaseValRem=atoi(argv[6]);
+//    if ((batch_process)&&(argc>=7))
+//        BatchIncreaseValRem=atoi(argv[6]);
 
-    if ((batch_process)&&(argc>=8))
-        BatchIrregularRem=atoi(argv[7]);
+//    if ((batch_process)&&(argc>=8))
+//        BatchIrregularRem=atoi(argv[7]);
 
-    if ((batch_process)&&(argc>=9))
-        BatchDistortionL=atof(argv[8]);
+//    if ((batch_process)&&(argc>=9))
+//        BatchDistortionL=atof(argv[8]);
 
     GLWidget window;
     window.show();

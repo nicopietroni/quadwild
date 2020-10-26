@@ -122,21 +122,140 @@
 //}
 
 
-template <class ScalarType>
-ScalarType OrderedCC(ScalarType L1,
-                     ScalarType L2)
-{
-    ScalarType CC=std::max(L1,L2)/std::min(L1,L2);
-    return (CC);
-}
+//template <class ScalarType>
+//ScalarType OrderedCC(ScalarType L1,
+//                     ScalarType L2)
+//{
+//    ScalarType CC=std::max(L1,L2)/std::min(L1,L2);
+//    return (CC);
+//}
+
+//template <class ScalarType>
+//ScalarType OrderedCC(ScalarType L1,
+//                     ScalarType L2,
+//                     ScalarType L3)
+//{
+//    ScalarType CC=L1/(L2+L3);
+//    if (CC<1)return 1;
+//    return (CC);
+//}
+
+//template <class ScalarType>
+//ScalarType OrderedCC(ScalarType L1,
+//                     ScalarType L2,
+//                     ScalarType L3,
+//                     ScalarType L4,
+//                     ScalarType L5)
+//{
+//    ScalarType CC=(L1+L2)/(L3+L4+L5);
+//    if (CC<1)return 1;
+//    return CC;
+//}
+
+
+//template <class ScalarType>
+//ScalarType CatmullClarkability(ScalarType L1,
+//                               ScalarType L2,
+//                               ScalarType L3)
+//{
+//    ScalarType CC0=OrderedCC(L1,L2,L3);
+//    ScalarType CC1=OrderedCC(L2,L3,L1);
+//    ScalarType CC2=OrderedCC(L3,L1,L2);
+//    return (std::max(CC0,std::max(CC1,CC2)));
+//}
+
+//template <class ScalarType>
+//ScalarType CatmullClarkability(ScalarType L1,
+//                               ScalarType L2,
+//                               ScalarType L3,
+//                               ScalarType L4)
+//{
+//    ScalarType CC0=OrderedCC(L1,L3);
+//    ScalarType CC1=OrderedCC(L2,L4);
+//    return (std::max(CC0,CC1));
+//}
+
+//template <class ScalarType>
+//ScalarType CatmullClarkability(ScalarType L1,
+//                               ScalarType L2,
+//                               ScalarType L3,
+//                               ScalarType L4,
+//                               ScalarType L5)
+//{
+//    ScalarType CC0=OrderedCC(L1,L2,L3,L4,L5);
+//    ScalarType CC1=OrderedCC(L2,L3,L4,L5,L1);
+//    ScalarType CC2=OrderedCC(L3,L4,L5,L1,L2);
+//    ScalarType CC3=OrderedCC(L4,L5,L1,L2,L3);
+//    ScalarType CC4=OrderedCC(L5,L1,L2,L3,L4);
+//    return (std::max(CC0,std::max(CC1,std::max(CC2,std::max(CC3,CC4)))));
+//}
+
+//template <class ScalarType>
+//ScalarType CatmullClarkability(ScalarType L1,
+//                               ScalarType L2,
+//                               ScalarType L3,
+//                               ScalarType L4,
+//                               ScalarType L5,
+//                               ScalarType L6)
+//{
+//    ScalarType CC0=OrderedCC(L1,L3,L5);
+//    ScalarType CC1=OrderedCC(L2,L4,L6);
+//    return (std::max(CC0,CC1));
+//}
+
+//template <class ScalarType>
+//ScalarType CatmullClarkability(const std::vector<ScalarType> &EdgeL)
+//{
+//    //    assert(EdgeL.size()>=3);
+//    //    assert(EdgeL.size()<=6);
+
+//    if (EdgeL.size()==3)
+//        return (CatmullClarkability(EdgeL[0],EdgeL[1],EdgeL[2]));
+//    if (EdgeL.size()==4)
+//        return (CatmullClarkability(EdgeL[0],EdgeL[1],EdgeL[2],EdgeL[3]));
+//    if (EdgeL.size()==5)
+//        return (CatmullClarkability(EdgeL[0],EdgeL[1],EdgeL[2],EdgeL[3],EdgeL[4]));
+//    if (EdgeL.size()==6)
+//        return (CatmullClarkability(EdgeL[0],EdgeL[1],EdgeL[2],EdgeL[3],EdgeL[4],EdgeL[5]));
+//    return (std::numeric_limits<ScalarType>::max());
+//}
+
+//template <class ScalarType>
+//size_t AddedSingularities(const std::vector<ScalarType> &EdgeL,
+//                          const ScalarType &RatioThr)
+//{
+//    assert(RatioThr>1);
+//    ScalarType CC=CatmullClarkability(EdgeL);
+//    if (CC>RatioThr)
+//    {
+//        return 1;
+//        //if (EdgeL.size()==4)return 2;
+//        //else return 3;
+//    }else
+//    {
+//        return 0;
+////        if (EdgeL.size()==4)return 0;
+////        else return 1;
+//    }
+//}
+
+
+//template <class ScalarType>
+//ScalarType OrderedCC(ScalarType L1,
+//                     ScalarType L2)
+//{
+//    ScalarType CC=std::max(L1,L2)-std::min(L1,L2);
+//    return (CC);
+//}
 
 template <class ScalarType>
 ScalarType OrderedCC(ScalarType L1,
                      ScalarType L2,
                      ScalarType L3)
 {
-    ScalarType CC=L1/(L2+L3);
-    if (CC<1)return 1;
+    ScalarType CC=L1+L2-L3;
+    CC+=std::min(L1,std::min(L2,L3));
+    //if (CC<0)return 0;
     return (CC);
 }
 
@@ -147,96 +266,130 @@ ScalarType OrderedCC(ScalarType L1,
                      ScalarType L4,
                      ScalarType L5)
 {
-    ScalarType CC=(L4+L5)/(L1+L2+L3);
-    if (CC<1)return 1;
+    ScalarType CC=(L3+L4+L5)-(L1+L2);
+    CC+=std::min(L1,std::min(L2,std::min(L3,std::min(L4,L5))));
+    //if (CC<0)return 0;
     return CC;
 }
 
 
 template <class ScalarType>
-ScalarType CatmullClarkability(ScalarType L1,
-                               ScalarType L2,
-                               ScalarType L3)
+ScalarType CatmullClarkability3(ScalarType L1,
+                                ScalarType L2,
+                                ScalarType L3)
 {
     ScalarType CC0=OrderedCC(L1,L2,L3);
     ScalarType CC1=OrderedCC(L2,L3,L1);
     ScalarType CC2=OrderedCC(L3,L1,L2);
-    return (std::max(CC0,std::max(CC1,CC2)));
+    return (std::min(CC0,std::min(CC1,CC2)));
 }
 
 template <class ScalarType>
-ScalarType CatmullClarkability(ScalarType L1,
-                               ScalarType L2,
-                               ScalarType L3,
-                               ScalarType L4)
+ScalarType CatmullClarkability4(const ScalarType L1,
+                                const ScalarType L2,
+                                const ScalarType L3,
+                                const ScalarType L4)
 {
-    ScalarType CC0=OrderedCC(L1,L3);
-    ScalarType CC1=OrderedCC(L2,L4);
-    return (std::max(CC0,CC1));
+//    ScalarType CC0=std::min(L1,L3)/std::max(L1,L3);
+//    if (CC0<Ratio4)CC0=-1;
+//    assert(CC0<=1);
+//    if(fabs(L1-L3)<ThR)CC0=1;
+
+//    ScalarType CC1=std::min(L2,L4)/std::max(L2,L4);
+//    if (CC1<Ratio4)CC1=-1;
+//    assert(CC1<=1);
+//    if(fabs(L2-L4)<ThR)CC1=1;
+
+//    return (std::min(CC0,CC1));
+
+    ScalarType CC0=std::min(L1,L3)-std::max(L1,L3);
+    ScalarType CC1=std::min(L2,L4)-std::max(L2,L4);
+//    CC0+=std::min(L2,L4);
+//    CC1+=std::min(L1,L3);
+    ScalarType CC=std::min(CC0,CC1);
+    CC+=std::min(L1,std::min(L2,std::min(L3,L4)));
+    return CC;
+
 }
 
 template <class ScalarType>
-ScalarType CatmullClarkability(ScalarType L1,
-                               ScalarType L2,
-                               ScalarType L3,
-                               ScalarType L4,
-                               ScalarType L5)
+ScalarType CatmullClarkability5(ScalarType L1,
+                                ScalarType L2,
+                                ScalarType L3,
+                                ScalarType L4,
+                                ScalarType L5)
 {
     ScalarType CC0=OrderedCC(L1,L2,L3,L4,L5);
     ScalarType CC1=OrderedCC(L2,L3,L4,L5,L1);
     ScalarType CC2=OrderedCC(L3,L4,L5,L1,L2);
     ScalarType CC3=OrderedCC(L4,L5,L1,L2,L3);
     ScalarType CC4=OrderedCC(L5,L1,L2,L3,L4);
-    return (std::max(CC0,std::max(CC1,std::max(CC2,std::max(CC3,CC4)))));
+    return (std::min(CC0,std::min(CC1,std::min(CC2,std::min(CC3,CC4)))));
 }
 
 template <class ScalarType>
-ScalarType CatmullClarkability(ScalarType L1,
-                               ScalarType L2,
-                               ScalarType L3,
-                               ScalarType L4,
-                               ScalarType L5,
-                               ScalarType L6)
+ScalarType CatmullClarkability6(ScalarType L1,
+                                ScalarType L2,
+                                ScalarType L3,
+                                ScalarType L4,
+                                ScalarType L5,
+                                ScalarType L6)
 {
     ScalarType CC0=OrderedCC(L1,L3,L5);
     ScalarType CC1=OrderedCC(L2,L4,L6);
-    return (std::max(CC0,CC1));
+    return (std::min(CC0,CC1));
 }
 
 template <class ScalarType>
-ScalarType CatmullClarkability(const std::vector<ScalarType> &EdgeL)
+bool IsCatmullClarkable(const int NumF,
+                        const std::vector<ScalarType> &EdgeL,
+                        const ScalarType &SideThr)
 {
     //    assert(EdgeL.size()>=3);
     //    assert(EdgeL.size()<=6);
-
+    //assert(Ratio4<1);
+    //if (NumF<=EdgeL.size())return true;
+    ScalarType CC=0;
     if (EdgeL.size()==3)
-        return (CatmullClarkability(EdgeL[0],EdgeL[1],EdgeL[2]));
+        CC=(CatmullClarkability3(EdgeL[0],EdgeL[1],EdgeL[2]));
     if (EdgeL.size()==4)
-        return (CatmullClarkability(EdgeL[0],EdgeL[1],EdgeL[2],EdgeL[3]));
+        CC=(CatmullClarkability4(EdgeL[0],EdgeL[1],EdgeL[2],EdgeL[3]));
     if (EdgeL.size()==5)
-        return (CatmullClarkability(EdgeL[0],EdgeL[1],EdgeL[2],EdgeL[3],EdgeL[4]));
+        CC=(CatmullClarkability5(EdgeL[0],EdgeL[1],EdgeL[2],EdgeL[3],EdgeL[4]));
     if (EdgeL.size()==6)
-        return (CatmullClarkability(EdgeL[0],EdgeL[1],EdgeL[2],EdgeL[3],EdgeL[4],EdgeL[5]));
-    return (std::numeric_limits<ScalarType>::max());
+        CC=(CatmullClarkability6(EdgeL[0],EdgeL[1],EdgeL[2],EdgeL[3],EdgeL[4],EdgeL[5]));
+    CC+=SideThr;
+    //CC=std::max(CC,(ScalarType)0);
+    //    if ((EdgeL.size()==4)&&(CC>Ratio4))
+    //        return true;
+    //    if ((EdgeL.size()==4)&&(CC<=Ratio4))
+    //        return false;
+
+    return (CC>0);
 }
 
 template <class ScalarType>
-size_t AddedSingularities(const std::vector<ScalarType> &EdgeL,
-                          const ScalarType &RatioThr)
+size_t AddedSingularities(const int NumF,
+                          const std::vector<ScalarType> &EdgeL,
+                          const ScalarType &SideThr)
 {
-    assert(RatioThr>1);
-    ScalarType CC=CatmullClarkability(EdgeL);
-    if (CC>RatioThr)
-    {
-        return 1;
-        //if (EdgeL.size()==4)return 2;
-        //else return 3;
-    }else
-    {
+    assert(SideThr>0);
+    bool CC=IsCatmullClarkable(NumF,EdgeL,SideThr);
+    //std::cout<<"test CC "<<CC<<std::endl;
+    if (CC)
         return 0;
-//        if (EdgeL.size()==4)return 0;
-//        else return 1;
-    }
+    else
+        return 1;
+    //    {
+    //        return 1;
+    //        //if (EdgeL.size()==4)return 2;
+    //        //else return 3;
+    //    }else
+    //    {
+    //        return 0;
+    ////        if (EdgeL.size()==4)return 0;
+    ////        else return 1;
+    //    }
 }
 
 #endif

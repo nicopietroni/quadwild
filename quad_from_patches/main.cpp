@@ -136,8 +136,8 @@ int main(int argc, char *argv[])
     vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, outputFilename.c_str(), vcg::tri::io::Mask::IOM_FACECOLOR);
 
 
-    ReMapBoundaries(trimesh,quadmesh,trimeshCorners,trimeshPartitions,
-                    quadmeshCorners,quadmeshPartitions);
+//    ReMapBoundaries(trimesh,quadmesh,trimeshCorners,trimeshPartitions,
+//                    quadmeshCorners,quadmeshPartitions);
 
 
     //SMOOTH
@@ -159,7 +159,8 @@ int main(int argc, char *argv[])
     auto last=std::unique(QuadCornersVect.begin(),QuadCornersVect.end());
     QuadCornersVect.erase(last, QuadCornersVect.end());
 
-    SmoothSubdivide(trimesh,quadmesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,100,0.5,EdgeSize);
+    //SmoothSubdivide(trimesh,quadmesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,100,0.5,EdgeSize);
+    MultiCostraintSmooth(quadmesh,trimesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,0.5,EdgeSize,100,2);
 
     //SAVE OUTPUT
     outputFilename = meshFilename;

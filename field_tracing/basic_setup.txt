@@ -1,6 +1,10 @@
-Srate 0.8
 Drift 100
-Split 0
-IncreaseValRem 0
-IrregularRem 0
-DistortionL 2
+Srate 0.05
+SplitOnRem 1
+MaxVal 5
+CCability 1
+MatchVal 1
+AddNeed 1
+InterleaveRem 1
+InterleaveSmooth 0
+FinalRem 1

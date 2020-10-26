@@ -74,7 +74,9 @@ public:
                 vcg::glVertex(DisplacedP[currN]+Dir*size/2);
                 glEnd();
             }
+            //GLDrawNodeNeigh(currN,2);
         }
+
         glPopAttrib();
     }
 

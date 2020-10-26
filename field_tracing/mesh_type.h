@@ -53,6 +53,7 @@
 #include <wrap/gl/trimesh.h>
 
 #include <wrap/io_trimesh/export_ply.h>
+#include <vcg/complex/algorithms/parametrization/tangent_field_operators.h>
 //#include <vcg/complex/algorithms/polygonal_algorithms.h>
 //#include <vcg/complex/algorithms/parametrization/tangent_field_operators.h>
 //#include <vcg/complex/algorithms/curve_on_manifold.h>
@@ -74,7 +75,31 @@ class CVertex : public vcg::Vertex< MyUsedTypes,
         vcg::vertex::Qualityd,
         vcg::vertex::Color4b,
         vcg::vertex::Mark,
-        vcg::vertex::CurvatureDird>{};
+        vcg::vertex::CurvatureDird>
+{
+public:
+
+    CoordType RPos;
+    size_t SingularityValence;
+
+    void ImportData(const CVertex  & left )
+    {
+        vcg::Vertex< MyUsedTypes,
+                vcg::vertex::TexCoord2d,
+                vcg::vertex::Coord3d,
+                vcg::vertex::Normal3d,
+                vcg::vertex::BitFlags,
+                vcg::vertex::VFAdj,
+                vcg::vertex::Qualityd,
+                vcg::vertex::Color4b,
+                vcg::vertex::Mark,
+                vcg::vertex::CurvatureDird>::ImportData(left);
+
+        RPos=left.RPos;
+        SingularityValence=left.SingularityValence;
+    }
+
+};
 
 class CFace   : public vcg::Face<  MyUsedTypes,
         vcg::face::VertexRef,
@@ -97,7 +122,7 @@ class CMesh   : public vcg::tri::TriMesh< std::vector<CVertex>,std::vector<CFace
 public:
     std::vector<std::pair<size_t,size_t> > SharpFeatures;
     std::vector<size_t> SharpCorners;
-    //ScalarType FlatDegree;
+
 
     void UpdateAttributes()
     {
@@ -108,6 +133,7 @@ public:
         vcg::tri::UpdateTopology<CMesh>::VertexFace(*this);
         vcg::tri::UpdateFlags<CMesh>::FaceBorderFromFF(*this);
         vcg::tri::UpdateFlags<CMesh>::VertexBorderFromFaceBorder(*this);
+
     }
 
     bool LoadField(std::string field_filename)
@@ -301,33 +327,6 @@ public:
         }
     }
 
-//    int GenusOfSelectedFaces()
-//    {
-//        vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(*this);
-//        std::set<std::pair<size_t,size_t> > EdgeSet;
-//        size_t NumF=0;
-//        size_t NumV=0;
-//        size_t NumE=0;
-//        for (size_t i=0;i<face.size();i++)
-//        {
-//            if (!face[i].IsS())continue;
-//            NumF++;
-//            for (size_t j=0;j<3;j++)
-//            {
-//               size_t IndV0=vcg::tri::Index(*this,face[i].V0(j));
-//               size_t IndV1=vcg::tri::Index(*this,face[i].V1(j));
-//               EdgeSet.insert(std::pair<size_t,size_t>(std::min(IndV0,IndV1),std::max(IndV0,IndV1)));
-//            }
-//        }
-//        for (size_t i=0;i<vert.size();i++)
-//        {
-//             if (vert[i].IsD())continue;
-//            if (vert[i].IsS())NumV++;
-//        }
-
-//        NumE=EdgeSet.size();
-//        return ( NumV + NumF - NumE );
-//    }
 
     void SelectPos(const  std::vector<std::vector<vcg::face::Pos<FaceType> > > &ToSel,bool SetSel)
     {
@@ -356,6 +355,64 @@ public:
             }
         glEnd();
         glPopAttrib();
+    }
+
+    void InitSingVert()
+    {
+        // query if an attribute is present or not
+       bool hasSingular = vcg::tri::HasPerVertexAttribute(*this,std::string("Singular"));
+       bool hasSingularIndex = vcg::tri::HasPerVertexAttribute(*this,std::string("SingularIndex"));
+
+       assert(hasSingular);
+       assert(hasSingularIndex);
+
+       typename MeshType::template PerVertexAttributeHandle<bool> Handle_Singular;
+       Handle_Singular=vcg::tri::Allocator<MeshType>::template GetPerVertexAttribute<bool>(*this,std::string("Singular"));
+       typename MeshType::template PerVertexAttributeHandle<int> Handle_SingularIndex;
+       Handle_SingularIndex =vcg::tri::Allocator<MeshType>::template GetPerVertexAttribute<int>(*this,std::string("SingularIndex"));
+
+       for (size_t i=0;i<vert.size();i++)
+       {
+           vert[i].SingularityValence=4;
+           if (vert[i].IsD())continue;
+           if (!Handle_Singular[i])continue;
+
+           int SingIndex=Handle_SingularIndex[i];
+
+           switch (SingIndex)
+           {
+             case 1:vert[i].SingularityValence=5;break;
+             case 2:vert[i].SingularityValence=6;break;
+             case 3:vert[i].SingularityValence=3;break;
+             case 4:vert[i].SingularityValence=2;break;
+             default:break;
+           }
+        }
+    }
+
+    void WichFaceEdge(const size_t &IndexV0,
+                      const size_t &IndexV1,
+                      int &IndexF,
+                      int &IndexE)
+    {
+        IndexF=-1;
+        IndexE=-1;
+        std::pair<size_t,size_t> targetE=std::pair<size_t,size_t>(std::min(IndexV0,IndexV1),
+                                                                  std::max(IndexV0,IndexV1));
+        for (size_t i=0;i<face.size();i++)
+            for (size_t j=0;j<3;j++)
+            {
+                size_t TestV0=vcg::tri::Index(*this,face[i].V0(j));
+                size_t TestV1=vcg::tri::Index(*this,face[i].V1(j));
+                std::pair<size_t,size_t> testE=std::pair<size_t,size_t>(std::min(TestV0,TestV1),
+                                                                        std::max(TestV0,TestV1));
+                if (targetE==testE)
+                {
+                    IndexF=i;
+                    IndexE=j;
+                    return;
+                }
+            }
     }
 };
 
