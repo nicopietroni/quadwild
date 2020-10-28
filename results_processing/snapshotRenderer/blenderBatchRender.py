@@ -25,6 +25,12 @@ for file in glob.glob(pattern):
     
     success = bpy.ops.import_scene.obj(filepath=file, axis_forward='-Z', axis_up='Y')
 
+    # the imported objects...
+    obj_objects = bpy.context.selected_objects[:]
+
+    if (len(obj_objects) == 0):
+        continue
+
     obj = bpy.context.selected_objects[0]
 
     bpy.ops.object.origin_set(type='ORIGIN_CENTER_OF_MASS', center='MEDIAN')

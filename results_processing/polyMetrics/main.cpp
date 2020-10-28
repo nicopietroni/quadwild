@@ -7,6 +7,8 @@
 
 #include <mesh_def.h>
 
+#include <json.hpp>
+
 #define WITHOUT_NUMPY
 #include <matplotlibcpp.h>
 
@@ -20,6 +22,23 @@ static void dumpHistogram(Histogram & h, QTextStream & stream)
 {
 	stream << h.Sum() << "," << h.MinV() << "," << h.MaxV() << "," << h.Avg() << ",";
 	stream << h.Percentile(.25) << "," << h.Percentile(.5) << "," << h.Percentile(.75) << "," << h.Percentile(.90) << "," << h.Percentile(.95);
+}
+
+static nlohmann::json dumpHistogram(Histogram & h)
+{
+	nlohmann::json j = {
+	    { "total", h.Sum() },
+	    { "min",   h.MinV() },
+	    { "max",   h.MaxV() },
+	    { "mean",  h.Avg() },
+	    { "P25",   h.Percentile(.25) },
+	    { "P50",   h.Percentile(.50) },
+	    { "P75",   h.Percentile(.75) },
+	    { "P90",   h.Percentile(.90) },
+	    { "P95",   h.Percentile(.95) }
+	};
+
+	return j;
 }
 
 static void writeDataToFile(const std::vector<ScalarType> & data, const std::string & filename)
@@ -96,6 +115,123 @@ static void dumpFaceQualityHistogramPlot(PolyMesh & m, const std::string title, 
 
 }
 
+
+
+static void computeModelStatsAndDump(PolyMesh & m, std::string & m_id, nlohmann::json & json)
+{
+	/* valence stats */
+	vcg::tri::UpdateTopology<PolyMesh>::FaceFace(m);
+	vcg::Histogram<ScalarType> valenceHist;
+	vcg::tri::UpdateQuality<PolyMesh>::VertexValence(m);
+	vcg::tri::Stat<PolyMesh>::ComputePerVertexQualityHistogram(m, valenceHist);
+
+	int non_manifold_edges    = vcg::tri::Clean<PolyMesh>::CountNonManifoldEdgeFF(m);
+	int non_manifold_vertices = vcg::tri::Clean<PolyMesh>::CountNonManifoldVertexFF(m);
+
+	int num_edges = 0; int num_nonManifold_edges = 0; int num_boundary_edges = 0;
+	vcg::tri::Clean<PolyMesh>::CountEdgeNum(m, num_edges, num_boundary_edges, num_nonManifold_edges);
+
+	int num_holes = vcg::tri::Clean<PolyMesh>::CountHoles(m);
+
+	bool manifold = (non_manifold_edges + non_manifold_vertices) == 0;
+
+	int num_cc = vcg::tri::Clean<PolyMesh>::CountConnectedComponents(m);
+
+	int genus = vcg::tri::Clean<PolyMesh>::MeshGenus(m.VN(), num_edges, m.FN(), num_holes, num_cc);
+	int euler = m.VN() - num_edges + m.FN();
+
+	bool watertight = vcg::tri::Clean<PolyMesh>::IsWaterTight(m);
+
+	//	topologyStream << "ID,NUM_VERTS,NUM_EDGES,NUM_FACES,EULER,GENUS,NUM_HOLES,NUM_COMPONENTS,IS_WATERTIGHT,IS_MANIFOLD\n";
+	json["id"] = m_id;
+	json["num_verts"] = m.VN();
+	json["num_edges"] = num_edges;
+	json["num_faces"] = m.FN();
+	json["euler_num"] = euler;
+	json["genus"] = genus;
+	json["num_holes"] = num_holes;
+	json["num_cc"] = num_cc;
+	json["is_watertight"] = watertight;
+	json["is_manifold"] = manifold;
+
+	std::cout<<"computing geo stats" << std::endl;
+	/* area stats */
+	Histogram areaHist;
+	for (size_t i = 0; i < m.face.size(); ++i)
+		m.face[i].Q() = vcg::PolyArea(m.face[i]);
+	vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, areaHist);
+
+	json["area"] = dumpHistogram(areaHist);
+	dumpFaceQualityHistogramPlot(m, "Quad Area", "areaHistogram.png");
+	dumpFaceQualityFile(m, "faceArea.txt");
+
+
+	/* */
+	Histogram faceAngleDeviationHist;
+	vcg::PolygonalAlgorithm<PolyMesh>::UpdateQuality(m, vcg::PolygonalAlgorithm<PolyMesh>::QAngle);
+	vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceAngleDeviationHist);
+
+	json["angledeviation"] = dumpHistogram(faceAngleDeviationHist);
+	dumpFaceQualityHistogramPlot(m, "Angle Deviation", "angleDevHistogram.png");
+	dumpFaceQualityFile(m, "faceAngleDeviation.txt");
+
+	/* */
+	Histogram faceFlatnessHist;
+	vcg::PolygonalAlgorithm<PolyMesh>::UpdateQuality(m, vcg::PolygonalAlgorithm<PolyMesh>::QPlanar);
+	vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceFlatnessHist);
+
+	json["flatness"] = dumpHistogram(faceFlatnessHist);
+	dumpFaceQualityHistogramPlot(m, "Flatness", "flatnessHistogram.png");
+	dumpFaceQualityFile(m, "faceFlatness.txt");
+
+	/* */
+//	Histogram faceAspectHist;
+//	vcg::PolygonalAlgorithm<PolyMesh>::UpdateQuality(m, vcg::PolygonalAlgorithm<PolyMesh>::QTemplate);
+//	vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceAspectHist);
+
+//	dumpHistogram(faceAspectHist, geometryStream);
+//	dumpFaceQualityHistogramPlot(m, "aspectRatioHistogram.png");
+
+	/* */
+	Histogram faceBendingHist;
+	vcg::PolygonalAlgorithm<PolyMesh>::InitQualityFaceBending(m);
+	vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceBendingHist);
+
+	json["bending"] = dumpHistogram(faceBendingHist);
+	dumpFaceQualityHistogramPlot(m, "Bending", "bendingHistogram.png");
+	dumpFaceQualityFile(m, "faceBending.txt");
+
+	/* */
+	Histogram faceTorsionHist;
+	vcg::PolygonalAlgorithm<PolyMesh>::InitQualityFaceTorsion(m);
+	vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceTorsionHist);
+
+	json["torsion"] = dumpHistogram(faceTorsionHist);
+	dumpFaceQualityHistogramPlot(m, "Torsion", "torsionHistogram.png");
+	dumpFaceQualityFile(m, "faceTorsion.txt");
+
+	/* */
+	Histogram vertEdgeLenHist;
+	vcg::PolygonalAlgorithm<PolyMesh>::InitQualityVertEdgeLenght(m);
+	vcg::tri::Stat<PolyMesh>::ComputePerVertexQualityHistogram(m, vertEdgeLenHist);
+
+	json["edgelength"] = dumpHistogram(vertEdgeLenHist);
+	dumpVertQualityHistogramPlot(m, "Edge Length", "edgeLenHistogram.png");
+	dumpVertQualityFile(m, "vertEdgeLen.txt");
+
+	/* */
+	Histogram vertVoronoiAreaHist;
+	vcg::PolygonalAlgorithm<PolyMesh>::InitQualityVertVoronoiArea(m);
+	vcg::tri::Stat<PolyMesh>::ComputePerVertexQualityHistogram(m, vertVoronoiAreaHist);
+
+	json["voroarea"] = dumpHistogram(vertVoronoiAreaHist);
+	dumpVertQualityHistogramPlot(m, "Voronoi Area", "voroAreaHistogram.png");
+	dumpVertQualityFile(m, "vertVoroArea.txt");
+
+	std::ofstream out("stats.json");
+	out << json;
+	out.close();
+}
 
 
 static void computeModelStatsAndDump(PolyMesh & m, std::string & m_id, QTextStream &topologyStream, QTextStream &geometryStream, std::string & dataPath)
@@ -206,8 +342,8 @@ static void computeModelStatsAndDump(PolyMesh & m, std::string & m_id, QTextStre
 	dumpVertQualityFile(m, dataPath + "vertVoroArea.txt");
 	geometryStream << "\n";
 	geometryStream.flush();
-
 }
+
 
 static int openMesh(PolyMesh & m, std::string & name)
 {
@@ -227,83 +363,68 @@ int main(int argc, char * argv[])
 
 	if (argc < 3)
 	{
-		std::cerr <<  "[USAGE] polyMetrics meshDir globPattern outputdir" << std::endl;
+		std::cerr <<  "[USAGE] polyMetrics baseDirectory" << std::endl;
 		return 1;
 	}
 
-	QFile topologyFile("./topology.csv");
-	QFile geometryFile("./geometry.csv");
+//	QFile topologyFile("./topology.csv");
+//	QFile geometryFile("./geometry.csv");
 
-	if(!topologyFile.open(QFile::WriteOnly |QFile::Truncate) || !geometryFile.open(QFile::WriteOnly |QFile::Truncate))
-	{
-		std::cerr << "[PolyMetrics] Error opening files" << std::endl;
-		return -1;
-	}
+//	if(!topologyFile.open(QFile::WriteOnly |QFile::Truncate) || !geometryFile.open(QFile::WriteOnly |QFile::Truncate))
+//	{
+//		std::cerr << "[PolyMetrics] Error opening files" << std::endl;
+//		return -1;
+//	}
 
-	QTextStream topologyStream(&topologyFile);
-	QTextStream geometryStream(&geometryFile);
+//	QTextStream topologyStream(&topologyFile);
+//	QTextStream geometryStream(&geometryFile);
 
-	topologyStream << "ID,NUM_VERTS,NUM_EDGES,NUM_FACES,EULER,GENUS,NUM_HOLES,NUM_COMPONENTS,IS_WATERTIGHT,IS_MANIFOLD\n";
-	geometryStream << "ID,TOTAL_AREA,MIN_AREA,MAX_AREA,MEAN_AREA,P25AREA,P50AREA,P75AREA,P90AREA,P95AREA,";
-	geometryStream << "TOTAL_ANGLEDEV,MIN_ANGLEDEV,MAX_ANGLEDEV,MEAN_ANGLEDEV,P25ANGLEDEV,P50ANGLEDEV,P75ANGLEDEV,P90ANGLEDEV,P95ANGLEDEV,";
-	geometryStream << "TOTAL_FLATNESS,MIN_FLATNESS,MAX_FLATNESS,MEAN_FLATNESS,P25FLATNESS,P50FLATNESS,P75FLATNESS,P90FLATNESS,P95FLATNESS,";
-	geometryStream << "TOTAL_BENDING,MIN_BENDING,MAX_BENDING,MEAN_BENDING,P25BENDING,P50BENDING,P75BENDING,P90BENDING,P95BENDING,";
-	geometryStream << "TOTAL_TORSION,MIN_TORSION,MAX_TORSION,MEAN_TORSION,P25TORSION,P50TORSION,P75TORSION,P90TORSION,P95TORSION,";
-	geometryStream << "TOTAL_EDGELEN,MIN_EDGELEN,MAX_EDGELEN,MEAN_EDGELEN,P25EDGELEN,P50EDGELEN,P75EDGELEN,P90EDGELEN,P95EDGELEN,";
-	geometryStream << "TOTAL_VOROAREA,MIN_VOROAREA,MAX_VOROAREA,MEAN_VOROAREA,P25VOROAREA,P50VOROAREA,P75VOROAREA,P90VOROAREA,P95VOROAREA,";
+//	topologyStream << "ID,NUM_VERTS,NUM_EDGES,NUM_FACES,EULER,GENUS,NUM_HOLES,NUM_COMPONENTS,IS_WATERTIGHT,IS_MANIFOLD\n";
+//	geometryStream << "ID,TOTAL_AREA,MIN_AREA,MAX_AREA,MEAN_AREA,P25AREA,P50AREA,P75AREA,P90AREA,P95AREA,";
+//	geometryStream << "TOTAL_ANGLEDEV,MIN_ANGLEDEV,MAX_ANGLEDEV,MEAN_ANGLEDEV,P25ANGLEDEV,P50ANGLEDEV,P75ANGLEDEV,P90ANGLEDEV,P95ANGLEDEV,";
+//	geometryStream << "TOTAL_FLATNESS,MIN_FLATNESS,MAX_FLATNESS,MEAN_FLATNESS,P25FLATNESS,P50FLATNESS,P75FLATNESS,P90FLATNESS,P95FLATNESS,";
+//	geometryStream << "TOTAL_BENDING,MIN_BENDING,MAX_BENDING,MEAN_BENDING,P25BENDING,P50BENDING,P75BENDING,P90BENDING,P95BENDING,";
+//	geometryStream << "TOTAL_TORSION,MIN_TORSION,MAX_TORSION,MEAN_TORSION,P25TORSION,P50TORSION,P75TORSION,P90TORSION,P95TORSION,";
+//	geometryStream << "TOTAL_EDGELEN,MIN_EDGELEN,MAX_EDGELEN,MEAN_EDGELEN,P25EDGELEN,P50EDGELEN,P75EDGELEN,P90EDGELEN,P95EDGELEN,";
+//	geometryStream << "TOTAL_VOROAREA,MIN_VOROAREA,MAX_VOROAREA,MEAN_VOROAREA,P25VOROAREA,P50VOROAREA,P75VOROAREA,P90VOROAREA,P95VOROAREA,";
 
 
 	QDir dir;
 	QString basePath = dir.currentPath();
 	QString targetDir = argv[1];
 	QString globPattern = argv[2];
-	QString outDir = argv[3];
 
-	QDirIterator it(targetDir, QStringList() << globPattern, QDir::Files, QDirIterator::Subdirectories);
+	QDirIterator it(targetDir, QStringList() << globPattern, QDir::Dirs);
 	while (it.hasNext())
 	{
 		it.next();
+		dir.setCurrent(it.filePath());
 
-
-		std::string mesh = it.fileName().toStdString();
-
-		std::cout << it.fileInfo().absolutePath().toStdString() << std::endl;
-
-
-		QString outDirName = outDir + it.fileInfo().baseName();
-		bool mkdir = dir.mkdir(outDirName);
-		if (!mkdir)
-		{
-			std::cerr << "[polyMetrics] Error creating data directory for " << it.fileName().toStdString() << std::endl;
-			std::cerr << "[polyMetrics] Skipping " << it.fileName().toStdString() << " ..." << std::endl;
-			continue;
-		}
-
-		std::string dataDirName = QDir::toNativeSeparators(dir.absolutePath() + QDir::separator() + outDirName + QDir::separator()).toStdString();
-
-		dir.setCurrent(it.fileInfo().absolutePath());
-
-		std::cout << mesh << std::endl;
 		std::cout << dir.currentPath().toStdString() << std::endl;
+
+
+		nlohmann::json json;
+//		std::string dataDirName = QDir::toNativeSeparators(dir.absolutePath() + QDir::separator() + outDirName + QDir::separator()).toStdString();
+
 		PolyMesh m;
+		std::string mesh = it.fileName().toStdString() + "_rem_p0_0_quadrangulation_smooth.obj";
 		int err = openMesh(m, mesh);
 
+		std::cout << mesh << " " << m.VN() << std::endl;
+
 		if (err)
-		{
-//			continue;
-//					dir.setCurrent(basePath);
-		}
+			continue;
 
 		std::cout << "computing stats..." << std::endl;
 
 		std::string baseName = it.fileInfo().baseName().toStdString();
-		computeModelStatsAndDump(m, baseName, topologyStream, geometryStream, dataDirName);
+		computeModelStatsAndDump(m, baseName, json);
 
 		dir.setCurrent(basePath);
 	}
 
-	topologyFile.close();
-	geometryFile.close();
+//	topologyFile.close();
+//	geometryFile.close();
 
 	return 0;
 }
