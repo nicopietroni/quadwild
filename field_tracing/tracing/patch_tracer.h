@@ -431,6 +431,49 @@ struct EdgeVert
 //}
 
 
+//this is a function to remove some trace that is collinear, it should never happen
+//but sometime it happens for a few cases, still should check the cause
+template <class MeshType>
+void RemoveCollinearTraces(std::vector<CandidateTrace> &TraceSet)
+{
+    
+    std::vector<CandidateTrace> SwapTraceSet;
+    std::set<std::pair<size_t,size_t> > PathEdges;
+    //for each edge set the direction per vertex
+    for (size_t i=0;i<TraceSet.size();i++)
+    {
+        if (TraceSet[i].PathNodes.size()==0)continue;
+        size_t Limit=TraceSet[i].PathNodes.size()-1;
+        if (TraceSet[i].IsLoop)
+            Limit++;
+        bool isOK=true;
+        for (size_t j=0;j<Limit;j++)
+        {
+            size_t IndexN0=TraceSet[i].PathNodes[j];
+            size_t IndexN1=TraceSet[i].PathNodes[(j+1)%TraceSet[i].PathNodes.size()];
+            size_t IndexV0=VertexFieldGraph<MeshType>::NodeVertI(IndexN0);
+            size_t IndexV1=VertexFieldGraph<MeshType>::NodeVertI(IndexN1);
+
+            assert(IndexV0!=IndexV1);
+
+            std::pair<size_t,size_t> EdgeKey(std::min(IndexV0,IndexV1),
+                                             std::max(IndexV0,IndexV1));
+
+            if (PathEdges.count(EdgeKey)>0)
+            {
+                std::cout<<"WARNING DOUBLE EDGE"<<std::endl;
+                isOK=false;
+                break;
+            }
+
+            PathEdges.insert(EdgeKey);
+        }
+        if (isOK)
+            SwapTraceSet.push_back(TraceSet[i]);
+    }
+    TraceSet=SwapTraceSet;
+}
+
 template <class MeshType>
 void GetEdgeDirVertMap(const VertexFieldGraph<MeshType> &VFGraph,
                        const std::vector<CandidateTrace> &TraceSet,
@@ -461,6 +504,29 @@ void GetEdgeDirVertMap(const VertexFieldGraph<MeshType> &VFGraph,
             EdgeVert EdgeKey0(MinV,MaxV,IndexV0);
             EdgeVert EdgeKey1(MinV,MaxV,IndexV1);
 
+            if (EdgeDirVert.count(EdgeKey0)>0)
+            {
+                std::cout<<"WARNING DOUBLE EDGE"<<std::endl;
+                MeshType traceMesh;
+                std::vector<bool> Selected(TraceSet.size(),false);
+                Selected[i]=true;
+                MeshTraces(VFGraph,TraceSet,Selected,traceMesh);
+                vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_domain.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+                vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_error.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+                assert(0);
+            }
+
+            if (EdgeDirVert.count(EdgeKey1)>0)
+            {
+                std::cout<<"WARNING DOUBLE EDGE"<<std::endl;
+                MeshType traceMesh;
+                std::vector<bool> Selected(TraceSet.size(),false);
+                Selected[i]=true;
+                MeshTraces(VFGraph,TraceSet,Selected,traceMesh);
+                vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_domain.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+                vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_error.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+                assert(0);
+            }
             assert(EdgeDirVert.count(EdgeKey0)==0);
             assert(EdgeDirVert.count(EdgeKey1)==0);
 
@@ -1558,8 +1624,9 @@ private:
 
     //DATA STRUCTURES FOR THE PATH AND THE NEEDS FOR EACH VERTEX
     std::vector<CandidateTrace> Candidates;
+public:
     std::vector<CandidateTrace> ChoosenPaths;
-    //std::vector<CandidateTrace> ChoosenPaths;
+private:
     std::vector<size_t> VerticesNeeds;
 
     //std::vector<std::vector<ScalarType> > EdgeL;
@@ -4100,6 +4167,7 @@ private:
     bool RemoveIfPossible(size_t IndexPath)
     {
         if (ChoosenPaths[IndexPath].PathNodes.size()==0)return false;
+        if (ChoosenPaths[IndexPath].Unremovable){std::cout<<"Unremoovable"<<std::endl;return false;}
         //if it includes a concave or narrow then cannot remove
         if (PathHasConcaveNarrowVert(IndexPath))return false;
         //check if have t junction in the middle
@@ -4278,6 +4346,9 @@ private:
             Portions.clear();
             Portions.push_back(ToSplit);
         }
+        if (ToSplit.Unremovable)
+            for (size_t i=0;i<Portions.size();i++)
+                Portions[i].Unremovable=true;
     }
 
     void SelectCrossIntersections()
@@ -4417,7 +4488,7 @@ public:
         SmoothMeshPatches(Mesh(),FacePartitions,Steps,Damp);
     }
 
-    void RemovePaths(bool DoSmooth=true)
+    void RemovePaths()//bool DoSmooth=true)
     {
         //max_patch_area=MeshArea(Mesh())*0.02;
         std::vector<std::vector<vcg::face::Pos<FaceType> > > PathPos;
@@ -4427,8 +4498,8 @@ public:
         GetPathPos(VFGraph,ChoosenPaths,PathPos);
         Mesh().SelectPos(PathPos,true);
 
-        if (DoSmooth)
-            SmoothPatches(10);
+//        if (DoSmooth)
+//            SmoothPatches(10);
 
         if (DebugMsg)
             std::cout<<"Removing..."<<std::endl;
@@ -4481,9 +4552,9 @@ public:
     }
 
 
-    void Init(ScalarType _Drift,bool _DebugMsg=false)
+    void Init(ScalarType _Drift,bool _DebugMsg=true)
     {
-        DebugMsg=_DebugMsg;
+        DebugMsg=true;//_DebugMsg;
         Drift=_Drift;
 
 
@@ -4581,7 +4652,7 @@ public:
         std::vector<std::vector<std::pair<size_t,size_t> > > PathNodes(CurrV.size());
         std::vector<std::vector<std::pair<size_t,size_t> > > PathDirs(CurrV.size());
 
-        std::cout<<"SIZE CHOSEN 0 "<<ChoosenPaths.size()<<std::endl;
+        //std::cout<<"SIZE CHOSEN 0 "<<ChoosenPaths.size()<<std::endl;
         for (size_t i=0;i<CurrV.size();i++)
         {
             size_t Limit=CurrV[i].size()-1;
@@ -4886,7 +4957,7 @@ public:
         Candidates.clear();
 
         if (DebugMsg)
-            std::cout<<"Adding candidates"<<std::endl;
+            std::cout<<"Adding candidates (Trace From)"<<std::endl;
 
         for (size_t i=0;i<VFGraph.NumNodes();i++)
         {
@@ -5416,8 +5487,11 @@ public:
     void BatchRemoval(bool do_smooth=true)
     {
         if (do_smooth)
-            SmoothPatches(10);
-        RemovePaths(false);
+        {
+            UpdatePartitionsFromChoosen(false);
+            SmoothPatches(2);
+        }
+        RemovePaths();//false);
         if (!split_on_removal){
             //FixValences();
             if (DebugMsg)
@@ -5426,7 +5500,7 @@ public:
         }else
         {
             SplitIntoSubPaths();
-            RemovePaths(false);
+            RemovePaths();//false);
             //FixValences();
         }
         if (DebugMsg)
@@ -5726,7 +5800,7 @@ public:
         VFGraph.SetDisabledNodes(MustDisable);
 
         if (DebugMsg)
-            std::cout<<"Adding candidates"<<std::endl;
+            std::cout<<"Adding candidates (Init)"<<std::endl;
 
         for (size_t i=0;i<VFGraph.NumNodes();i++)
         {

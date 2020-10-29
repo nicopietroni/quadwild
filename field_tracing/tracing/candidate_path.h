@@ -19,6 +19,7 @@ struct CandidateTrace
     bool IsLoop;
     bool Updated;
     float Priority;
+    bool Unremovable;
 
     inline bool operator <(const CandidateTrace &C1)const
     {return (Priority<C1.Priority);}
@@ -36,6 +37,7 @@ struct CandidateTrace
         InitNode=_InitNode;
         IsLoop=false;
         Updated=false;
+        Unremovable=false;
         Priority=0;
     }
 };

@@ -50,8 +50,8 @@ int main(int argc, char *argv[])
     loadSetupFile(std::string("basic_setup.txt"), parameters, scaleFactor);
 
     //parameters.hardParityConstraint=true;
-    parameters.chartSmoothingIterations = 20;
-    parameters.quadrangulationSmoothingIterations = 20; //Fixed borders of the patches
+    parameters.chartSmoothingIterations = 0;
+    parameters.quadrangulationSmoothingIterations = 0; //Fixed borders of the patches
 
     if(argc<2)
     {

@@ -171,8 +171,19 @@ bool TraceSubPatch(const size_t &IndexPatch,
     size_t Added_paths=SubTr.CopyPathsFrom(PTr,VertMap);
     if (Added_paths>0)
     {
-        std::cout<<"ADDED ONE EXTRA PATH IN SUBDIVISION"<<std::endl;
+        std::cout<<"ADDED "<<Added_paths<<" EXTRA PATH IN SUBDIVISION"<<std::endl;
+        for (size_t i=0;i<SubTr.ChoosenPaths.size();i++)
+            SubTr.ChoosenPaths[i].Unremovable=true;
     }
+
+//    //MUST BE REMOVED
+//    std::vector<bool> Selected(SubTr.ChoosenPaths.size(),false);
+//    MeshType traceMesh;
+//    MeshTraces(VFGraph,SubTr.ChoosenPaths,Selected,traceMesh);
+//    vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_sub_domain_0.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+//    vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_sub_error_0.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+//    //MUST BE REMOVED
+
     //SubTr.UpdatePartitionsFromChoosen(true);
     //then trace in the subpatch
     //SubTr.BatchProcess(false,true);
@@ -190,6 +201,14 @@ bool TraceSubPatch(const size_t &IndexPatch,
         VertDir.erase(VertDir.begin(), VertDir.begin() + Added_paths);
         IsLoop.erase(IsLoop.begin(), IsLoop.begin() + Added_paths);
     }
+
+//    //MUST BE REMOVED
+//    std::vector<bool> Selected1(SubTr.ChoosenPaths.size(),false);
+//    MeshType traceMesh1;
+//    MeshTraces(VFGraph,SubTr.ChoosenPaths,Selected1,traceMesh1);
+//    vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_sub_domain_1.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+//    vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh1,"double_direction_sub_error_1.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+//    //MUST BE REMOVED
 
     for (size_t i=0;i<VertIdx.size();i++)
         for (size_t j=0;j<VertIdx[i].size();j++)
@@ -423,6 +442,7 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
 
         if (traced)
         {
+            PTr.ColorByPartitions();
             std::cout<<"Updating Patches"<<std::endl;
             PTr.SetChoosenFromVertDir(TotVertIdx,TotVertDir,TotIsLoop);
             std::cout<<"Done Updating Patches"<<std::endl;
@@ -433,8 +453,10 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     if (finalremoval)
     {
         //PTr.split_on_removal=InterleaveRemove;
+
         PTr.UpdatePartitionsFromChoosen(true);
         PTr.BatchRemoval(interleave_smooth);
+
     }
 
     //PTr.FixValences();
@@ -728,6 +750,9 @@ void SaveAllData(PatchTracer<MeshType> &PTr,
 
     for (size_t i=0;i<SaveM.face.size();i++)
         SaveM.face[i].Q()=PTr.FacePartitions[i];
+
+    //vcg::tri::io::ExporterPLY<MeshType>::Save(SaveM,"test_final.ply");
+
 
     SplitAlongShap(SaveM);
 

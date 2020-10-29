@@ -1074,7 +1074,7 @@ void SmoothMeshPatches(MeshType &mesh,
         ReprojectOn(mesh,TargetMesh,Gr);
         LaplacianInternalStep(mesh,FacePatches,Damp);
         ReprojectOn(mesh,TargetMesh,Gr);
-        if (MinQ<0)continue;
+        if (MinQ<=0)continue;
 
         //save new position
         std::vector<CoordType> NewPos;
@@ -1115,8 +1115,8 @@ void SmoothMeshPatches(MeshType &mesh,
         }
     }
     vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
-    if (MinQ>0)
-        SolveFolds(mesh,MinQ);
+//    if (MinQ>0)
+//        SolveFolds(mesh,MinQ);
 
     RestoreEdgeSel(mesh,EdgeSel);
 }
@@ -1707,11 +1707,11 @@ void MeshTrace(const VertexFieldGraph<MeshType> &VFGraph,
    {
        size_t N0=CurrTrace.PathNodes[i];
        size_t N1=CurrTrace.PathNodes[(i+1)%Size];
-       std::cout<<"N0 "<<N0<<std::endl;
-       std::cout<<"N1 "<<N1<<std::endl;
+//       std::cout<<"N0 "<<N0<<std::endl;
+//       std::cout<<"N1 "<<N1<<std::endl;
        CoordType P0=VFGraph.NodePos(N0);
        CoordType P1=VFGraph.NodePos(N1);
-       std::cout<<"got position"<<std::endl;
+ //      std::cout<<"got position"<<std::endl;
        MeshType TempMesh;
        vcg::tri::OrientedCylinder(TempMesh,P0,P1,Width,true);
        vcg::tri::Append<MeshType,MeshType>::Mesh(outMesh,TempMesh);
