@@ -1,40 +1,7 @@
-############################ PROJECT FILES ############################
-
-include(libs.pri)
-
-SOURCES +=  \
-    includes/charts.cpp \
-    includes/convert.cpp \
-    includes/ilp.cpp \
-    includes/mapping.cpp \
-    includes/patterns.cpp \
-    includes/utils.cpp \
-    load_save.cpp \
-    main.cpp \
-    quad_from_patches.cpp
-
-HEADERS += \
-    includes/charts.h \
-    includes/common.h \
-    includes/convert.h \
-    includes/ilp.h \
-    includes/mapping.h \
-    includes/orient_faces.h \
-    includes/patterns.h \
-    includes/utils.h \
-    load_save.h \
-    mesh_types.h \
-    quad_from_patches.h \
-    smooth_mesh.h
-
-#DEFINES += SAVEMESHESFORDEBUG
-#DEFINES += ASSERTFORSIDES
-
-############################ TARGET ############################
+############################ TARGET AND FLAGS ############################
 
 #App config
 TARGET = quad_from_patches
-
 TEMPLATE = app
 CONFIG += c++11
 CONFIG -= app_bundle
@@ -63,42 +30,58 @@ macx {
 }
 
 
-############################ INCLUDES ############################
+############################ LIBRARIES ############################
 
-#Patterns
-include($$PATTERNSPATH/patterns.pri)
-INCLUDEPATH += $$PATTERNSPATH
+#Setting library paths and configuration
+include(configuration.pri)
 
-#libiglfields
-include($$LIBIGLFIELDS/libiglfields.pri)
+#Quad retopology
+include($$QUADRETOPOLOGY_PATH/quadretopology.pri)
 
-#libigl
-INCLUDEPATH += $$LIBIGLPATH/include/
-QMAKE_CXXFLAGS += -isystem $$LIBIGLPATH/include/
+#Libigl
+INCLUDEPATH += $$LIBIGL_PATH/include/
+QMAKE_CXXFLAGS += -isystem $$LIBIGL_PATH/include/
 
-#vcglib
-INCLUDEPATH += $$VCGLIBPATH
-#vcg ply
-HEADERS += \
-    $$VCGLIBPATH/wrap/ply/plylib.h
-SOURCES += \
-    $$VCGLIBPATH/wrap/ply/plylib.cpp
+#Vcglib
+INCLUDEPATH += $$VCGLIB_PATH
 
-#eigen
-INCLUDEPATH += $$EIGENPATH
+#Eigen
+INCLUDEPATH += $$EIGEN_PATH
 
-#gurobi
-INCLUDEPATH += $$GUROBIPATH/include
-LIBS += -L$$GUROBIPATH/lib -lgurobi_g++5.2 -lgurobi90
+#Gurobi
+INCLUDEPATH += $$GUROBI_PATH/include
+LIBS += -L$$GUROBI_PATH/lib -lgurobi_g++5.2 -lgurobi90
 DEFINES += GUROBI_DEFINED
 
-#Parallel computation
-unix:!mac {
-    QMAKE_CXXFLAGS += -fopenmp
-    LIBS += -fopenmp
+#Parallel computation (just in release)
+    CONFIG(release, debug|release){
+    unix:!mac {
+        QMAKE_CXXFLAGS += -fopenmp
+        LIBS += -fopenmp
+    }
+    macx{
+        QMAKE_CXXFLAGS += -Xpreprocessor -fopenmp -lomp -I/usr/local/include
+        QMAKE_LFLAGS += -lomp
+        LIBS += -L /usr/local/lib /usr/local/lib/libomp.dylib
+    }
 }
-macx{
-    QMAKE_CXXFLAGS += -Xpreprocessor -fopenmp -lomp -I/usr/local/include
-    QMAKE_LFLAGS += -lomp
-    LIBS += -L /usr/local/lib /usr/local/lib/libomp.dylib
-}
+
+
+############################ PROJECT FILES ############################
+
+SOURCES +=  \
+    load_save.cpp \
+    main.cpp \
+    quad_from_patches.cpp
+
+HEADERS += \
+    load_save.h \
+    mesh_types.h \
+    quad_from_patches.h \
+    smooth_mesh.h
+
+#Vcg ply (needed to save ply files)
+HEADERS += \
+    $$VCGLIB_PATH/wrap/ply/plylib.h
+SOURCES += \
+    $$VCGLIB_PATH/wrap/ply/plylib.cpp

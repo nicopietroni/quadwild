@@ -15,8 +15,8 @@
 #include "quad_from_patches.h"
 
 typename TriangleMesh::ScalarType avgEdge(const TriangleMesh& trimesh);
-void loadSetupFile(const std::string& path, qfp::Parameters& parameters, float& scaleFactor);
-void SaveSetupFile(const std::string& path, qfp::Parameters& parameters, float& scaleFactor);
+void loadSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor);
+void SaveSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor);
 //int FindCurrentNum(std::string &pathProject);
 
 int main(int argc, char *argv[])
@@ -34,24 +34,24 @@ int main(int argc, char *argv[])
     std::vector<std::vector<size_t>> quadmeshCorners;
     std::vector<int> ilpResult;
 
-//    qfp::Parameters parameters;
+//    QuadRetopology::Parameters parameters;
 //    parameters.alpha = 0.05; //Alpha: blends between isometry (alpha) and regularity (1-alpha)
-//    parameters.ilpMethod = qfp::ILPMethod::LEASTSQUARES; //ILP method
+//    parameters.ilpMethod = QuadRetopology::ILPMethod::LEASTSQUARES; //ILP method
 //    parameters.timeLimit = 5 * 60; //Time limit in seconds
 //    parameters.gapLimit = 0.1; //When it reaches this gap value, optimization stops
 //    parameters.minimumGap = 0.25; //Optimization has to reach at least this minimum gap, otherwise faster methods are performed
 //    parameters.isometry = true; //Activate isometry
 //    parameters.regularityForQuadrilaterals = true; //Activate regularity for quadrilaterals
 //    parameters.regularityForNonQuadrilaterals = true; //Activate regularity for non-quadrilaterals
-//    parameters.hardParityConstraint = false; //Flag to choose if use hard constraints or not
+//    parameters.hardParityConstraint = true; //Flag to choose if use hard constraints or not
 
-    qfp::Parameters parameters;
+    QuadRetopology::Parameters parameters;
     float scaleFactor;
     loadSetupFile(std::string("basic_setup.txt"), parameters, scaleFactor);
 
-    //parameters.hardParityConstraint=true;
-    parameters.chartSmoothingIterations = 0;
-    parameters.quadrangulationSmoothingIterations = 0; //Fixed borders of the patches
+    parameters.chartSmoothingIterations = 0; //Chart smoothing
+    parameters.quadrangulationFixedSmoothingIterations = 0; //Smoothing with fixed borders of the patches
+    parameters.quadrangulationNonFixedSmoothingIterations = 0; //Smoothing with fixed borders of the quadrangulation
 
     if(argc<2)
     {
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
     loadFeatureCorners(featureCFilename);
 
     //COMPUTE QUADRANGULATION
-    qfp::updateAllMeshAttributes(trimesh);
+    QuadRetopology::internal::updateAllMeshAttributes(trimesh);
     double EdgeSize=avgEdge(trimesh)*scaleFactor;
     std::cout<<"Edge Size "<<EdgeSize<<std::endl;
     const std::vector<double> edgeFactor(trimeshPartitions.size(), EdgeSize);
@@ -198,7 +198,7 @@ typename TriangleMesh::ScalarType avgEdge(const TriangleMesh& trimesh)
     return (AvgVal/Num);
 }
 
-void loadSetupFile(const std::string& path, qfp::Parameters& parameters, float& scaleFactor)
+void loadSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor)
 {
     FILE *f=fopen(path.c_str(),"rt");
     assert(f!=NULL);
@@ -211,9 +211,9 @@ void loadSetupFile(const std::string& path, qfp::Parameters& parameters, float& 
     int IntVar=0;
     fscanf(f,"ilpMethod %d\n",&IntVar);
     if (IntVar==0)
-        parameters.ilpMethod=qfp::ILPMethod::ABS;
+        parameters.ilpMethod=QuadRetopology::ILPMethod::ABS;
     else
-        parameters.ilpMethod=qfp::ILPMethod::LEASTSQUARES;
+        parameters.ilpMethod=QuadRetopology::ILPMethod::LEASTSQUARES;
 
     float limitF;
     fscanf(f,"timeLimit %f\n",&limitF);
@@ -264,14 +264,14 @@ void loadSetupFile(const std::string& path, qfp::Parameters& parameters, float& 
     fclose(f);
 }
 
-void SaveSetupFile(const std::string& path, qfp::Parameters& parameters, float& scaleFactor)
+void SaveSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor)
 {
     FILE *f=fopen(path.c_str(),"wt");
     assert(f!=NULL);
 
     fprintf(f,"alpha %f\n", parameters.alpha);
 
-    if (parameters.ilpMethod==qfp::ILPMethod::ABS)
+    if (parameters.ilpMethod==QuadRetopology::ILPMethod::ABS)
         fprintf(f,"ilpMethod 0\n");
     else
         fprintf(f,"ilpMethod 1\n");
@@ -296,6 +296,8 @@ void SaveSetupFile(const std::string& path, qfp::Parameters& parameters, float& 
         fprintf(f,"regularityForNonQuadrilaterals 1\n");
     else
         fprintf(f,"regularityForNonQuadrilaterals 0\n");
+
+    fprintf(f,"regularityNonQuadrilateralWeight %f\n", parameters.regularityNonQuadrilateralWeight);
 
     if (parameters.hardParityConstraint)
         fprintf(f,"hardParityConstraint 1\n");
