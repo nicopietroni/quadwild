@@ -5,7 +5,7 @@
 #DEFINES += GUROBI_NON_VERBOSE
 #DEFINES += NDEBUG
 
-############################ CONFIGURATION ############################
+############################ LIBRARY PATHS ############################
 
 EIGEN_PATH = /usr/include/eigen3
 BOOST_PATH = /usr/include/boost
