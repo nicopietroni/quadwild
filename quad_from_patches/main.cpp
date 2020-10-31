@@ -3,8 +3,8 @@
 #include <vcg/complex/algorithms/update/topology.h>
 #include <vcg/complex/algorithms/update/bounding.h>
 #include <stdio.h>
-#include <QFileInfo>
-#include <QDir>
+//#include <QFileInfo>
+//#include <QDir>
 
 #include "load_save.h"
 #include "mesh_types.h"
