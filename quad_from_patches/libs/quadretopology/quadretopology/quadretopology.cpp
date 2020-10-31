@@ -1153,98 +1153,117 @@ void quadrangulate(
     }
 
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_original.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_1_original.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
+    //Duplicate vertices
+    vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(quadrangulation);
     int numDuplicateVertices = QuadRetopology::internal::removeDuplicateVertices(quadrangulation, false);
     if (numDuplicateVertices > 0) {
         std::cout << "Warning: removed " << numDuplicateVertices << " duplicate vertices in quadrangulation." << std::endl;
     }
+
+    //Degenerate faces
     int numDegenerateFaces = QuadRetopology::internal::removeDegenerateFaces(quadrangulation, false, true);
     if (numDegenerateFaces > 0) {
         std::cout << "Warning: removed " << numDegenerateFaces << " degenerate faces in quadrangulation." << std::endl;
+        vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(quadrangulation);
     }
+
+    //Update attributes and re-orient faces
+    vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(quadrangulation);
+    vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(quadrangulation);
+    QuadRetopology::internal::OrientFaces<PolyMeshType>::AutoOrientFaces(quadrangulation);
+
+    //Reupdate attributes
+    vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(quadrangulation);
+    vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(quadrangulation);
+
+    //Doublet removal
+    if (doubletRemoval) {
+        int numDoublets = QuadRetopology::internal::removeDoubletFaces(quadrangulation, false, true);
+        if (numDoublets > 0) {
+            std::cout << "Removed " << numDoublets << " doublets in quadrangulation." << std::endl;
+            vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(quadrangulation);
+        }
+    }
+
+    //Unreferenced vertices
     int numUnreferencedVertices = QuadRetopology::internal::removeUnreferencedVertices(quadrangulation, false);
     if (numUnreferencedVertices > 0) {
         std::cout << "Warning: removed " << numUnreferencedVertices << " unreferenced vertices in quadrangulation." << std::endl;
     }
 
+
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_no_duplicates.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_2_cleaned.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
-    vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(quadrangulation);
-    vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(quadrangulation);
-    QuadRetopology::internal::OrientFaces<PolyMeshType>::AutoOrientFaces(quadrangulation);
-    vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(quadrangulation);
-    vcg::tri::UpdateNormal<PolyMeshType>::PerVertexNormalized(quadrangulation);
-
-    if (doubletRemoval) {
-        int numDoublets = QuadRetopology::internal::removeDoublets(quadrangulation, false);
-        if (numDoublets > 0) {
-            std::cout << "Removed " << numDoublets << " doublets in quadrangulation." << std::endl;
-
-            int numUnreferencedVerticesAfterDoublets = QuadRetopology::internal::removeUnreferencedVertices(quadrangulation, false);
-            if (numUnreferencedVerticesAfterDoublets > 0) {
-                std::cout << "Removed " << numUnreferencedVerticesAfterDoublets << " unreferenced vertices after doublet removal in quadrangulation." << std::endl;
-            }
-        }
-    }
-
-    //Compact and remap all info
+    //Set birth info in quality
     vcg::tri::UpdateQuality<PolyMeshType>::VertexConstant(quadrangulation, -1);
-    for (size_t i=0;i<quadrangulation.vert.size();i++) {
+    vcg::tri::UpdateQuality<PolyMeshType>::FaceConstant(quadrangulation, -1);
+    for (size_t i=0; i < quadrangulation.vert.size(); i++) {
         if (quadrangulation.vert[i].IsD())
             continue;
 
         quadrangulation.vert[i].Q() = i;
     }
-    vcg::tri::UpdateQuality<PolyMeshType>::FaceConstant(quadrangulation, -1);
-    for (size_t i=0;i<quadrangulation.face.size();i++) {
+    for (size_t i = 0;i < quadrangulation.face.size(); i++) {
         if (quadrangulation.face[i].IsD())
             continue;
 
         quadrangulation.face[i].Q() = i;
     }
 
+    //Compact
     PolyMeshType tmpMesh;
     vcg::tri::Append<PolyMeshType, PolyMeshType>::Mesh(tmpMesh, quadrangulation);
 
+    //Maps for remapping infos
     std::vector<int> tmpToQuadrangulationVertex(tmpMesh.vert.size(), -1);
     std::vector<int> quadrangulationToTmpVertex(quadrangulation.vert.size(), -1);
+    std::vector<int> tmpToQuadrangulationFace(tmpMesh.face.size(), -1);
+    std::vector<int> quadrangulationToTmpFace(quadrangulation.face.size(), -1);
     for (size_t i = 0; i < tmpMesh.vert.size(); i++) {
         if (tmpMesh.vert[i].IsD())
             continue;
+
         int id = tmpMesh.vert[i].Q();
         assert(id >= 0);
+
         tmpToQuadrangulationVertex[i] = id;
         quadrangulationToTmpVertex[id] = i;
     }
-    std::vector<int> tmpToQuadrangulationFace(tmpMesh.face.size(), -1);
-    std::vector<int> quadrangulationToTmpFace(quadrangulation.face.size(), -1);
     for (size_t i = 0; i < tmpMesh.face.size(); i++) {
         if (tmpMesh.face[i].IsD())
             continue;
+
         int id = tmpMesh.face[i].Q();
         assert(id >= 0);
+
         tmpToQuadrangulationFace[i] = id;
         quadrangulationToTmpFace[id] = i;
     }
 
+    //Remap all infos
     std::vector<int> newFaceLabel(tmpMesh.face.size(), -1);
     for (size_t i = 0; i < tmpMesh.face.size(); i++) {
-        if (!tmpMesh.face[i].IsD()) {
-            newFaceLabel[i] = quadrangulationFaceLabel[tmpToQuadrangulationFace[i]];
-        }
+        if (tmpMesh.face[i].IsD())
+            continue;
+
+        assert(tmpToQuadrangulationFace[i] >= 0);
+        newFaceLabel[i] = quadrangulationFaceLabel[tmpToQuadrangulationFace[i]];
     }
     quadrangulationFaceLabel = newFaceLabel;
 
     for (std::vector<size_t>& corners : quadrangulationCorners) {
         std::vector<size_t> newCorners;
         for (const size_t& vId : corners) {
-            if (!quadrangulation.vert[vId].IsD()) {
-                newCorners.push_back(quadrangulationToTmpVertex[vId]);
-            }
+            if (quadrangulation.vert[vId].IsD())
+                continue;
+
+            assert(quadrangulationToTmpVertex[vId] >= 0);
+            newCorners.push_back(quadrangulationToTmpVertex[vId]);
         }
         corners = newCorners;
     }
@@ -1252,9 +1271,11 @@ void quadrangulate(
     for (std::vector<size_t>& partition : quadrangulationPartitions) {
         std::vector<size_t> newPartition;
         for (const size_t& fId : partition) {
-            if (!quadrangulation.face[fId].IsD()) {
-                newPartition.push_back(quadrangulationToTmpFace[fId]);
-            }
+            if (quadrangulation.face[fId].IsD())
+                continue;
+
+            assert(quadrangulationToTmpFace[fId] >= 0);
+            newPartition.push_back(quadrangulationToTmpFace[fId]);
         }
         partition = newPartition;
     }
@@ -1262,12 +1283,14 @@ void quadrangulate(
 
     std::vector<size_t> quadrangulationVerticesBetweenPatch;
     for (const size_t& vId : fixedVerticesSet) {
-        if (!quadrangulation.vert[vId].IsD()) {
-            quadrangulationVerticesBetweenPatch.push_back(quadrangulationToTmpVertex[vId]);
-        }
+        if (quadrangulation.vert[vId].IsD())
+            continue;
+
+        assert(quadrangulationToTmpFace[vId] >= 0);
+        quadrangulationVerticesBetweenPatch.push_back(quadrangulationToTmpVertex[vId]);
     }
 
-    //Create
+    //Recopy in quadrangulation mesh
     quadrangulation.Clear();
     vcg::tri::Append<PolyMeshType, PolyMeshType>::Mesh(quadrangulation, tmpMesh);
     vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(quadrangulation);
@@ -1275,7 +1298,7 @@ void quadrangulate(
     vcg::tri::UpdateFlags<PolyMeshType>::VertexBorderFromFaceAdj(quadrangulation);
 
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_no_doublets.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_3_recompacted.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
     vcg::tri::UpdateNormal<TriangleMeshType>::PerFaceNormalized(newSurface);
@@ -1307,7 +1330,7 @@ void quadrangulate(
     }
 
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_reprojected.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_4_reprojected.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
     if (quadrangulationFixedSmoothingIterations > 0) {
@@ -1323,7 +1346,7 @@ void quadrangulate(
     }
 
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_smoothedfixed.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_5_smoothed_fixed.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
     if (quadrangulationNonFixedSmoothingIterations > 0) {
@@ -1344,7 +1367,7 @@ void quadrangulate(
     vcg::tri::UpdateBounding<PolyMeshType>::Box(quadrangulation);
 
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_smoothednonfixed.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_6_final.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 }
 
@@ -1363,93 +1386,115 @@ void computeResult(
         std::vector<int>& resultPreservedVertexMap,
         std::vector<int>& resultPreservedFaceMap)
 {
+    //Add birth vertex and faces in preserved quality
+    vcg::tri::UpdateQuality<PolyMeshType>::VertexConstant(quadrangulation, -1);
+    vcg::tri::UpdateQuality<PolyMeshType>::FaceConstant(quadrangulation, -1);
+    vcg::tri::UpdateQuality<PolyMeshType>::VertexConstant(preservedMesh, -1);
+    vcg::tri::UpdateQuality<PolyMeshType>::FaceConstant(preservedMesh, -1);
+    for (size_t i = 0; i < preservedMesh.vert.size(); i++) {
+        if (preservedMesh.vert[i].IsD()) {
+            continue;
+        }
+
+        preservedMesh.vert[i].Q() = i;
+    }
+    for (size_t i = 0; i < preservedMesh.face.size(); i++) {
+        if (preservedMesh.face[i].IsD()) {
+            continue;
+        }
+
+        preservedMesh.face[i].Q() = i;
+    }
+
+    //Update quadrangulation topology and borders
     vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(quadrangulation);
     vcg::tri::UpdateFlags<PolyMeshType>::FaceBorderFromFF(quadrangulation);
     vcg::tri::UpdateFlags<PolyMeshType>::VertexBorderFromFaceBorder(quadrangulation);
 
-    for (size_t i = 0; i < preservedMesh.vert.size(); i++) {
-        if (!preservedMesh.vert[i].IsD()) {
-            preservedMesh.vert[i].Q() = i;
-        }
-    }
-    for (size_t i = 0; i < quadrangulation.vert.size(); i++) {
-        if (!quadrangulation.vert[i].IsD()) {
-            quadrangulation.vert[i].Q() = -1;
-        }
-    }
-
-    for (size_t i = 0; i < quadrangulation.face.size(); i++) {
-        if (!quadrangulation.face[i].IsD()) {
-            quadrangulation.face[i].Q() = -1;
-        }
-    }
-
-    //Select quadrangulation borders
-    vcg::tri::UpdateSelection<PolyMeshType>::FaceClear(quadrangulation);
-    vcg::tri::UpdateSelection<PolyMeshType>::VertexClear(quadrangulation);
+    //Set V on quadrangulation border vertices
+    vcg::tri::UpdateFlags<PolyMeshType>::VertexClearV(quadrangulation);
+    vcg::tri::UpdateFlags<PolyMeshType>::FaceClearV(quadrangulation);
+    vcg::tri::UpdateFlags<PolyMeshType>::VertexClearV(preservedMesh);
+    vcg::tri::UpdateFlags<PolyMeshType>::FaceClearV(preservedMesh);
     for (size_t i = 0; i < quadrangulation.vert.size(); i++) {
         if (quadrangulation.vert[i].IsD())
             continue;
 
         if (quadrangulation.vert[i].IsB()) {
-            quadrangulation.vert[i].SetS();
+            quadrangulation.vert[i].SetV();
         }
     }
 
     //Create result
     PolyMeshType tmpMesh;
-
     vcg::tri::Append<PolyMeshType, PolyMeshType>::Mesh(tmpMesh, preservedMesh);
-    vcg::tri::UpdateSelection<PolyMeshType>::VertexClear(tmpMesh);
-
     vcg::tri::Append<PolyMeshType, PolyMeshType>::Mesh(tmpMesh, quadrangulation);
 
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_no_merged.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_1_original.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
-//    vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(tmpMesh);
-//    vcg::tri::UpdateFlags<PolyMeshType>::FaceBorderFromFF(tmpMesh);
-//    vcg::tri::UpdateFlags<PolyMeshType>::VertexBorderFromFaceBorder(tmpMesh);
+    //Select quadrangulation borders and face
+    vcg::tri::UpdateSelection<PolyMeshType>::VertexClear(tmpMesh);
+    vcg::tri::UpdateSelection<PolyMeshType>::FaceClear(tmpMesh);
+    for (size_t i = 0; i < tmpMesh.vert.size(); i++) {
+        if (tmpMesh.vert[i].IsD())
+            continue;
 
-    //Here quadrangulation borders would be selected
+        if (tmpMesh.vert[i].Q() < 0) {
+            if (tmpMesh.vert[i].IsV()) {
+                tmpMesh.vert[i].SetS();
+            }
+        }
+    }
+    for (size_t i = 0; i < tmpMesh.face.size(); i++) {
+        if (tmpMesh.face[i].IsD())
+            continue;
+
+        if (tmpMesh.face[i].Q() < 0) {
+            tmpMesh.face[i].SetS();
+        }
+    }
 
 //    int numClustered = QuadRetopology::internal::clusterVertices(tmpMesh, true, 0.00001);
 //    if (numClustered > 0) {
 //        std::cout << "Clustered " << numClustered << " vertices." << std::endl;
 //    }
+
+    //Duplicates
     int numDuplicateVertices = QuadRetopology::internal::removeDuplicateVertices(tmpMesh, true);
     if (numDuplicateVertices > 0) {
         std::cout << "Merged " << numDuplicateVertices << " duplicate vertices." << std::endl;
     }
-    int numDegenerateFaces = QuadRetopology::internal::removeDegenerateFaces(tmpMesh, false, true);
+
+#ifdef SAVE_MESHES_FOR_DEBUG
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_2_merged.obj", vcg::tri::io::Mask::IOM_NONE);
+#endif
+
+    //Degenerate faces
+    int numDegenerateFaces = QuadRetopology::internal::removeDegenerateFaces(tmpMesh, true, true);
     if (numDegenerateFaces > 0) {
-        std::cout << "Removed " << numDegenerateFaces << " degenerate faces after duplicate vertex removal." << std::endl;
+        std::cout << "Removed " << numDegenerateFaces << " degenerate faces after duplicate vertex removal." << std::endl;        
+        vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(quadrangulation);
     }
+
+    //Doublet removal
+    if (doubletRemoval) {
+        int numDoublets = QuadRetopology::internal::removeDoubletFaces(tmpMesh, true, true);
+        if (numDoublets > 0) {
+            std::cout << "Removed " << numDoublets << " doublets." << std::endl;
+            vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(quadrangulation);
+        }
+    }
+
+    //Unreferenced vertices
     int numUnreferencedVertices = QuadRetopology::internal::removeUnreferencedVertices(tmpMesh, true);
     if (numUnreferencedVertices > 0) {
         std::cout << "Removed " << numUnreferencedVertices << " unreferenced vertices after duplicate vertex removal." << std::endl;
     }
 
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_merged.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
-#endif
-
-    if (doubletRemoval) {        
-        vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(tmpMesh);
-        int numDoublets = QuadRetopology::internal::removeDoublets(tmpMesh, true);
-        if (numDoublets > 0) {
-            std::cout << "Removed " << numDoublets << " doublets." << std::endl;
-
-            int numUnreferencedVerticesAfterDoublets = QuadRetopology::internal::removeUnreferencedVertices(tmpMesh, false);
-            if (numUnreferencedVerticesAfterDoublets > 0) {
-                std::cout << "Removed " << numUnreferencedVerticesAfterDoublets << " unreferenced vertices after doublet removal." << std::endl;
-            }
-        }
-    }
-
-#ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_no_doublets.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_3_cleaned.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
     result.Clear();
@@ -1457,14 +1502,10 @@ void computeResult(
 
     vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(result);
     vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(result);
-
-//    internal::OrientFaces<PolyMeshType>::AutoOrientFaces(result);
-//    vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(result);
-
     vcg::tri::UpdateNormal<PolyMeshType>::PerVertexNormalized(result);
 
-    //Fill maps
-    std::vector<size_t> smoothingVertices; //Vertices to be smoothed
+    //Fill maps and choose vertices to be smoothed
+    std::vector<size_t> smoothingVertices;
     resultPreservedVertexMap.resize(result.vert.size(), -1);
     for (size_t i = 0; i < result.vert.size(); i++) {
         if (result.vert[i].IsD())
@@ -1488,7 +1529,7 @@ void computeResult(
     }
 
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(result, "results/result_before_reprojection.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(result, "results/result_4_recompacted.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
     vcg::tri::UpdateNormal<TriangleMeshType>::PerFaceNormalized(targetBoolean);
@@ -1528,7 +1569,7 @@ void computeResult(
     for (int it = 0; it < resultSmoothingIterations; it++) {
         typename PolyMeshType::ScalarType maxDistance = internal::averageEdgeLength(result) * resultSmoothingNRing;
 
-        internal::LaplacianGeodesic(result, 1, maxDistance, 0.7);
+        internal::LaplacianGeodesicSmoothing(result, resultSmoothingIterations, maxDistance, 0.7);
 
         //Reproject
         vcg::tri::UpdateBounding<PolyMeshType>::Box(result);
@@ -1551,14 +1592,14 @@ void computeResult(
 
     typename PolyMeshType::ScalarType maxDistance = internal::averageEdgeLength(result) * resultSmoothingLaplacianNRing;
 
-    internal::LaplacianGeodesic(result, resultSmoothingLaplacianIterations, maxDistance, 0.8);
+    internal::LaplacianGeodesicSmoothing(result, resultSmoothingLaplacianIterations, maxDistance, 0.8);
 
     vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(result);
     vcg::tri::UpdateNormal<PolyMeshType>::PerVertexNormalized(result);
     vcg::tri::UpdateBounding<PolyMeshType>::Box(result);
 
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(result, "results/result.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(result, "results/result_5_final.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 }
 

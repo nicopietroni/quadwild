@@ -19,8 +19,8 @@ int removeDuplicateVertices(PolyMeshType& mesh, const bool onlySelected);
 template <class PolyMeshType>
 int removeDegenerateFaces(PolyMeshType& mesh, bool onlySelected, bool alwaysDelete);
 
-template <class MeshType>
-int removeDoublets(MeshType &mesh);
+template <class PolyMeshType>
+int removeDoubletFaces(PolyMeshType& mesh, bool onlySelected, bool recursive);
 
 static std::vector<size_t> dummySizetVector;
 
@@ -35,7 +35,7 @@ template<class MeshType>
 void LaplacianPos(MeshType &poly_m,std::vector<typename MeshType::CoordType> &AvVert);
 
 template <class MeshType>
-void LaplacianGeodesic(
+void LaplacianGeodesicSmoothing(
         MeshType &poly_m,
         int nstep,
         const double maxDistance,

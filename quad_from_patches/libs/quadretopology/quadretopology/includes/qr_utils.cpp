@@ -273,57 +273,67 @@ int removeDuplicateVertices(PolyMeshType& mesh, const bool onlySelected)
 }
 
 template <class PolyMeshType>
-int removeDoublets(PolyMeshType& mesh, bool onlySelectedVertices)
+int removeDoubletFaces(PolyMeshType& mesh, bool onlySelected, bool recursive)
 {
     int count = 0;
 
     vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(mesh);
 
-    for (size_t i = 0; i < mesh.face.size(); ++i) {
-        if (mesh.face[i].IsD() || mesh.face[i].VN() != 4)
-            continue;
-
-        typename PolyMeshType::FacePointer face = &mesh.face[i];
-
-        for (int j1 = 0; j1 < face->VN(); ++j1) {
-            int j2 = (j1+1) % face->VN();
-            int j3 = (j1+2) % face->VN();
-            int j4 = (j1+3) % face->VN();
-
-            if (onlySelectedVertices && (!face->V(j1)->IsS() || !face->V(j2)->IsS() || !face->V(j3)->IsS()))
+    bool done;
+    do {
+        done = true;
+        for (size_t i = 0; i < mesh.face.size(); ++i) {
+            if (mesh.face[i].IsD() || mesh.face[i].VN() != 4)
                 continue;
 
-            if (vcg::face::IsBorder(*face, j1) || vcg::face::IsBorder(*face, j2))
-                continue;
+            typename PolyMeshType::FacePointer face = &mesh.face[i];
 
-            if (face->FFp(j1) == face->FFp(j2)) {
-                typename PolyMeshType::FacePointer adjFace = face->FFp(j2);
+            for (int j1 = 0; j1 < face->VN(); ++j1) {
+                int j2 = (j1+1) % face->VN();
+                int j3 = (j1+2) % face->VN();
+                int j4 = (j1+3) % face->VN();
 
-                if (adjFace->IsD() || adjFace->VN() != 4)
+                if (vcg::face::IsBorder(*face, j1) || vcg::face::IsBorder(*face, j2))
                     continue;
 
-                int adjJ1 = adjFace->FFi(j1);
-                int adjJ2 = (adjJ1+1) % adjFace->VN();
-                int adjJ3 = (adjJ1+2) % adjFace->VN();
-                int adjJ4 = (adjJ1+3) % adjFace->VN();
+                if (face->FFp(j1) == face->FFp(j2)) {
+                    typename PolyMeshType::FacePointer adjFace = face->FFp(j2);
 
-                //Remove warnings
-                static_cast<void>(j3);
-                static_cast<void>(j4);
-                static_cast<void>(adjJ2);
+                    if (adjFace->IsD() || adjFace->VN() != 4)
+                        continue;
 
-                if (adjFace->FFp(adjJ1) != face || adjFace->FFp(adjJ4) != face) //Non manifoldness (it should not happen)
-                    continue;
+                    if (onlySelected && !adjFace->IsS())
+                        continue;
 
-                assert(face->V(j1) == adjFace->V(adjJ2) && face->V(j2) == adjFace->V(adjJ1) && face->V(j3) == adjFace->V(adjJ4));
+                    int adjJ1 = adjFace->FFi(j1);
+                    int adjJ2 = (adjJ1+1) % adjFace->VN();
+                    int adjJ3 = (adjJ1+2) % adjFace->VN();
+                    int adjJ4 = (adjJ1+3) % adjFace->VN();
 
-                face->V(j2) = adjFace->V(adjJ3);
+                    //Remove warnings
+                    static_cast<void>(j3);
+                    static_cast<void>(j4);
+                    static_cast<void>(adjJ2);
 
-                vcg::tri::Allocator<PolyMeshType>::DeleteFace(mesh, *adjFace);
-                count++;
+                    if (adjFace->FFp(adjJ1) != face || adjFace->FFp(adjJ4) != face) //Non manifoldness (it should not happen)
+                        continue;
+
+                    assert(face->V(j1) == adjFace->V(adjJ2) && face->V(j2) == adjFace->V(adjJ1) && face->V(j3) == adjFace->V(adjJ4));
+
+                    face->V(j2) = adjFace->V(adjJ3);
+
+                    vcg::tri::Allocator<PolyMeshType>::DeleteFace(mesh, *adjFace);
+                    count++;
+
+                    done = false;
+                }
             }
         }
-    }
+        if (recursive && !done) {
+            vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(mesh);
+        }
+    } while (recursive && !done);
+
     return count;
 }
 
@@ -434,7 +444,7 @@ void LaplacianPos(MeshType &poly_m,std::vector<typename MeshType::CoordType> &Av
 }
 
 template <class MeshType>
-void LaplacianGeodesic(
+void LaplacianGeodesicSmoothing(
         MeshType &poly_m,
         int nstep,
         const double maxDistance,
