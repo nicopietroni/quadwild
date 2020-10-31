@@ -1,4 +1,4 @@
-#include "quad_retopology.h"
+#include "quadretopology.h"
 
 #include "includes/qr_convert.h"
 #include "includes/qr_field_tracer.h"
@@ -1405,7 +1405,7 @@ void computeResult(
     vcg::tri::Append<PolyMeshType, PolyMeshType>::Mesh(tmpMesh, quadrangulation);
 
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_nomerged.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_no_merged.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
 #endif
 
 //    vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(tmpMesh);
@@ -1431,7 +1431,12 @@ void computeResult(
         std::cout << "Removed " << numUnreferencedVertices << " unreferenced vertices after duplicate vertex removal." << std::endl;
     }
 
-    if (doubletRemoval) {
+#ifdef SAVE_MESHES_FOR_DEBUG
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_merged.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+#endif
+
+    if (doubletRemoval) {        
+        vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(tmpMesh);
         int numDoublets = QuadRetopology::internal::removeDoublets(tmpMesh, true);
         if (numDoublets > 0) {
             std::cout << "Removed " << numDoublets << " doublets." << std::endl;
@@ -1444,7 +1449,7 @@ void computeResult(
     }
 
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_noduplicates.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_no_doublets.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
 #endif
 
     result.Clear();
@@ -1553,7 +1558,7 @@ void computeResult(
     vcg::tri::UpdateBounding<PolyMeshType>::Box(result);
 
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(result, "results/result_after_reprojection.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(result, "results/result.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
 #endif
 }
 

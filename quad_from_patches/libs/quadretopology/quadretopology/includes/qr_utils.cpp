@@ -273,7 +273,7 @@ int removeDuplicateVertices(PolyMeshType& mesh, const bool onlySelected)
 }
 
 template <class PolyMeshType>
-int removeDoublets(PolyMeshType& mesh, bool selectedOnly)
+int removeDoublets(PolyMeshType& mesh, bool onlySelectedVertices)
 {
     int count = 0;
 
@@ -290,10 +290,10 @@ int removeDoublets(PolyMeshType& mesh, bool selectedOnly)
             int j3 = (j1+2) % face->VN();
             int j4 = (j1+3) % face->VN();
 
-            if (vcg::face::IsBorder(*face, j1) || vcg::face::IsBorder(*face, j2))
+            if (onlySelectedVertices && (!face->V(j1)->IsS() || !face->V(j2)->IsS() || !face->V(j3)->IsS()))
                 continue;
 
-            if (selectedOnly && (!face->V(j1)->IsS() || !face->V(j2)->IsS()))
+            if (vcg::face::IsBorder(*face, j1) || vcg::face::IsBorder(*face, j2))
                 continue;
 
             if (face->FFp(j1) == face->FFp(j2)) {

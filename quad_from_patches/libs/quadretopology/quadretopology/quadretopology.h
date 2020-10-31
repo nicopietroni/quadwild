@@ -1,5 +1,5 @@
-#ifndef QUAD_RETOPOLOGY_H
-#define QUAD_RETOPOLOGY_H
+#ifndef QUADRETOPOLOGY_H
+#define QUADRETOPOLOGY_H
 
 #include <vector>
 
@@ -122,6 +122,6 @@ void computeResult(
         std::vector<int>& resultPreservedFaceMap);
 }
 
-#include "quad_retopology.cpp"
+#include "quadretopology.cpp"
 
-#endif // QUAD_RETOPOLOGY_H
+#endif // QUADRETOPOLOGY_H

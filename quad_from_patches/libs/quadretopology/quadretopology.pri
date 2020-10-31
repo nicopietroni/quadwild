@@ -14,7 +14,7 @@ SOURCES += \
         $$PWD/quadretopology/includes/qr_patterns.cpp \
         $$PWD/quadretopology/includes/qr_mapping.cpp \
         $$PWD/quadretopology/includes/qr_utils.cpp \
-        $$PWD/quadretopology/quad_retopology.cpp
+        $$PWD/quadretopology/quadretopology.cpp
 
 HEADERS += \
         $$PWD/quadretopology/includes/qr_field_tracer.h \
@@ -29,4 +29,4 @@ HEADERS += \
         $$PWD/quadretopology/includes/qr_mapping.h \
         $$PWD/quadretopology/includes/qr_patch_assembler.h \
         $$PWD/quadretopology/includes/qr_utils.h \
-        $$PWD/quadretopology/quad_retopology.h
+        $$PWD/quadretopology/quadretopology.h

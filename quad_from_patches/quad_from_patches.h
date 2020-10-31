@@ -1,7 +1,7 @@
 #ifndef QUADFROMPATCHES_H
 #define QUADFROMPATCHES_H
 
-#include <quadretopology/quad_retopology.h>
+#include <quadretopology/quadretopology.h>
 
 namespace qfp {
 

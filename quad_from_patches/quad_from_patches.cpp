@@ -1,6 +1,6 @@
 #include "quad_from_patches.h"
 
-#include <quadretopology/quad_retopology.h>
+#include <quadretopology/quadretopology.h>
 
 #ifdef SAVE_MESHES_FOR_DEBUG
 #include <igl/writeOBJ.h>
