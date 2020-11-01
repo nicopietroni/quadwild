@@ -279,7 +279,7 @@ void TemplatePos(PolyMeshType &poly_mesh,
     }
 
     //smooth
-    vcg::PolygonalAlgorithm<PolyMeshType>::SmoothPCA(poly_mesh,1,Damp,true,true,0.1,true,true);
+    vcg::PolygonalAlgorithm<PolyMeshType>::SmoothPCA(poly_mesh,1,Damp,true,true,0.3,true,true);
 
     vcg::tri::UpdateFlags<PolyMeshType>::VertexClearS(poly_mesh);
 

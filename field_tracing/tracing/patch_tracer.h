@@ -5299,18 +5299,13 @@ public:
         return UnsatisfiedNum;
     }
 
-    void JoinNarrow(bool UpdatePartition=true)
+    void JoinNarrowStep(bool UpdatePartition=true)
     {
         bool Joined=true;
         size_t NumPath0=ChoosenPaths.size();
         do
         {
             Joined=false;
-
-            //SHORT ONES
-            MaxNarrowWeight/=100;
-            Joined|=JoinConnection(TVNarrow,TVFlat,DijkstraReceivers);
-            MaxNarrowWeight*=100;
 
             //NARROW TO NARROW
             //std::cout<<"0a"<<std::endl;
@@ -5322,10 +5317,9 @@ public:
 
             //std::cout<<"2a"<<std::endl;
             //NARROW TO FLAT
-            //MaxNarrowWeight*=1000;
             Joined|=JoinConnection(TVNarrow,TVFlat,TraceDirect);
             Joined|=JoinConnection(TVNarrow,TVFlat,DijkstraReceivers);
-            //MaxNarrowWeight/=1000;
+
             //std::cout<<"3a"<<std::endl;
             //            //NARROW TO TRACED
             //            Joined|=JoinConnection(Narrow,Choosen,TraceDirect);
@@ -5345,16 +5339,21 @@ public:
         }
     }
 
-    void JoinConcave(bool UpdatePartition=true)
+    void JoinNarrow(bool UpdatePartition=true)
+    {
+//        MaxNarrowWeight/=100;
+//        JoinNarrowStep(UpdatePartition);
+//        MaxNarrowWeight*=100;
+        JoinNarrowStep(UpdatePartition);
+    }
+
+    void JoinConcaveStep(bool UpdatePartition=true)
     {
         bool Joined=true;
         size_t NumPath0=ChoosenPaths.size();
         do
         {
             Joined=false;
-            MaxNarrowWeight/=100;
-            Joined|=JoinConnection(TVConcave,TVFlat,DijkstraReceivers);
-            MaxNarrowWeight*=100;
             //
             //CONCAVE TO CONCAVE
             Joined|=JoinConnection(TVConcave,TVConcave,DijkstraReceivers);
@@ -5380,6 +5379,14 @@ public:
             UpdatePartitionsFromChoosen();
             ColorByPartitions();
         }
+    }
+
+    void JoinConcave(bool UpdatePartition=true)
+    {
+//        MaxNarrowWeight/=100;
+//        JoinConcaveStep(UpdatePartition);
+//        MaxNarrowWeight*=100;
+        JoinConcaveStep(UpdatePartition);
     }
 
     void JoinBoundaries(bool UpdatePartition=true,
