@@ -47,6 +47,7 @@ inline std::vector<int> solveILP(
 
         // Create variables
         GRBQuadExpr obj = 0;
+        GRBQuadExpr supportObj = 0;
 
         vector<GRBVar> vars(chartData.subsides.size());
         vector<GRBVar> diff;
@@ -74,7 +75,7 @@ inline std::vector<int> solveILP(
                 model.addConstr(diff[dId] == vars[subsideId] - subside.size, "doc" + to_string(dId));
                 model.addGenConstrAbs(abs[aId], diff[dId], "aoc" + to_string(aId));
 
-                obj += abs[aId] * FEASIBILITY_FIX_COST;
+                supportObj += abs[aId] * FEASIBILITY_FIX_COST;
 
                 hasVariable[subsideId] = true;
             }
@@ -468,7 +469,7 @@ inline std::vector<int> solveILP(
         }
 
         //Set objective function
-        model.setObjective(obj, GRB_MINIMIZE);
+        model.setObjective(obj + supportObj, GRB_MINIMIZE);
 
 //        model.write("out.lp");
 
@@ -489,7 +490,9 @@ inline std::vector<int> solveILP(
             }
         }
 
-        cout << "Obj: " << model.get(GRB_DoubleAttr_ObjVal) << endl;
+//        cout << "Obj: " << model.get(GRB_DoubleAttr_ObjVal) << endl;
+        cout << "Support obj: " << supportObj.getValue() << endl;
+        cout << "Obj: " << obj.getValue() << endl;
 
         gap = model.get(GRB_DoubleAttr_MIPGap);
 
