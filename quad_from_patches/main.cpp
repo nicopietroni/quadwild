@@ -173,7 +173,9 @@ int main(int argc, char *argv[])
     for(size_t i=0;i<trimesh.face.size();i++)
         trimesh.face[i].C()=vcg::Color4b::Scatter(trimeshPartitions.size(),TriPart[i]);
 
-   vcg::tri::io::ExporterOBJ<TriangleMesh>::Save(trimesh,"test_tri.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+#ifdef SAVE_MESHES_FOR_DEBUG
+   vcg::tri::io::ExporterOBJ<TriangleMesh>::Save(trimesh,"results/test_tri.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
+#endif
 
    std::string setupFilename = meshFilename;
    setupFilename.erase(partitionFilename.find_last_of("."));
