@@ -877,30 +877,22 @@ void InitLoopBar(QWidget *w)
     TwAddButton(bar,"JoinConcave",JoinConcave,0," label='Trace Concave' ");
     TwAddButton(bar,"TraceLoops",AddLoops,0," label='Trace Loops' ");
     TwAddButton(bar,"TraceBorders",TraceBorder,0," label='Trace Borders' ");
-    //TwAddButton(bar,"TraceChosen",TraceChosen,0," label='Trace Chosen' ");
     TwAddButton(bar,"BatchProcess",BatchProcess,0," label='Batch Process' ");
     TwAddButton(bar,"Split",SplitSupPatches,0," label='Split sub' ");
     TwAddButton(bar,"BatchRemoval",BatchRemoval,0," label='Batch Removal' ");
-    //TwAddButton(bar,"RemovePath",RemovePath,0," label='Remove Path' ");
     TwAddButton(bar,"SmoothPaths",SmoothPathes,0," label='Smooth Paths' ");
 
     TwAddSeparator(bar,NULL,NULL);
 
     TwAddVarRW(bar,"Sample Ratio",TW_TYPE_DOUBLE,&PTr.sample_ratio,"label='Sample Ratio'");
 
-     //TwAddButton(bar,"IterativeBatch",IterativeBatch,0," label='Iterative Batch' ");
-
 
 
     TwAddVarRW(bar,"SplitOnRemove",TW_TYPE_BOOLCPP,&PTr.split_on_removal,"label='Split on Remove'");
-    //TwAddVarRW(bar,"AvoidIncreaseVal",TW_TYPE_BOOLCPP,&PTr.avoid_increase_valence,"label='Avoid Increase Valence'");
-    //TwAddVarRW(bar,"AvoidCollapseIrr",TW_TYPE_BOOLCPP,&PTr.avoid_collapse_irregular,"label='Avoid Collapse Irregular'");
-    //TwAddVarRW(bar,"MaxLDistortion",TW_TYPE_DOUBLE,&PTr.max_lenght_distortion,"label='Max Distortion Lenght'");
-    //TwAddVarRW(bar,"MaxLVariance",TW_TYPE_DOUBLE,&PTr.max_lenght_variance,"label='Max Variance Lenght'");
-    //TwAddVarRW(bar,"LoopBorders",TW_TYPE_BOOLCPP,&PTr.TraceLoopsBorders,"label='Trace Loop from Borders'");
     TwAddVarRW(bar,"MaxValence",TW_TYPE_INT32,&PTr.MaxVal,"label='Max Valence'");
     TwAddVarRW(bar,"CCLarkability",TW_TYPE_DOUBLE,&PTr.CClarkability,"label='CCLarkability'");
-    TwAddVarRW(bar,"MatchSing",TW_TYPE_BOOLCPP,&PTr.match_valence,"label='Match Valence'");
+    TwAddVarRW(bar,"ConcaveNeed",TW_TYPE_INT32,&PTr.Concave_Need,"label='Concave Need'");
+    TwAddVarRW(bar,"MaxValence",TW_TYPE_INT32,&PTr.MaxVal,"label='Max Valence'");
     TwAddVarRW(bar,"AddNeed",TW_TYPE_BOOLCPP,&add_only_needed,"label='Add Only need'");
     TwAddVarRW(bar,"InterRem",TW_TYPE_BOOLCPP,&interleave_removal,"label='Interleave removal'");
     TwAddVarRW(bar,"InterSmth",TW_TYPE_BOOLCPP,&interleave_smooth,"label='Interleave smooth'");
@@ -908,9 +900,6 @@ void InitLoopBar(QWidget *w)
     TwAddButton(bar,"RecursiveProcess",RecursiveProcess,0," label='Recursive Process' ");
     TwAddButton(bar,"Subdivide",SubdividePatches,0," label='Subdivide Patches' ");
     TwAddButton(bar,"ParametrizePatches",ParametrizePatches,0," label='Parametrize Patches' ");
-
-  //    TwAddVarRW(bar,"testdrawReceiver",TW_TYPE_BOOLCPP,&testdrawReceiver,"label='testdrawReceiver'");
-  //    TwAddVarRW(bar,"testdrawDisables",TW_TYPE_BOOLCPP,&testdrawDisables,"label='testdrawDisables'");
 
     TwAddButton(bar,"SaveData",SaveData,0," label='Save Data' ");
 
