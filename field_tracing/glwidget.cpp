@@ -646,6 +646,7 @@ void TW_CALL SubdividePatches(void *)
 
 void TW_CALL BatchRemoval(void *)
 {
+    PTr.SetAllRemovable();
     PTr.BatchRemoval(false);
     CurrPatchMode=CMPatchCol;
     drawField=false;

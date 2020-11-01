@@ -4488,6 +4488,12 @@ public:
         SmoothMeshPatches(Mesh(),FacePartitions,Steps,Damp);
     }
 
+    void SetAllRemovable()
+    {
+        for (size_t i=0;i<ChoosenPaths.size();i++)
+            ChoosenPaths[i].Unremovable=false;
+    }
+
     void RemovePaths()//bool DoSmooth=true)
     {
         //max_patch_area=MeshArea(Mesh())*0.02;
@@ -5603,8 +5609,8 @@ public:
     {
         size_t NeedFix=0;
         for (size_t i=0;i<PartitionCorners.size();i++)
-            if ((PartitionCorners[i].size()<MinVal)||
-                    (PartitionCorners[i].size()>MaxVal))
+            if ((PartitionCorners[i].size()<MIN_ADMITTIBLE)||
+                    (PartitionCorners[i].size()>MAX_ADMITTIBLE))
             {
                 NeedFix++;
                 FixCorners(i);

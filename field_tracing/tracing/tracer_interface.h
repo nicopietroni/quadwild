@@ -176,13 +176,6 @@ bool TraceSubPatch(const size_t &IndexPatch,
             SubTr.ChoosenPaths[i].Unremovable=true;
     }
 
-//    //MUST BE REMOVED
-//    std::vector<bool> Selected(SubTr.ChoosenPaths.size(),false);
-//    MeshType traceMesh;
-//    MeshTraces(VFGraph,SubTr.ChoosenPaths,Selected,traceMesh);
-//    vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_sub_domain_0.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
-//    vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_sub_error_0.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
-//    //MUST BE REMOVED
 
     //SubTr.UpdatePartitionsFromChoosen(true);
     //then trace in the subpatch
@@ -202,147 +195,12 @@ bool TraceSubPatch(const size_t &IndexPatch,
         IsLoop.erase(IsLoop.begin(), IsLoop.begin() + Added_paths);
     }
 
-//    //MUST BE REMOVED
-//    std::vector<bool> Selected1(SubTr.ChoosenPaths.size(),false);
-//    MeshType traceMesh1;
-//    MeshTraces(VFGraph,SubTr.ChoosenPaths,Selected1,traceMesh1);
-//    vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_sub_domain_1.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
-//    vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh1,"double_direction_sub_error_1.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
-//    //MUST BE REMOVED
-
     for (size_t i=0;i<VertIdx.size();i++)
         for (size_t j=0;j<VertIdx[i].size();j++)
             VertIdx[i][j]=VertMap[VertIdx[i][j]];
 
     return (VertIdx.size()>0);
 }
-
-
-//template <class MeshType>
-//bool TraceSubPatch3(const size_t &IndexPatch,
-//                    PatchTracer<MeshType> &PTr,
-//                    std::vector<std::vector<size_t> > &VertIdx,
-//                    std::vector<std::vector<size_t> > &VertDir,
-//                    std::vector<bool> &IsLoop)
-//{
-//    //first copy the submesh
-//    for (size_t i=0;i<PTr.Mesh().vert.size();i++)
-//        PTr.Mesh().vert[i].Q()=i;
-
-//    MeshType SubMesh;
-//    PTr.GetPatchMesh(IndexPatch,SubMesh);
-//    SubMesh.UpdateAttributes();
-
-//    std::vector<size_t> VertMap;
-//    for (size_t i=0;i<SubMesh.vert.size();i++)
-//        VertMap.push_back(SubMesh.vert[i].Q());
-
-//    //copy original normals
-//    for (size_t i=0;i<SubMesh.vert.size();i++)
-//        SubMesh.vert[i].N()=PTr.Mesh().vert[VertMap[i]].N();
-
-//    //make a subgraph
-//    VertexFieldGraph<MeshType> VFGraph(SubMesh);
-//    VFGraph.Init();
-
-//    //initialize the tracer
-//    PatchTracer<MeshType> SubTr(VFGraph);
-//    SubTr.CopyParametersFrom(PTr);
-//    //SubTr.Init(PTr.Drift);
-//    SubTr.CopyFrom(PTr,VertMap,IndexPatch);
-
-//    //then trace in the subpatch
-//    //SubTr.BatchIterativeInsertion(true);
-//    SubTr.BatchAddLoops(true,true,true,true);
-
-//    //copy back paths to the original
-//    SubTr.GetCurrVertDir(VertIdx,VertDir,IsLoop);
-//    for (size_t i=0;i<VertIdx.size();i++)
-//        for (size_t j=0;j<VertIdx[i].size();j++)
-//            VertIdx[i][j]=VertMap[VertIdx[i][j]];
-
-//    return (VertIdx.size()>0);
-//}
-
-//template <class MeshType>
-//void RecursiveProcess3(PatchTracer<MeshType> &PTr,
-//                       const typename MeshType::ScalarType Drift)
-//{
-//    //do a first step of tracing
-//    PTr.Init(Drift);
-//    PTr.BatchAddLoops(false,true,true,true);
-
-//    PTr.UpdatePartitionsFromChoosen();
-//    PTr.ColorByPartitions();
-//    PTr.WriteInfo();
-
-
-//    PTr.SmoothPatches(20);
-//    //    return;
-
-//    std::vector<std::vector<size_t> > TotVertIdx;
-//    std::vector<std::vector<size_t> > TotVertDir;
-//    std::vector<bool> TotIsLoop;
-//    PTr.GetCurrVertDir(TotVertIdx,TotVertDir,TotIsLoop);
-
-//    bool solved=false;
-//    bool traced=false;
-
-//    do{
-//        std::vector<size_t> UnsolvedPartitionIndex;
-//        PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex);
-//        if (UnsolvedPartitionIndex.size()==0)
-//            solved=true;
-
-//        traced=false;
-//        std::cout<<"**** THERE ARE "<<UnsolvedPartitionIndex.size()<<" Unsolved Partitions ****"<<std::endl;
-//        //        for(size_t i=8;i<9;i++)
-//        //        {
-//        //            for (size_t j=0;j<PTr.Partitions[UnsolvedPartitionIndex[i]].size();j++)
-//        //            {
-//        //               size_t IndexF=PTr.Partitions[UnsolvedPartitionIndex[i]][j];
-//        //               PTr.Mesh().face[IndexF].C()=vcg::Color4b::Red;
-//        //            }
-//        //        }
-//        for(size_t i=0;i<UnsolvedPartitionIndex.size();i++)
-//        {
-//            std::vector<std::vector<size_t> > NewVertIdx;
-//            std::vector<std::vector<size_t> > NewVertDir;
-//            std::vector<bool> NewIsLoop;
-
-//            std::cout<<"**** SUB PATCH STEP ****"<<std::endl;
-//            traced|=TraceSubPatch<MeshType>(UnsolvedPartitionIndex[i],PTr,NewVertIdx,NewVertDir,NewIsLoop,
-//                                            true,true);
-
-//            if (traced)
-//                std::cout<<"TRACED"<<std::endl;
-//            else
-//                std::cout<<"NON TRACED"<<std::endl;
-
-//            TotVertIdx.insert(TotVertIdx.end(),NewVertIdx.begin(),NewVertIdx.end());
-//            TotVertDir.insert(TotVertDir.end(),NewVertDir.begin(),NewVertDir.end());
-//            TotIsLoop.insert(TotIsLoop.end(),NewIsLoop.begin(),NewIsLoop.end());
-
-
-//        }
-//        if (traced)
-//        {
-//            std::cout<<"Updating Patches"<<std::endl;
-//            PTr.SetChoosenFromVertDir(TotVertIdx,TotVertDir,TotIsLoop);
-//            std::cout<<"Done Updating Patches"<<std::endl;
-//        }
-
-//    }while(traced & (!solved));
-
-//    std::vector<size_t> UnsolvedPartitionIndex;
-//    PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex);
-//    std::cout<<"**** FINAL THERE ARE "<<UnsolvedPartitionIndex.size()<<" Unsolved Partitions ****"<<std::endl;
-
-//    PTr.SmoothPatches(20);
-//    PTr.WriteInfo();
-//    PTr.FixValences();
-//    PTr.WriteInfo();
-//}
 
 void WriteUnsolvedStats(const std::vector<PatchType> &PatchTypes)
 {
@@ -351,17 +209,19 @@ void WriteUnsolvedStats(const std::vector<PatchType> &PatchTypes)
     size_t numNonDisk=0;
     size_t numhasEmitter=0;
     size_t nummaxCCbility=0;
+    size_t numwrongVal=0;
     size_t numOK=0;
     for (size_t i=0;i<PatchTypes.size();i++)
     {
         switch (PatchTypes[i])
         {
-            case LowCorners: numLow++;break;
-            case HighCorners: numHigh++;break;
-            case NonDisk:numNonDisk++;break;
-            case HasEmitter:numhasEmitter++;break;
-            case MaxCClarkability:nummaxCCbility++;break;
-            default: numOK++;
+        case LowCorners: numLow++;break;
+        case HighCorners: numHigh++;break;
+        case NonDisk:numNonDisk++;break;
+        case HasEmitter:numhasEmitter++;break;
+        case MaxCClarkability:nummaxCCbility++;break;
+        case NonMatchValence:numwrongVal++;break;
+        default: numOK++;
         }
     }
     std::cout<<"** UNSATISFIED PATCHES **"<<std::endl;
@@ -370,25 +230,26 @@ void WriteUnsolvedStats(const std::vector<PatchType> &PatchTypes)
     std::cout<<"*Non Disks:"<<numNonDisk<<std::endl;
     std::cout<<"*Has Emit:"<<numhasEmitter<<std::endl;
     std::cout<<"*Max CCbility:"<<nummaxCCbility<<std::endl;
+    std::cout<<"*Wrong Valence:"<<numwrongVal<<std::endl;
     std::cout<<"*IsOk:"<<numOK<<std::endl;
 }
 
 template <class MeshType>
 void RecursiveProcess(PatchTracer<MeshType> &PTr,
-                       const typename MeshType::ScalarType Drift,
-                       bool onlyneeded,
-                       bool inteleaveremoval,
-                       bool finalremoval,
-                       bool interleave_smooth=false)
+                      const typename MeshType::ScalarType Drift,
+                      bool onlyneeded,
+                      bool inteleaveremoval,
+                      bool finalremoval,
+                      bool interleave_smooth=false)
 {
     //do it at the very end
-//    bool InterleaveRemove=PTr.split_on_removal;
-//    PTr.split_on_removal=false;
+    //    bool InterleaveRemove=PTr.split_on_removal;
+    //    PTr.split_on_removal=false;
     //do a first step of tracing
     PTr.Init(Drift,true);
     //PTr.BatchProcess();
-    PTr.BatchAddLoops(false,onlyneeded,inteleaveremoval,finalremoval,interleave_smooth);
-    //PTr.BatchAddLoops(false,onlyneeded,inteleaveremoval,false,interleave_smooth);
+    //PTr.BatchAddLoops(false,onlyneeded,inteleaveremoval,finalremoval,interleave_smooth);
+    PTr.BatchAddLoops(false,onlyneeded,false,false,false);
     PTr.UpdatePartitionsFromChoosen(true);
 
     if (interleave_smooth)
@@ -400,20 +261,21 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     PTr.GetCurrVertDir(TotVertIdx,TotVertDir,TotIsLoop);
 
     bool solved=false;
-    bool traced=false;
+    bool added_trace=false;
     do{
+        std::vector<std::vector<size_t> > OLDVertIdx=TotVertIdx;
+        std::vector<std::vector<size_t> > OLDVertDir=TotVertDir;
+        std::vector<bool> OLDIsLoop=TotIsLoop;
+
         std::vector<size_t> UnsolvedPartitionIndex;
         std::vector<PatchType> PatchTypes;
-        //std::vector<PatchType> UnsolvedType;
-        //PTr.GetUnsolvedPartitions(UnsolvedPartitions,UnsolvedType);
         PTr.UpdatePartitionsFromChoosen(true);
         PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex,PatchTypes);
-        //PTr.GetUnsolvedPartitions(UnsolvedPartitions,UnsolvedType);
         if (UnsolvedPartitionIndex.size()==0)
             solved=true;
 
-        traced=false;
-        //std::cout<<"**** THERE ARE "<<UnsolvedPartitionIndex.size()<<" Unsolved Partitions ****"<<std::endl;
+        //traced=false;
+        std::cout<<"**** THERE ARE "<<UnsolvedPartitionIndex.size()<<" Unsolved Partitions ****"<<std::endl;
         WriteUnsolvedStats(PatchTypes);
 
         for(size_t i=0;i<UnsolvedPartitionIndex.size();i++)
@@ -423,16 +285,15 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
             std::vector<std::vector<size_t> > NewVertDir;
             std::vector<bool> NewIsLoop;
 
-//            traced|=TraceSubPatch<MeshType>(UnsolvedPartitionIndex[i],PTr,
-//                                            NewVertIdx,NewVertDir,
-//                                            NewIsLoop,onlyneeded,
-//                                            InterleaveRemove,false,
-//                                            interleave_smooth);
-            traced|=TraceSubPatch<MeshType>(UnsolvedPartitionIndex[i],PTr,
-                                            NewVertIdx,NewVertDir,
-                                            NewIsLoop,onlyneeded,
-                                            inteleaveremoval,finalremoval,
-                                            interleave_smooth);
+            //            traced|=TraceSubPatch<MeshType>(UnsolvedPartitionIndex[i],PTr,
+            //                                            NewVertIdx,NewVertDir,
+            //                                            NewIsLoop,onlyneeded,
+            //                                            inteleaveremoval,finalremoval,
+            //                                            interleave_smooth);
+            bool traced=TraceSubPatch<MeshType>(UnsolvedPartitionIndex[i],PTr,
+                                                NewVertIdx,NewVertDir,
+                                                NewIsLoop,onlyneeded,false,false,
+                                                interleave_smooth);
 
             TotVertIdx.insert(TotVertIdx.end(),NewVertIdx.begin(),NewVertIdx.end());
             TotVertDir.insert(TotVertDir.end(),NewVertDir.begin(),NewVertDir.end());
@@ -440,23 +301,31 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
 
         }
 
-        if (traced)
-        {
-            PTr.ColorByPartitions();
-            std::cout<<"Updating Patches"<<std::endl;
-            PTr.SetChoosenFromVertDir(TotVertIdx,TotVertDir,TotIsLoop);
-            std::cout<<"Done Updating Patches"<<std::endl;
-        }
 
-    }while(traced & (!solved));
+        std::cout<<"Updating Patches"<<std::endl;
+        PTr.SetChoosenFromVertDir(TotVertIdx,TotVertDir,TotIsLoop);
+        //PTr.ColorByPartitions();
+        std::cout<<"Done Updating Patches"<<std::endl;
+        if (inteleaveremoval)
+        {
+            std::cout<<"** INTERLEAVE REMOVE STEP **"<<std::endl;
+            PTr.UpdatePartitionsFromChoosen(true);
+            PTr.SetAllRemovable();
+            PTr.BatchRemoval(interleave_smooth);
+            PTr.GetCurrVertDir(TotVertIdx,TotVertDir,TotIsLoop);
+            std::cout<<"** END INTERLEAVE REMOVE STEP **"<<std::endl;
+        }
+        added_trace=false;
+        added_trace|=(OLDVertIdx!=TotVertIdx);
+        added_trace|=(OLDVertDir!=TotVertDir);
+        added_trace|=(OLDIsLoop!=TotIsLoop);
+    }while(added_trace & (!solved));
 
     if (finalremoval)
     {
-        //PTr.split_on_removal=InterleaveRemove;
-
         PTr.UpdatePartitionsFromChoosen(true);
+        PTr.SetAllRemovable();
         PTr.BatchRemoval(interleave_smooth);
-
     }
 
     //PTr.FixValences();
@@ -473,8 +342,8 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     PTr.SmoothPatches(20);
     PTr.FixValences();
     PTr.WriteInfo();
-//    PTr.split_on_removal=true;
-//    PTr.BatchRemoval(false);
+    //    PTr.split_on_removal=true;
+    //    PTr.BatchRemoval(false);
     //PTr.SmoothPatches(20);
     //PTr.WriteInfo();
 }

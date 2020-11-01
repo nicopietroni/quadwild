@@ -6,5 +6,5 @@ CCability 1
 MatchVal 1
 AddNeed 1
 InterleaveRem 1
-InterleaveSmooth 0
+InterleaveSmooth 1
 FinalRem 1

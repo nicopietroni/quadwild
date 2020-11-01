@@ -2,7 +2,7 @@ alpha 0.05
 ilpMethod 1
 timeLimit 200
 gapLimit 0.2
-minimumGap 0.4
+minimumGap 0.5
 isometry 1
 regularityForQuadrilaterals 1
 regularityForNonQuadrilaterals 1
