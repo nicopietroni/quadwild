@@ -50,10 +50,6 @@ inline std::vector<int> solveILP(
         GRBQuadExpr supportObj = 0;
 
         vector<GRBVar> vars(chartData.subsides.size());
-        vector<GRBVar> diff;
-        vector<GRBVar> abs;
-
-        vector<GRBVar> free(chartData.charts.size());
 
         std::vector<bool> hasVariable(chartData.subsides.size(), false);
         for (size_t subsideId = 0; subsideId < chartData.subsides.size(); subsideId++) {
@@ -67,15 +63,14 @@ inline std::vector<int> solveILP(
             }
             else if (feasibilityFix && subside.isOnBorder) {
                 vars[subsideId] = model.addVar(std::max(subside.size - 1, MIN_SUBDIVISION_VALUE), subside.size + 1, 0.0, GRB_INTEGER, "s" + to_string(subsideId));
+                GRBLinExpr value = vars[subsideId] - subside.size;
 
-                size_t dId = diff.size();
-                size_t aId = abs.size();
-                diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "do" + to_string(dId)));
-                abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "ao" + to_string(aId)));
-                model.addConstr(diff[dId] == vars[subsideId] - subside.size, "doc" + to_string(dId));
-                model.addGenConstrAbs(abs[aId], diff[dId], "aoc" + to_string(aId));
+                GRBVar diff = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER);
+                GRBVar abs = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER);
+                model.addConstr(diff == value);
+                model.addGenConstrAbs(abs, diff);
 
-                supportObj += abs[aId] * FEASIBILITY_FIX_COST;
+                supportObj += abs * FEASIBILITY_FIX_COST;
 
                 hasVariable[subsideId] = true;
             }
@@ -110,13 +105,12 @@ inline std::vector<int> solveILP(
                             double edgeLength = chartEdgeLength[cId];
 
                             double sideSubdivision = subside.length / edgeLength;
-                            if (!hardParityConstraint)
+                            if (!hardParityConstraint) {
                                 sideSubdivision /= 2.0;
+                            }
 
                             sideSubdivision = std::max(static_cast<double>(MIN_SUBDIVISION_VALUE), sideSubdivision);
 
-                            size_t dId = diff.size();
-                            size_t aId = abs.size();
 
                             GRBLinExpr value = vars[subsideId] - sideSubdivision;
 
@@ -124,13 +118,12 @@ inline std::vector<int> solveILP(
                                 isoExpr += value * value;
                             }
                             else {
-                                diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "d" + to_string(dId)));
-                                abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "a" + to_string(aId)));
+                                GRBVar diff = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS);
+                                GRBVar abs = model.addVar(0, GRB_INFINITY, 0.0, GRB_CONTINUOUS);
+                                model.addConstr(diff == value);
+                                model.addGenConstrAbs(abs, diff);
 
-                                model.addConstr(diff[dId] == value, "dc" + to_string(dId));
-                                model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
-
-                                isoExpr += abs[aId];
+                                isoExpr += abs;
                             }
                         }
                     }
@@ -138,7 +131,7 @@ inline std::vector<int> solveILP(
 
                 //Regularity for quad case
                 if (nSides == 4 && regularityForQuadrilaterals) {
-                    for (size_t j = 0; j < 2; j++) {
+                    for (size_t j = 0; j < nSides; j++) {
                         const ChartSide& side1 = chart.chartSides[j];
                         const ChartSide& side2 = chart.chartSides[(j+2)%nSides];
 
@@ -168,19 +161,15 @@ inline std::vector<int> solveILP(
                         GRBLinExpr value = subside1Sum - subside2Sum;
 
                         if (method == LEASTSQUARES) {
-                            regExpr += (value * value) / 2.0;
+                            regExpr += (value * value) / nSides;
                         }
                         else {
-                            size_t dId = diff.size();
-                            size_t aId = abs.size();
+                            GRBVar diff = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER);
+                            GRBVar abs = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER);
+                            model.addConstr(diff == value);
+                            model.addGenConstrAbs(abs, diff);
 
-                            diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
-                            abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
-
-                            model.addConstr(diff[dId] == value, "dc" + to_string(dId));
-                            model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
-
-                            regExpr += abs[aId] / 2.0;
+                            regExpr += abs / nSides;
                         }
                     }
                 }
@@ -224,8 +213,8 @@ inline std::vector<int> solveILP(
 
                         numRegularityTerms++;
 
-                        GRBVar c = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "c" + to_string(numRegularityTerms));
-                        model.addConstr(subside1Sum + 1 <= subside2Sum + subside3Sum + c, "cc" + to_string(numRegularityTerms));
+                        GRBVar c = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER);
+                        model.addConstr(subside1Sum + 1 <= subside2Sum + subside3Sum + c);
 
                         GRBLinExpr value = c;
 
@@ -233,16 +222,12 @@ inline std::vector<int> solveILP(
                             regExpr += (value * value) * regularityNonQuadrilateralWeight / nSides;
                         }
                         else {
-                            size_t dId = diff.size();
-                            size_t aId = abs.size();
+                            GRBVar diff = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER);
+                            GRBVar abs = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER);
+                            model.addConstr(diff == value);
+                            model.addGenConstrAbs(abs, diff);
 
-                            diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
-                            abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
-
-                            model.addConstr(diff[dId] == value, "dc" + to_string(dId));
-                            model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
-
-                            regExpr += abs[aId] * regularityNonQuadrilateralWeight / nSides;
+                            regExpr += abs * regularityNonQuadrilateralWeight / nSides;
                         }
                     }
                 }
@@ -310,8 +295,8 @@ inline std::vector<int> solveILP(
 
                         numRegularityTerms++;
 
-                        GRBVar c = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "c" + to_string(numRegularityTerms));
-                        model.addConstr(subside1Sum + subside2Sum + 1 <= subside3Sum + subside4Sum + subside5Sum + c, "cc" + to_string(numRegularityTerms));
+                        GRBVar c = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER);
+                        model.addConstr(subside1Sum + subside2Sum + 1 <= subside3Sum + subside4Sum + subside5Sum + c);
 
                         GRBLinExpr value = c;
 
@@ -319,16 +304,12 @@ inline std::vector<int> solveILP(
                             regExpr += (value * value) * regularityNonQuadrilateralWeight / nSides;
                         }
                         else {
-                            size_t dId = diff.size();
-                            size_t aId = abs.size();
+                            GRBVar diff = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER);
+                            GRBVar abs = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER);
+                            model.addConstr(diff == value);
+                            model.addGenConstrAbs(abs, diff);
 
-                            diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
-                            abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
-
-                            model.addConstr(diff[dId] == value, "dc" + to_string(dId));
-                            model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
-
-                            regExpr += abs[aId] * regularityNonQuadrilateralWeight / nSides;
+                            regExpr += abs * regularityNonQuadrilateralWeight / nSides;
                         }
                     }
                 }
@@ -408,8 +389,8 @@ inline std::vector<int> solveILP(
 
                         numRegularityTerms++;
 
-                        GRBVar c = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "c" + to_string(numRegularityTerms));
-                        model.addConstr(subside1Sum + 1 <= subside3Sum + subside5Sum + c, "cc" + to_string(numRegularityTerms));
+                        GRBVar c = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER);
+                        model.addConstr(subside1Sum + 1 <= subside3Sum + subside5Sum + c);
 
                         GRBLinExpr parityEquation = subside1Sum + subside3Sum + subside5Sum;
                         GRBVar hexParity = model.addVar(3, GRB_INFINITY, 0.0, GRB_INTEGER, "pc" + to_string(numRegularityTerms));
@@ -422,16 +403,12 @@ inline std::vector<int> solveILP(
                             regExpr += (value * value) * regularityNonQuadrilateralWeight / nSides;
                         }
                         else {
-                            size_t dId = diff.size();
-                            size_t aId = abs.size();
+                            GRBVar diff = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER);
+                            GRBVar abs = model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER);
+                            model.addConstr(diff == value);
+                            model.addGenConstrAbs(abs, diff);
 
-                            diff.push_back(model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_INTEGER, "d" + to_string(dId)));
-                            abs.push_back(model.addVar(0, GRB_INFINITY, 0.0, GRB_INTEGER, "a" + to_string(aId)));
-
-                            model.addConstr(diff[dId] == value, "dc" + to_string(dId));
-                            model.addGenConstrAbs(abs[aId], diff[dId], "ac" + to_string(aId));
-
-                            regExpr += abs[aId] * regularityNonQuadrilateralWeight / nSides;
+                            regExpr += abs * regularityNonQuadrilateralWeight / nSides;
                         }
                     }
                 }
@@ -454,8 +431,8 @@ inline std::vector<int> solveILP(
                         }
                     }
 
-                    free[cId] = model.addVar(2, GRB_INFINITY, 0.0, GRB_INTEGER, "f" + to_string(cId));
-                    model.addConstr(free[cId] * 2 == sumExp);
+                    GRBVar free = model.addVar(2, GRB_INFINITY, 0.0, GRB_INTEGER);
+                    model.addConstr(free * 2 == sumExp);
                 }
 
                 if (chart.chartSides.size() < 3 || chart.chartSides.size() > 6) {
@@ -490,7 +467,6 @@ inline std::vector<int> solveILP(
             }
         }
 
-//        cout << "Obj: " << model.get(GRB_DoubleAttr_ObjVal) << endl;
         cout << "Support obj: " << supportObj.getValue() << endl;
         cout << "Obj: " << obj.getValue() << endl;
 
@@ -513,7 +489,7 @@ inline std::vector<int> solveILP(
                     for (const size_t& subsideId : chart.chartSubsides) {
                         std::cout << result[subsideId] << " ";
                     }
-                    std::cout << " = " << sizeSum << " - FREE: " << free[cId].get(GRB_DoubleAttr_X) << std::endl;
+                    std::cout << " = " << sizeSum << std::endl;
 
                     status = ILPStatus::SOLUTIONWRONG;
                 }
