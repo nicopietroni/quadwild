@@ -467,8 +467,10 @@ inline std::vector<int> solveILP(
             }
         }
 
+#ifndef GUROBI_NON_VERBOSE
         cout << "Support obj: " << supportObj.getValue() << endl;
         cout << "Obj: " << obj.getValue() << endl;
+#endif
 
         gap = model.get(GRB_DoubleAttr_MIPGap);
 
