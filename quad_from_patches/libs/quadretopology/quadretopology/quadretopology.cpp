@@ -1564,6 +1564,19 @@ void computeResult(
     vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_3_cleaned.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
+    //Update attributes and re-orient faces
+    vcg::tri::UpdateSelection<PolyMeshType>::VertexClear(tmpMesh);
+    vcg::tri::UpdateSelection<PolyMeshType>::FaceClear(tmpMesh);
+    vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(tmpMesh);
+    vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(tmpMesh);
+    QuadRetopology::internal::OrientFaces<PolyMeshType>::AutoOrientFaces(tmpMesh);
+    vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(tmpMesh);
+    vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(tmpMesh);
+
+#ifdef SAVE_MESHES_FOR_DEBUG
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_4_reoriented.obj", vcg::tri::io::Mask::IOM_NONE);
+#endif
+
     result.Clear();
     vcg::tri::Append<PolyMeshType, PolyMeshType>::Mesh(result, tmpMesh);
 
@@ -1596,7 +1609,7 @@ void computeResult(
     }
 
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(result, "results/result_4_recompacted.obj", vcg::tri::io::Mask::IOM_NONE);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(result, "results/result_5_recompacted.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
     vcg::tri::UpdateNormal<TriangleMeshType>::PerFaceNormalized(targetBoolean);
@@ -1666,7 +1679,7 @@ void computeResult(
     vcg::tri::UpdateBounding<PolyMeshType>::Box(result);
 
 #ifdef SAVE_MESHES_FOR_DEBUG
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(result, "results/result_5_final.obj", vcg::tri::io::Mask::IOM_NONE);
+    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(result, "results/result_6_final.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 }
 
