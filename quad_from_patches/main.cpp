@@ -13,6 +13,7 @@
 #include <wrap/io_trimesh/export.h>
 #include "smooth_mesh.h"
 #include "quad_from_patches.h"
+#include "quad_mesh_tracer.h"
 
 typename TriangleMesh::ScalarType avgEdge(const TriangleMesh& trimesh);
 void loadSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor);
@@ -41,8 +42,15 @@ int main(int argc, char *argv[])
 //    parameters.gapLimit = 0.1; //When it reaches this gap value, optimization stops
 //    parameters.minimumGap = 0.25; //Optimization has to reach at least this minimum gap, otherwise faster methods are performed
 //    parameters.isometry = true; //Activate isometry
-//    parameters.regularityForQuadrilaterals = true; //Activate regularity for quadrilaterals
-//    parameters.regularityForNonQuadrilaterals = true; //Activate regularity for non-quadrilaterals
+//    parameters.regularityQuadrilaterals = true; //Activate regularity for quadrilaterals
+//    parameters.regularityNonQuadrilaterals = true; //Activate regularity for non-quadrilaterals
+//    parameters.regularityNonQuadrilateralWeight = 0.9; //Regularity for non-quadrilaterals weight
+//    parameters.alignSingularities = true; //Activate singularity alignment
+//    parameters.alignSingularitiesWeight = 0.3; //Singularity alignment weight
+//    parameters.repeatLosingConstraintsIterations = true;
+//    parameters.repeatLosingConstraintsQuads = false;
+//    parameters.repeatLosingConstraintsNonQuads = false;
+//    parameters.repeatLosingConstraintsAlign = true;
 //    parameters.hardParityConstraint = true; //Flag to choose if use hard constraints or not
 
     QuadRetopology::Parameters parameters;
@@ -52,6 +60,7 @@ int main(int argc, char *argv[])
     parameters.chartSmoothingIterations = 0; //Chart smoothing
     parameters.quadrangulationFixedSmoothingIterations = 0; //Smoothing with fixed borders of the patches
     parameters.quadrangulationNonFixedSmoothingIterations = 0; //Smoothing with fixed borders of the quadrangulation
+    parameters.feasibilityFix = false;
 
     if(argc<2)
     {
@@ -170,6 +179,17 @@ int main(int argc, char *argv[])
 
     vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, outputFilename.c_str(), vcg::tri::io::Mask::IOM_FACECOLOR);
 
+#ifdef SAVE_MESHES_FOR_DEBUG
+    QuadMeshTracer<PolyMesh> tracerMotorcycle(quadmesh);
+    tracerMotorcycle.MotorCycle = true;
+    tracerMotorcycle.TracePartitions();
+    tracerMotorcycle.SaveColoredMesh("results/quadlayout_motorcycle.obj");
+    QuadMeshTracer<PolyMesh> tracer(quadmesh);
+    tracer.MotorCycle = false;
+    tracer.TracePartitions();
+    tracer.SaveColoredMesh("results/quadlayout.obj");
+#endif
+
     for(size_t i=0;i<trimesh.face.size();i++)
         trimesh.face[i].C()=vcg::Color4b::Scatter(trimeshPartitions.size(),TriPart[i]);
 
@@ -225,6 +245,22 @@ void loadSetupFile(const std::string& path, QuadRetopology::Parameters& paramete
     fscanf(f,"gapLimit %f\n",&gapF);
     parameters.gapLimit=gapF;
 
+    IntVar=0;
+    fscanf(f,"callbackTimeLimit %d",&IntVar);
+    parameters.callbackTimeLimit.resize(IntVar);
+    for (int i = 0; i < IntVar; i++) {
+        fscanf(f," %f", &parameters.callbackTimeLimit[i]);
+    }
+    fscanf(f,"\n");
+
+    IntVar=0;
+    fscanf(f,"callbackGapLimit %d",&IntVar);
+    parameters.callbackGapLimit.resize(IntVar);
+    for (int i = 0; i < IntVar; i++) {
+        fscanf(f," %f", &parameters.callbackGapLimit[i]);
+    }
+    fscanf(f,"\n");
+
     float mingapF;
     fscanf(f,"minimumGap %f\n",&mingapF);
     parameters.minimumGap=mingapF;
@@ -237,22 +273,58 @@ void loadSetupFile(const std::string& path, QuadRetopology::Parameters& paramete
         parameters.isometry=true;
 
     IntVar=0;
-    fscanf(f,"regularityForQuadrilaterals %d\n",&IntVar);
+    fscanf(f,"regularityQuadrilaterals %d\n",&IntVar);
     if (IntVar==0)
-        parameters.regularityForQuadrilaterals=false;
+        parameters.regularityQuadrilaterals=false;
     else
-        parameters.regularityForQuadrilaterals=true;
+        parameters.regularityQuadrilaterals=true;
 
     IntVar=0;
-    fscanf(f,"regularityForNonQuadrilaterals %d\n",&IntVar);
+    fscanf(f,"regularityNonQuadrilaterals %d\n",&IntVar);
     if (IntVar==0)
-        parameters.regularityForNonQuadrilaterals=false;
+        parameters.regularityNonQuadrilaterals=false;
     else
-        parameters.regularityForNonQuadrilaterals=true;
+        parameters.regularityNonQuadrilaterals=true;
 
-    float regularityNonQuadrilateralWeight;
-    fscanf(f,"regularityNonQuadrilateralWeight %f\n",&regularityNonQuadrilateralWeight);
-    parameters.regularityNonQuadrilateralWeight=regularityNonQuadrilateralWeight;
+    float regularityNonQuadrilateralsWeight;
+    fscanf(f,"regularityNonQuadrilateralsWeight %f\n",&regularityNonQuadrilateralsWeight);
+    parameters.regularityNonQuadrilateralsWeight=regularityNonQuadrilateralsWeight;
+
+    IntVar=0;
+    fscanf(f,"alignSingularities %d\n",&IntVar);
+    if (IntVar==0)
+        parameters.alignSingularities=false;
+    else
+        parameters.alignSingularities=true;
+
+    float alignSingularitiesWeight;
+    fscanf(f,"alignSingularitiesWeight %f\n",&alignSingularitiesWeight);
+    parameters.alignSingularitiesWeight=alignSingularitiesWeight;
+
+    IntVar=0;
+    fscanf(f,"repeatLosingConstraintsIterations %d\n",&IntVar);
+    parameters.repeatLosingConstraintsIterations=IntVar;
+
+    IntVar=0;
+    fscanf(f,"repeatLosingConstraintsQuads %d\n",&IntVar);
+    if (IntVar==0)
+        parameters.repeatLosingConstraintsQuads=false;
+    else
+        parameters.repeatLosingConstraintsQuads=true;
+
+    IntVar=0;
+    fscanf(f,"repeatLosingConstraintsNonQuads %d\n",&IntVar);
+    if (IntVar==0)
+        parameters.repeatLosingConstraintsNonQuads=false;
+    else
+        parameters.repeatLosingConstraintsNonQuads=true;
+
+    IntVar=0;
+    fscanf(f,"repeatLosingConstraintsAlign %d\n",&IntVar);
+    if (IntVar==0)
+        parameters.repeatLosingConstraintsAlign=false;
+    else
+        parameters.repeatLosingConstraintsAlign=true;
 
     IntVar=0;
     fscanf(f,"hardParityConstraint %d\n",&IntVar);
@@ -282,6 +354,18 @@ void SaveSetupFile(const std::string& path, QuadRetopology::Parameters& paramete
 
     fprintf(f,"gapLimit %f\n", parameters.gapLimit);
 
+    fprintf(f,"callbackTimeLimit %d", static_cast<int>(parameters.callbackTimeLimit.size()));
+    for (float& time : parameters.callbackTimeLimit) {
+        fprintf(f," %f", time);
+    }
+    fprintf(f,"\n");
+
+    fprintf(f,"callbackGapLimit %d", static_cast<int>(parameters.callbackGapLimit.size()));
+    for (float& gap : parameters.callbackGapLimit) {
+        fprintf(f," %f", gap);
+    }
+    fprintf(f,"\n");
+
     fprintf(f,"minimumGap %f\n", parameters.minimumGap);
 
     if (parameters.isometry)
@@ -289,17 +373,42 @@ void SaveSetupFile(const std::string& path, QuadRetopology::Parameters& paramete
     else
         fprintf(f,"isometry 0\n");
 
-    if (parameters.regularityForQuadrilaterals)
-        fprintf(f,"regularityForQuadrilaterals 1\n");
+    if (parameters.regularityQuadrilaterals)
+        fprintf(f,"regularityQuadrilaterals 1\n");
     else
-        fprintf(f,"regularityForQuadrilaterals 0\n");
+        fprintf(f,"regularityQuadrilaterals 0\n");
 
-    if (parameters.regularityForNonQuadrilaterals)
-        fprintf(f,"regularityForNonQuadrilaterals 1\n");
+    if (parameters.regularityNonQuadrilaterals)
+        fprintf(f,"regularityNonQuadrilaterals 1\n");
     else
-        fprintf(f,"regularityForNonQuadrilaterals 0\n");
+        fprintf(f,"regularityNonQuadrilaterals 0\n");
 
-    fprintf(f,"regularityNonQuadrilateralWeight %f\n", parameters.regularityNonQuadrilateralWeight);
+    fprintf(f,"regularityNonQuadrilateralsWeight %f\n", parameters.regularityNonQuadrilateralsWeight);
+
+    if (parameters.alignSingularities)
+        fprintf(f,"alignSingularities 1\n");
+    else
+        fprintf(f,"alignSingularities 0\n");
+
+    fprintf(f,"alignSingularitiesWeight %f\n", parameters.alignSingularitiesWeight);
+
+    fprintf(f,"repeatLosingConstraintsIterations %d\n", parameters.repeatLosingConstraintsIterations);
+
+    if (parameters.repeatLosingConstraintsQuads)
+        fprintf(f,"repeatLosingConstraintsQuads 1\n");
+    else
+        fprintf(f,"repeatLosingConstraintsQuads 0\n");
+
+    if (parameters.repeatLosingConstraintsNonQuads)
+        fprintf(f,"repeatLosingConstraintsNonQuads 1\n");
+    else
+        fprintf(f,"repeatLosingConstraintsNonQuads 0\n");
+
+    if (parameters.repeatLosingConstraintsAlign)
+        fprintf(f,"repeatLosingConstraintsAlign 1\n");
+    else
+        fprintf(f,"repeatLosingConstraintsAling 0\n");
+
 
     if (parameters.hardParityConstraint)
         fprintf(f,"hardParityConstraint 1\n");

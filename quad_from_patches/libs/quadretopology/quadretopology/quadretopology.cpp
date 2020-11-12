@@ -247,13 +247,14 @@ ChartData computeChartData(
             vNextId = vertexNextMap[vCurrentId][nextConfiguration[vCurrentId]];
 
             ChartSide currentSide;
+            size_t chartSideId = 0;
             currentSide.length = 0;
             currentSide.size = 0;
 
 
             int adjChartLabel;
             do {
-                size_t subSideId = chartData.subsides.size();
+                size_t subsideId = chartData.subsides.size();
                 ChartSubside currentSubSide;
 
                 //Get edge
@@ -308,12 +309,12 @@ ChartData computeChartData(
 
                             length += (mesh.vert[vNextId].P() - mesh.vert[vCurrentId].P()).Norm();
 
-                            edgeSubSideMap.insert(std::make_pair(edge, subSideId));
+                            edgeSubSideMap.insert(std::make_pair(edge, subsideId));
 
                             newSubSide = true;
                         }
                         else if (firstIteration) {
-                            subSideId = findIt->second;
+                            subsideId = findIt->second;
                         }
                         firstIteration = false;
 
@@ -345,15 +346,15 @@ ChartData computeChartData(
                     currentSubSide.vertices.push_back(vCurrentId);
 
                     //Create new side
-                    int ChartSubsideId = chart.chartSubsides.size();
-                    chart.chartSubsides.push_back(subSideId);
+                    chart.chartSubsides.push_back(subsideId);
 
                     currentSubSide.incidentCharts[0] = chart.label;
                     currentSubSide.incidentCharts[1] = adjChartLabel;
 
                     currentSubSide.length = length;
 
-                    currentSubSide.incidentChartSideId[0] = ChartSubsideId;
+                    currentSubSide.incidentChartSubsideId[0] = subsideId;
+                    currentSubSide.incidentChartSideId[0] = chartSideId;
 
                     if (adjChartLabel >= 0) {
                         currentSubSide.isOnBorder = false;
@@ -362,6 +363,7 @@ ChartData computeChartData(
                     }
                     else {
                         currentSubSide.isOnBorder = true;
+                        currentSubSide.incidentChartSubsideId[1] = -1;
                         currentSubSide.incidentChartSideId[1] = -1;
                     }
 
@@ -388,39 +390,40 @@ ChartData computeChartData(
 
                     //Add the side to other chart
                     if (adjChartLabel >= 0) {
-                        int chartSideId = chart.chartSubsides.size();
-                        chart.chartSubsides.push_back(subSideId);
+                        chart.chartSubsides.push_back(subsideId);
 
-                        assert(chartData.subsides[subSideId].incidentCharts[1] == chart.label);
-                        chartData.subsides[subSideId].incidentChartSideId[1] = chartSideId;
+                        assert(chartData.subsides[subsideId].incidentCharts[1] == chart.label);
+                        chartData.subsides[subsideId].incidentChartSubsideId[1] = subsideId;
+                        chartData.subsides[subsideId].incidentChartSideId[1] = chartSideId;
 
                         chart.adjacentCharts.push_back(adjChartLabel);
 
                         //Pop last vertex
                         if (currentSide.vertices.size() > 0) {
-                            assert(currentSide.vertices.back() == chartData.subsides[subSideId].vertices.back());
+                            assert(currentSide.vertices.back() == chartData.subsides[subsideId].vertices.back());
                             currentSide.vertices.pop_back();
                         }
 
                         //Add side vertices
                         currentSide.vertices.insert(
                                     currentSide.vertices.end(),
-                                    chartData.subsides[subSideId].vertices.rbegin(),
-                                    chartData.subsides[subSideId].vertices.rend());
+                                    chartData.subsides[subsideId].vertices.rbegin(),
+                                    chartData.subsides[subsideId].vertices.rend());
                     }
 
                     reversed = true;
                 }
 
-                currentSide.subsides.push_back(subSideId);
+                currentSide.subsides.push_back(subsideId);
                 currentSide.reversedSubside.push_back(reversed);
 
-                currentSide.length += chartData.subsides[subSideId].length;
-                currentSide.size += chartData.subsides[subSideId].size;
+                currentSide.length += chartData.subsides[subsideId].length;
+                currentSide.size += chartData.subsides[subsideId].size;
 
                 if (isCorner) {
                     chart.chartSides.push_back(currentSide);
                     currentSide = ChartSide();
+                    chartSideId++;
                 }
 
             } while (vCurrentId != vStartId);
@@ -548,13 +551,21 @@ inline std::vector<int> findSubdivisions(
         parameters.ilpMethod,
         parameters.alpha,
         parameters.isometry,
-        parameters.regularityForQuadrilaterals,
-        parameters.regularityForNonQuadrilaterals,
-        parameters.regularityNonQuadrilateralWeight,
+        parameters.regularityQuadrilaterals,
+        parameters.regularityNonQuadrilaterals,
+        parameters.regularityNonQuadrilateralsWeight,
+        parameters.alignSingularities,
+        parameters.alignSingularitiesWeight,
+        parameters.repeatLosingConstraintsIterations,
+        parameters.repeatLosingConstraintsQuads,
+        parameters.repeatLosingConstraintsNonQuads,
+        parameters.repeatLosingConstraintsAlign,
         parameters.feasibilityFix,
         parameters.hardParityConstraint,
         parameters.timeLimit,
         parameters.gapLimit,
+        parameters.callbackTimeLimit,
+        parameters.callbackGapLimit,
         parameters.minimumGap,
         gap);
 }
@@ -566,13 +577,21 @@ inline std::vector<int> findSubdivisions(
         const ILPMethod& method,
         const double alpha,
         const bool isometry,
-        const bool regularityForQuadrilaterals,
-        const bool regularityForNonQuadrilaterals,
-        const double regularityNonQuadrilateralWeight,
+        const bool regularityQuadrilaterals,
+        const bool regularityNonQuadrilaterals,
+        const double regularityNonQuadrilateralsWeight,
+        const bool alignSingularities,
+        const double alignSingularitiesWeight,
+        const int repeatLosingConstraintsIterations,
+        const bool repeatLosingConstraintsQuads,
+        const bool repeatLosingConstraintsNonQuads,
+        const bool repeatLosingConstraintsAlign,
         const bool feasibilityFix,
         const bool hardParityConstraint,
         const double timeLimit,
         const double gapLimit,
+        const std::vector<float>& callbackTimeLimit,
+        const std::vector<float>& callbackGapLimit,
         const double minimumGap,
         double& gap)
 {
@@ -589,13 +608,21 @@ inline std::vector<int> findSubdivisions(
         method,
         alpha,
         isometry,
-        regularityForQuadrilaterals,
-        regularityForNonQuadrilaterals,
-        regularityNonQuadrilateralWeight,
+        regularityQuadrilaterals,
+        regularityNonQuadrilaterals,
+        regularityNonQuadrilateralsWeight,
+        alignSingularities,
+        alignSingularitiesWeight,
+        repeatLosingConstraintsIterations,
+        repeatLosingConstraintsQuads,
+        repeatLosingConstraintsNonQuads,
+        repeatLosingConstraintsAlign,
         feasibilityFix,
         hardParityConstraint,
         timeLimit,
         gapLimit,
+        callbackTimeLimit,
+        callbackGapLimit,
         gap,
         status);
 
@@ -614,13 +641,21 @@ inline std::vector<int> findSubdivisions(
                     ILPMethod::ABS,
                     alpha,
                     isometry,
-                    regularityForQuadrilaterals,
-                    regularityForNonQuadrilaterals,
-                    regularityNonQuadrilateralWeight,
+                    regularityQuadrilaterals,
+                    regularityNonQuadrilaterals,
+                    regularityNonQuadrilateralsWeight,
+                    alignSingularities,
+                    alignSingularitiesWeight,
+                    repeatLosingConstraintsIterations,
+                    repeatLosingConstraintsQuads,
+                    repeatLosingConstraintsNonQuads,
+                    repeatLosingConstraintsAlign,
                     feasibilityFix,
                     hardParityConstraint,
                     timeLimit,
                     gapLimit,
+                    callbackTimeLimit,
+                    callbackGapLimit,
                     minimumGap,
                     gap);
             }
@@ -638,13 +673,21 @@ inline std::vector<int> findSubdivisions(
                 method,
                 alpha,
                 isometry,
-                regularityForQuadrilaterals,
-                regularityForNonQuadrilaterals,
-                regularityNonQuadrilateralWeight,
+                regularityQuadrilaterals,
+                regularityNonQuadrilaterals,
+                regularityNonQuadrilateralsWeight,
+                alignSingularities,
+                alignSingularitiesWeight,
+                repeatLosingConstraintsIterations,
+                repeatLosingConstraintsQuads,
+                repeatLosingConstraintsNonQuads,
+                repeatLosingConstraintsAlign,
                 feasibilityFix,
                 true,
                 timeLimit,
                 gapLimit,
+                callbackTimeLimit,
+                callbackGapLimit,
                 minimumGap,
                 gap);
         }
@@ -659,17 +702,25 @@ inline std::vector<int> findSubdivisions(
                     ILPMethod::ABS,
                     alpha,
                     isometry,
-                    regularityForQuadrilaterals,
-                    regularityForNonQuadrilaterals,
-                    regularityNonQuadrilateralWeight,
+                    regularityQuadrilaterals,
+                    regularityNonQuadrilaterals,
+                    regularityNonQuadrilateralsWeight,
+                    alignSingularities,
+                    alignSingularitiesWeight,
+                    repeatLosingConstraintsIterations,
+                    repeatLosingConstraintsQuads,
+                    repeatLosingConstraintsNonQuads,
+                    repeatLosingConstraintsAlign,
                     feasibilityFix,
                     true,
                     timeLimit,
                     gapLimit,
+                    callbackTimeLimit,
+                    callbackGapLimit,
                     minimumGap,
                     gap);
             }
-            else if (regularityForNonQuadrilaterals) {
+            else if (regularityNonQuadrilaterals) {
                 std::cout << "Minimum gap has been not reached. Trying without regularity for non-quadrilaterals." << gap << std::endl;
 
                 return findSubdivisions(
@@ -679,17 +730,25 @@ inline std::vector<int> findSubdivisions(
                     method,
                     alpha,
                     isometry,
-                    regularityForQuadrilaterals,
+                    regularityQuadrilaterals,
                     false,
-                    regularityNonQuadrilateralWeight,
+                    regularityNonQuadrilateralsWeight,
+                    false,
+                    alignSingularitiesWeight,                            
+                    repeatLosingConstraintsIterations,
+                    repeatLosingConstraintsQuads,
+                    repeatLosingConstraintsNonQuads,
+                    repeatLosingConstraintsAlign,
                     feasibilityFix,
                     true,
                     timeLimit,
-                    gapLimit,
+                    gapLimit,                            
+                    callbackTimeLimit,
+                    callbackGapLimit,
                     minimumGap,
                     gap);
             }
-            else if (regularityForQuadrilaterals) {
+            else if (regularityQuadrilaterals) {
                 std::cout << "Minimum gap has been not reached. Trying without any regularity terms." << gap << std::endl;
 
                 return findSubdivisions(
@@ -701,11 +760,19 @@ inline std::vector<int> findSubdivisions(
                     true,
                     false,
                     false,
-                    regularityNonQuadrilateralWeight,
+                    regularityNonQuadrilateralsWeight,
+                    false,
+                    alignSingularitiesWeight,                    
+                    repeatLosingConstraintsIterations,
+                    repeatLosingConstraintsQuads,
+                    repeatLosingConstraintsNonQuads,
+                    repeatLosingConstraintsAlign,
                     feasibilityFix,
                     true,
                     timeLimit,
                     gapLimit,
+                    callbackTimeLimit,
+                    callbackGapLimit,
                     minimumGap,
                     gap);
             }

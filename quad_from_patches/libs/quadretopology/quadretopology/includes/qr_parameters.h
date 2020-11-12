@@ -12,9 +12,15 @@
 #define DEFAULTILPMETHOD QuadRetopology::ILPMethod::LEASTSQUARES
 #define DEFAULTALPHA 0.5
 #define DEFAULTISOMETRY true
-#define DEFAULTREGULARITYFORQUADRILATERAL true
-#define DEFAULTREGULARITYFORNONQUADRILATERAL true
-#define DEFAULTREGULARITYNONQUADRILATERWEIGHT 0.9
+#define DEFAULTREGULARITYQUADRILATERALS true
+#define DEFAULTREGULARITYNONQUADRILATERALS true
+#define DEFAULTREGULARITYNONQUADRILATERALSWEIGHT 0.9
+#define DEFAULTALIGNSINGULARITIES false
+#define DEFAULTALIGNSINGULARITIESWEIGHT 0.01
+#define DEFAULTREPEATLOSINGCONSTRAINTSITERATIONS 0
+#define DEFAULTREPEATLOSINGCONSTRAINTSQUADS false
+#define DEFAULTREPEATLOSINGCONSTRAINTSNONQUADS false
+#define DEFAULTREPEATLOSINGCONSTRAINTSALIGN false
 #define DEFAULTHARDPARITYCONSTRAINT true
 #define DEFAULTFEASIBILITYFIX false
 
@@ -46,15 +52,23 @@ struct Parameters {
     ILPMethod ilpMethod;
     double alpha;
     bool isometry;
-    bool regularityForQuadrilaterals;
-    bool regularityForNonQuadrilaterals;
-    double regularityNonQuadrilateralWeight;
+    bool regularityQuadrilaterals;
+    bool regularityNonQuadrilaterals;
+    double regularityNonQuadrilateralsWeight;
+    bool alignSingularities;
+    double alignSingularitiesWeight;
+    bool repeatLosingConstraintsIterations;
+    bool repeatLosingConstraintsQuads;
+    bool repeatLosingConstraintsNonQuads;
+    bool repeatLosingConstraintsAlign;
     bool feasibilityFix;
     bool hardParityConstraint;
 
     double timeLimit;
     double gapLimit;
     double minimumGap;
+    std::vector<float> callbackTimeLimit;
+    std::vector<float> callbackGapLimit;
 
     int chartSmoothingIterations;
     int quadrangulationFixedSmoothingIterations;
@@ -77,9 +91,15 @@ struct Parameters {
         alpha = DEFAULTALPHA;
 
         isometry = DEFAULTISOMETRY;
-        regularityForQuadrilaterals = DEFAULTREGULARITYFORQUADRILATERAL;
-        regularityForNonQuadrilaterals = DEFAULTREGULARITYFORNONQUADRILATERAL;
-        regularityNonQuadrilateralWeight = DEFAULTREGULARITYNONQUADRILATERWEIGHT;
+        regularityQuadrilaterals = DEFAULTREGULARITYQUADRILATERALS;
+        regularityNonQuadrilaterals = DEFAULTREGULARITYNONQUADRILATERALS;
+        regularityNonQuadrilateralsWeight = DEFAULTREGULARITYNONQUADRILATERALSWEIGHT;
+        alignSingularities = DEFAULTALIGNSINGULARITIES;
+        alignSingularitiesWeight = DEFAULTALIGNSINGULARITIESWEIGHT;
+        repeatLosingConstraintsIterations = DEFAULTREPEATLOSINGCONSTRAINTSITERATIONS;
+        repeatLosingConstraintsQuads = DEFAULTREPEATLOSINGCONSTRAINTSQUADS;
+        repeatLosingConstraintsNonQuads = DEFAULTREPEATLOSINGCONSTRAINTSNONQUADS;
+        repeatLosingConstraintsAlign = DEFAULTREPEATLOSINGCONSTRAINTSALIGN;
         hardParityConstraint = DEFAULTHARDPARITYCONSTRAINT;
         feasibilityFix = DEFAULTFEASIBILITYFIX;
 

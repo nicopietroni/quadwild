@@ -73,12 +73,14 @@ macx{
 SOURCES +=  \
     load_save.cpp \
     main.cpp \
-    quad_from_patches.cpp
+    quad_from_patches.cpp \
+    quad_mesh_tracer.cpp
 
 HEADERS += \
     load_save.h \
     mesh_types.h \
     quad_from_patches.h \
+    quad_mesh_tracer.h \
     smooth_mesh.h
 
 #Vcg ply (needed to save ply files)

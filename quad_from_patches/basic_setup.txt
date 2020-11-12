@@ -1,11 +1,19 @@
-alpha 0.05
+alpha 0.01
 ilpMethod 1
 timeLimit 200
-gapLimit 0.05
-minimumGap 0.5
+gapLimit 0.0
+callbackTimeLimit 8 3.00 5.000 10.0 20.0 30.0 60.0 90.0 120.0
+callbackGapLimit 8 0.005 0.02 0.05 0.10 0.15 0.20 0.25 0.3
+minimumGap 0.4
 isometry 1
-regularityForQuadrilaterals 1
-regularityForNonQuadrilaterals 1
-regularityNonQuadrilateralWeight 0.9
+regularityQuadrilaterals 1
+regularityNonQuadrilaterals 1
+regularityNonQuadrilateralsWeight 0.9
+alignSingularities 1
+alignSingularitiesWeight 0.1
+repeatLosingConstraintsIterations 1
+repeatLosingConstraintsQuads 0
+repeatLosingConstraintsNonQuads 0
+repeatLosingConstraintsAlign 1
 hardParityConstraint 1
 scaleFact 2

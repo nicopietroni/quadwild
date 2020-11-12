@@ -10,6 +10,7 @@ namespace QuadRetopology {
 
 struct ChartSubside {
     std::array<int, 2> incidentCharts;
+    std::array<int, 2> incidentChartSubsideId;
     std::array<int, 2> incidentChartSideId;
     std::vector<size_t> vertices;
 
@@ -33,7 +34,6 @@ struct Chart {
     std::vector<size_t> borderFaces;
 
     std::vector<size_t> adjacentCharts;
-
 
     std::vector<ChartSide> chartSides;
     std::vector<size_t> chartSubsides;
