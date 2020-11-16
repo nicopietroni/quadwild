@@ -94,11 +94,9 @@ class AutoRemesher {
     }
 
 
-    static void removeColinearFaces(Mesh & m, const ScalarType colinearThr = 0.001)
+static void removeColinearFaces(Mesh & m, const ScalarType colinearThr = 0.001)
     {
         vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-
-        int count = 0;
 
         Mesh projectMesh;
         vcg::tri::Append<Mesh, Mesh>::MeshCopy(projectMesh, m);
@@ -107,6 +105,8 @@ class AutoRemesher {
         StaticGrid grid;
         grid.Set(projectMesh.face.begin(), projectMesh.face.end());
 
+
+        int count = 0;
         int iter = 0;
         do
         {
@@ -119,9 +119,8 @@ class AutoRemesher {
                 FaceType & f = m.face[i];
 
                 ScalarType quality = vcg::QualityRadii(f.cP(0), f.cP(1), f.cP(2));
-                ScalarType area = vcg::DoubleArea(f);
 
-                if ((quality <= colinearThr /*&& area <= 0.00000001*/) /*|| minEdge <= 0.000001*/)
+                if (quality <= colinearThr)
                 {
                     //find longest edge
                     double edges[3];
@@ -145,7 +144,30 @@ class AutoRemesher {
                         vcg::Triangle3<ScalarType> t1(f.P(longestIdx), f.P1(longestIdx), f.P2(longestIdx)), t2(g->P(k), g->P1(k), g->P2(k)),
                                 t3(f.P(longestIdx), g->P2(k), f.P2(longestIdx)), t4(g->P(k), f.P2(longestIdx), g->P2(k));
 
-                        if ( std::min( QualityFace(t1), QualityFace(t2) ) <= std::min( QualityFace(t3), QualityFace(t4) ))
+                        auto n1 = vcg::TriangleNormal(t1);
+                        auto n2 = vcg::TriangleNormal(t2);
+                        auto n3 = vcg::TriangleNormal(t3);
+                        auto n4 = vcg::TriangleNormal(t4);
+
+                        auto biggestSmallest = vcg::DoubleArea(t1) > vcg::DoubleArea(t2) ? std::make_pair(t1, t2) : std::make_pair(t2, t1);
+                        auto areaRatio = vcg::DoubleArea(biggestSmallest.first) / vcg::DoubleArea(biggestSmallest.second);
+
+                        bool normalCheck = true;
+//                        if (n1.Norm() > 0.001 && n2.Norm() > 0.001)
+                        {
+                            auto referenceNormal = vcg::NormalizedTriangleNormal(biggestSmallest.first);
+
+                            normalCheck &= vcg::NormalizedTriangleNormal(t3) * referenceNormal >= 0.95;
+                            normalCheck &= vcg::NormalizedTriangleNormal(t4) * referenceNormal >= 0.95;
+                        }
+
+                        bool areaCheck = false;
+                        if (areaRatio > 1000)
+                        {
+                            areaCheck |= vcg::DoubleArea(t3) / vcg::DoubleArea(biggestSmallest.second) > 1000 && vcg::DoubleArea(t4) / vcg::DoubleArea(biggestSmallest.second) > 1000;
+                        }
+
+                        if ((normalCheck) && (areaCheck || std::min( QualityFace(t1), QualityFace(t2) ) <= std::min( QualityFace(t3), QualityFace(t4))))
                         {
                             ScalarType dist;
                             CoordType closest;
@@ -163,8 +185,7 @@ class AutoRemesher {
                     }
                 }
             }
-            std::cout << count << std::endl;
-        } while (count && ++iter < 40);
+        } while (count && ++iter < 75);
     }
 
     static void specialTreatment(Mesh & m, Mesh & project, typename vcg::tri::IsotropicRemeshing<Mesh>::Params & para)
@@ -413,7 +434,7 @@ public:
         para.aspectRatioThr = 0.05;
         para.cleanFlag = false;
 
-        para.maxSurfDist = m.bbox.Diag() / 2000.;
+        para.maxSurfDist = m.bbox.Diag() / 4000.;
         para.surfDistCheck = m.FN() < 400000 ? par.surfDistCheck : false;
         para.userSelectedCreases = par.userSelectedCreases;
 

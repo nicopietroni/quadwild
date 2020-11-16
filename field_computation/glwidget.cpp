@@ -322,7 +322,7 @@ void InitFieldBar(QWidget *w)
 
 void BatchProcess ()
 {
-    vcg::tri::Hole<MyTriMesh>::EarCuttingFill<vcg::tri::TrivialEar<MyTriMesh> >(tri_mesh,6);
+//    vcg::tri::Hole<MyTriMesh>::EarCuttingFill<vcg::tri::TrivialEar<MyTriMesh> >(tri_mesh,6);
 
     DoAutoRemesh();
 
