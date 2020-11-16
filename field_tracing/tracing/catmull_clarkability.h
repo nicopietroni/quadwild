@@ -343,12 +343,17 @@ ScalarType CatmullClarkability6(ScalarType L1,
 template <class ScalarType>
 bool IsCatmullClarkable(const int NumF,
                         const std::vector<ScalarType> &EdgeL,
-                        const ScalarType &SideThr)
+                        const ScalarType &SideThr,
+                        bool SkipValence4,
+                        bool print_debug=false)
 {
     //    assert(EdgeL.size()>=3);
     //    assert(EdgeL.size()<=6);
     //assert(Ratio4<1);
     //if (NumF<=EdgeL.size())return true;
+
+    if ((SkipValence4)&&(EdgeL.size()==4))return true;
+
     ScalarType CC=0;
     if (EdgeL.size()==3)
         CC=(CatmullClarkability3(EdgeL[0],EdgeL[1],EdgeL[2]));
@@ -358,7 +363,21 @@ bool IsCatmullClarkable(const int NumF,
         CC=(CatmullClarkability5(EdgeL[0],EdgeL[1],EdgeL[2],EdgeL[3],EdgeL[4]));
     if (EdgeL.size()==6)
         CC=(CatmullClarkability6(EdgeL[0],EdgeL[1],EdgeL[2],EdgeL[3],EdgeL[4],EdgeL[5]));
+
+
     CC+=SideThr;
+
+    if (print_debug)
+    {
+        std::cout<<"CC Computation "<<CC<<std::endl;
+        std::cout<<"Side "<<EdgeL.size()<<std::endl;
+        for (size_t i=0;i<EdgeL.size();i++)
+            std::cout<<EdgeL[i]<<",";
+        std::cout<<std::endl;
+
+        std::cout<<"SideThr: "<<SideThr<<std::endl;
+        std::cout<<"CC: "<<CC<<std::endl;
+    }
     //CC=std::max(CC,(ScalarType)0);
     //    if ((EdgeL.size()==4)&&(CC>Ratio4))
     //        return true;
@@ -371,25 +390,17 @@ bool IsCatmullClarkable(const int NumF,
 template <class ScalarType>
 size_t AddedSingularities(const int NumF,
                           const std::vector<ScalarType> &EdgeL,
-                          const ScalarType &SideThr)
+                          const ScalarType &SideThr,
+                          bool SkipValence4,
+                          bool print_debug=false)
 {
     assert(SideThr>0);
-    bool CC=IsCatmullClarkable(NumF,EdgeL,SideThr);
+    bool CC=IsCatmullClarkable(NumF,EdgeL,SideThr,SkipValence4,print_debug);
     //std::cout<<"test CC "<<CC<<std::endl;
     if (CC)
         return 0;
     else
         return 1;
-    //    {
-    //        return 1;
-    //        //if (EdgeL.size()==4)return 2;
-    //        //else return 3;
-    //    }else
-    //    {
-    //        return 0;
-    ////        if (EdgeL.size()==4)return 0;
-    ////        else return 1;
-    //    }
 }
 
 #endif

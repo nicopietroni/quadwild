@@ -1,7 +1,6 @@
 #ifndef VERTEX_EMITTER
 #define VERTEX_EMITTER
 
-
 #include "vert_field_graph.h"
 
 template <class MeshType>
@@ -87,31 +86,70 @@ public:
             Receiver.push_back(VertexFieldGraph<MeshType>::TangentNode(Emitter[i]));
     }
 
-    static void GetOrthoFlatDirections(VertexFieldGraph<MeshType> &VFGraph,
+//    static void GetOrthoFlatDirections(VertexFieldGraph<MeshType> &VFGraph,
+//                                       std::vector<std::vector<CoordType> > &VertFlatDir,
+//                                       std::vector<std::vector<CoordType> > &VertOrthoDir)
+//    {
+//        VertOrthoDir.clear();
+//        VertOrthoDir.resize(VFGraph.Mesh().vert.size());
+//        VertFlatDir.clear();
+//        VertFlatDir.resize(VFGraph.Mesh().vert.size());
+//        for (size_t i=0;i<VFGraph.Mesh().face.size();i++)
+//            for (size_t j=0;j<3;j++)
+//            {
+//                if(!vcg::face::IsBorder(VFGraph.Mesh().face[i],j))continue;
+
+//                size_t IndexV0=vcg::tri::Index(VFGraph.Mesh(),VFGraph.Mesh().face[i].cV0(j));
+//                size_t IndexV1=vcg::tri::Index(VFGraph.Mesh(),VFGraph.Mesh().face[i].cV1(j));
+//                CoordType P0=VFGraph.Mesh().vert[IndexV0].P();
+//                CoordType P1=VFGraph.Mesh().vert[IndexV1].P();
+//                CoordType Dir=P1-P0;
+//                Dir.Normalize();
+
+//                CoordType OrthoDir=Dir;
+//                OrthoDir=VFGraph.Mesh().face[i].cN()^OrthoDir;
+
+//                vcg::Matrix33<ScalarType> Rot0=vcg::RotationMatrix(VFGraph.Mesh().face[i].cN(),VFGraph.Mesh().vert[IndexV0].N());
+//                vcg::Matrix33<ScalarType> Rot1=vcg::RotationMatrix(VFGraph.Mesh().face[i].cN(),VFGraph.Mesh().vert[IndexV1].N());
+
+//                CoordType OrthoDir0=Rot0*OrthoDir;
+//                CoordType OrthoDir1=Rot1*OrthoDir;
+
+//                OrthoDir0.Normalize();
+//                OrthoDir1.Normalize();
+
+//                VertOrthoDir[IndexV0].push_back(OrthoDir0);
+//                VertOrthoDir[IndexV1].push_back(OrthoDir1);
+//                VertFlatDir[IndexV0].push_back(-Dir);
+//                VertFlatDir[IndexV1].push_back(Dir);
+//            }
+//    }
+
+    static void GetOrthoFlatDirections(const MeshType &mesh,
                                        std::vector<std::vector<CoordType> > &VertFlatDir,
                                        std::vector<std::vector<CoordType> > &VertOrthoDir)
     {
         VertOrthoDir.clear();
-        VertOrthoDir.resize(VFGraph.Mesh().vert.size());
+        VertOrthoDir.resize(mesh.vert.size());
         VertFlatDir.clear();
-        VertFlatDir.resize(VFGraph.Mesh().vert.size());
-        for (size_t i=0;i<VFGraph.Mesh().face.size();i++)
+        VertFlatDir.resize(mesh.vert.size());
+        for (size_t i=0;i<mesh.face.size();i++)
             for (size_t j=0;j<3;j++)
             {
-                if(!vcg::face::IsBorder(VFGraph.Mesh().face[i],j))continue;
+                if(!vcg::face::IsBorder(mesh.face[i],j))continue;
 
-                size_t IndexV0=vcg::tri::Index(VFGraph.Mesh(),VFGraph.Mesh().face[i].cV0(j));
-                size_t IndexV1=vcg::tri::Index(VFGraph.Mesh(),VFGraph.Mesh().face[i].cV1(j));
-                CoordType P0=VFGraph.Mesh().vert[IndexV0].P();
-                CoordType P1=VFGraph.Mesh().vert[IndexV1].P();
+                size_t IndexV0=vcg::tri::Index(mesh,mesh.face[i].cV0(j));
+                size_t IndexV1=vcg::tri::Index(mesh,mesh.face[i].cV1(j));
+                CoordType P0=mesh.vert[IndexV0].P();
+                CoordType P1=mesh.vert[IndexV1].P();
                 CoordType Dir=P1-P0;
                 Dir.Normalize();
 
                 CoordType OrthoDir=Dir;
-                OrthoDir=VFGraph.Mesh().face[i].cN()^OrthoDir;
+                OrthoDir=mesh.face[i].cN()^OrthoDir;
 
-                vcg::Matrix33<ScalarType> Rot0=vcg::RotationMatrix(VFGraph.Mesh().face[i].cN(),VFGraph.Mesh().vert[IndexV0].N());
-                vcg::Matrix33<ScalarType> Rot1=vcg::RotationMatrix(VFGraph.Mesh().face[i].cN(),VFGraph.Mesh().vert[IndexV1].N());
+                vcg::Matrix33<ScalarType> Rot0=vcg::RotationMatrix(mesh.face[i].cN(),mesh.vert[IndexV0].N());
+                vcg::Matrix33<ScalarType> Rot1=vcg::RotationMatrix(mesh.face[i].cN(),mesh.vert[IndexV1].N());
 
                 CoordType OrthoDir0=Rot0*OrthoDir;
                 CoordType OrthoDir1=Rot1*OrthoDir;

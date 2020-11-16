@@ -82,7 +82,7 @@ void GetPathPos(VertexFieldGraph<MeshType> &VFGraph,
 }
 
 template <class MeshType>
-bool CollideCandidates(const VertexFieldGraph<MeshType> &VFGraph,
+bool CollideCandidates(VertexFieldGraph<MeshType> &VFGraph,
                        const CandidateTrace &CT0,
                        const CandidateTrace &CT1)
 {
@@ -91,7 +91,7 @@ bool CollideCandidates(const VertexFieldGraph<MeshType> &VFGraph,
 }
 
 template <class MeshType>
-bool CollideWithCandidateSet(const VertexFieldGraph<MeshType> &VFGraph,
+bool CollideWithCandidateSet(VertexFieldGraph<MeshType> &VFGraph,
                              const CandidateTrace &TestTrace,
                              const std::vector<CandidateTrace> &TraceSet)
 {
@@ -107,7 +107,8 @@ template <class MeshType>
 bool UpdateCandidate(VertexFieldGraph<MeshType> &VFGraph,
                      CandidateTrace &ToUpdate,
                      const typename MeshType::ScalarType &Drift,
-                     const typename MeshType::ScalarType &MaxDijstraDist)
+                     const typename MeshType::ScalarType &MaxDijstraDist,
+                     bool DebugMsg)
 {
     assert(!ToUpdate.Updated);
     ToUpdate.Updated=true;
@@ -118,7 +119,7 @@ bool UpdateCandidate(VertexFieldGraph<MeshType> &VFGraph,
     if (ToUpdate.TracingMethod==TraceDirect)
     {
         std::vector<size_t> PathN;
-        bool hasTraced=TraceDirectPath(VFGraph,IndexN0,PathN);
+        bool hasTraced=TraceDirectPath(VFGraph,IndexN0,PathN,DebugMsg);
         if (!hasTraced)return false;
         ToUpdate.PathNodes=PathN;
         ToUpdate.IsLoop=false;

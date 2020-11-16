@@ -423,6 +423,7 @@ private:
             {
                 size_t IndexV0=vcg::tri::Index(mesh,mesh.face[i].V0(j));
                 size_t IndexV1=vcg::tri::Index(mesh,mesh.face[i].V1(j));
+                if ((IsSingVert[IndexV0])||(IsSingVert[IndexV1]))continue;//no add connection with singularities
                 VNeigh[IndexV0].push_back(IndexV1);
                 VNeigh[IndexV1].push_back(IndexV0);
             }
@@ -606,7 +607,8 @@ private:
         }
     }
 
-    std::map<std::pair<size_t,size_t>,vcg::face::Pos<FaceType> > VertPos;
+    //std::map<std::pair<size_t,size_t>,vcg::face::Pos<FaceType> > VertPos;
+    std::unordered_map<std::pair<size_t,size_t>,vcg::face::Pos<FaceType> > VertPos;
 
     void InitVertPosMap()
     {
@@ -625,41 +627,22 @@ private:
 
     void InitConnections()
     {
-        //CheckTangentField();
-
         //the neighbours of each vertex (include propagation)
         std::vector<std::vector<size_t> > VNeigh;
-        //        std::vector<std::vector<bool> > Direct;
         GetVertStar(VNeigh);
 
 
         //remove the paths that moves along the border
         RemoveOnBorderLinks(VNeigh);
 
-        //        //initialize direct value
-        //        Direct.resize(VNeigh.size());
-        //        for (size_t i=0;i<VNeigh.size();i++)
-        //            Direct[i]=std::vector<bool>(VNeigh[i].size(),true);
-
         //then propagate neighbours
         for (size_t s=0;s<PropagationSteps;s++)
             PropagateNeigh(VNeigh);
 
-        //        //set remaining non direct
-        //        for (size_t i=0;i<VNeigh.size();i++)
-        //            Direct[i].resize(VNeigh[i].size(),false);
-
         //allocate the nodes
         Nodes.clear();
         Nodes.resize(mesh.vert.size()*4);
-        //initialize connection
-        //        for (size_t i=0;i<Nodes.size();i++)
-        //        {
-        //            size_t IndexV;
-        //            size_t Dir;
-        //            VertDir(i,IndexV,Dir);
-        //            //Nodes[i].IsBorder=mesh.vert[IndexV].IsB();
-        //        }
+
 
         AddConnections(VNeigh);
 
@@ -693,6 +676,7 @@ private:
 public:
 
     std::vector<size_t> SingNodes;
+    std::vector<bool> IsSingVert;
 
     bool HasTwin(size_t IndexN)
     {
@@ -895,12 +879,64 @@ public:
         return mesh;
     }
 
+//    void Init(bool _DebugMsg=false)//std::vector<CoordType> &_Sing)
+//    {
+//        DebugMsg=_DebugMsg;
+//        //SingPos=std::set<CoordType>(_Sing.begin(),_Sing.end());
+//        //check if everything is ok
+//        CheckTangentField();
+//        //initialize connections
+//        InitConnections();
+//        //initialize pos map
+//        InitVertPosMap();
+//        //initialize the rest used for queries
+//        NodeDist=std::vector<ScalarType>(NumNodes(),0);
+//        NodeFather=std::vector<int>(NumNodes(),-1);
+//        NodeJumps=std::vector<size_t> (NumNodes(),0);
+//        NodeTwinJumps=std::vector<size_t> (NumNodes(),0);
+
+//        SingNodes.clear();
+//        for (size_t i=0;i<mesh.vert.size();i++)
+//        {
+//            int Mmatch;
+//            if(vcg::tri::CrossField<MeshType>::IsSingularByCross(mesh.vert[i],Mmatch))
+//            {
+//                std::vector<size_t> CurrN;
+//                IndexNodes(i,CurrN);
+//                SingNodes.insert(SingNodes.end(),CurrN.begin(),CurrN.end());
+//            }
+//        }
+//        if (DebugMsg)
+//            std::cout<<"There are "<<SingNodes.size()<<" singular Nodes"<<std::endl;
+//        RemoveSingularities();
+//    }
+
     void Init(bool _DebugMsg=false)//std::vector<CoordType> &_Sing)
     {
         DebugMsg=_DebugMsg;
         //SingPos=std::set<CoordType>(_Sing.begin(),_Sing.end());
         //check if everything is ok
         CheckTangentField();
+
+        //collect singularities nodes (must be disabled)
+        SingNodes.clear();
+        IsSingVert=std::vector<bool>(mesh.vert.size(),false);
+        for (size_t i=0;i<mesh.vert.size();i++)
+        {
+            int Mmatch;
+            if(vcg::tri::CrossField<MeshType>::IsSingularByCross(mesh.vert[i],Mmatch))
+            {
+                IsSingVert[i]=true;
+                std::vector<size_t> CurrN;
+                IndexNodes(i,CurrN);
+                SingNodes.insert(SingNodes.end(),CurrN.begin(),CurrN.end());
+            }
+        }
+        if (DebugMsg)
+            std::cout<<"There are "<<SingNodes.size()<<" singular Nodes"<<std::endl;
+        //RemoveSingularities();
+
+
         //initialize connections
         InitConnections();
         //initialize pos map
@@ -910,22 +946,8 @@ public:
         NodeFather=std::vector<int>(NumNodes(),-1);
         NodeJumps=std::vector<size_t> (NumNodes(),0);
         NodeTwinJumps=std::vector<size_t> (NumNodes(),0);
-
-        SingNodes.clear();
-        for (size_t i=0;i<mesh.vert.size();i++)
-        {
-            int Mmatch;
-            if(vcg::tri::CrossField<MeshType>::IsSingularByCross(mesh.vert[i],Mmatch))
-            {
-                std::vector<size_t> CurrN;
-                IndexNodes(i,CurrN);
-                SingNodes.insert(SingNodes.end(),CurrN.begin(),CurrN.end());
-            }
-        }
-        if (DebugMsg)
-            std::cout<<"There are "<<SingNodes.size()<<" singular Nodes"<<std::endl;
-        RemoveSingularities();
     }
+
 
     int &Father(const size_t &IndexNode)
     {
@@ -980,7 +1002,7 @@ public:
     bool IsMarked(const size_t &IndexNode)const
     {
         assert(IndexNode<Nodes.size());
-        assert(Nodes[IndexNode].Active);
+        //assert(Nodes[IndexNode].Active);
         assert(Nodes[IndexNode].TMark<=TMark);
         return (Nodes[IndexNode].TMark==TMark);
     }
@@ -1005,11 +1027,16 @@ public:
         Nodes[IndexNode].Selected=true;
     }
 
-    void Select(const std::vector<bool> &ToSelect)
+    size_t Select(const std::vector<bool> &ToSelect)
     {
         assert(ToSelect.size()==Nodes.size());
+        size_t num=0;
         for (size_t i=0;i<ToSelect.size();i++)
+        {
             Nodes[i].Selected=ToSelect[i];
+            if (Nodes[i].Selected)num++;
+        }
+        return num;
     }
 
 
@@ -1031,7 +1058,7 @@ public:
     void Mark(const size_t &IndexNode)
     {
         assert(IndexNode<Nodes.size());
-        assert(Nodes[IndexNode].Active);
+        //assert(Nodes[IndexNode].Active);
         assert(Nodes[IndexNode].TMark<=TMark);
         Nodes[IndexNode].TMark=TMark;
     }

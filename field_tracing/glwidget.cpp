@@ -86,9 +86,9 @@ bool drawNarrowCandidates=false;
 bool batch_process=false;
 bool has_features=false;
 
-bool add_only_needed=true;
-bool interleave_removal=true;
-bool interleave_smooth=false;
+bool add_only_needed=false;
+//bool interleave_removal=true;
+//bool interleave_smooth=false;
 bool final_removal=true;
 
 int CurrNum=0;
@@ -97,7 +97,8 @@ std::vector<size_t> ConcaveEmittersNode,ConcaveReceiversNode,
 FlatEmittersNode,FlatReceiversNode,
 NarrowEmittersNode,NarrowReceiversNode,
 ProblematicNodes,UnsatisfiedNodes,
-ChoosenEmittersNode,ChoosenReceiversNode;
+ChoosenEmittersNode,ChoosenReceiversNode,
+TraceableFlatNode;
 
 VertexFieldGraph<CMesh> VGraph(mesh);
 GLVertGraph<CMesh> GLGraph(VGraph);
@@ -209,10 +210,10 @@ void SaveSetupFile(const std::string pathProject,
 //        interleave_removal=false;
 //    else
 //        interleave_removal=true;
-    if (interleave_removal)
-        fprintf(f,"InterleaveRem 1\n");
-    else
-        fprintf(f,"InterleaveRem 0\n");
+//    if (interleave_removal)
+//        fprintf(f,"InterleaveRem 1\n");
+//    else
+//        fprintf(f,"InterleaveRem 0\n");
 
 //    fscanf(f,"InterleaveSmooth %d\n",&IntVar);
 //    std::cout<<"INTERLEAVE SMOOTH "<<IntVar<<std::endl;
@@ -220,10 +221,10 @@ void SaveSetupFile(const std::string pathProject,
 //        interleave_smooth=false;
 //    else
 //        interleave_smooth=true;
-    if (interleave_smooth)
-        fprintf(f,"InterleaveSmooth 1\n");
-    else
-        fprintf(f,"InterleaveSmooth 0\n");
+//    if (interleave_smooth)
+//        fprintf(f,"InterleaveSmooth 1\n");
+//    else
+//        fprintf(f,"InterleaveSmooth 0\n");
 
 //    fscanf(f,"FinalRem %d\n",&IntVar);
 //    std::cout<<"FINAL REMOVE "<<IntVar<<std::endl;
@@ -300,19 +301,19 @@ void LoadSetupFile(std::string path)
     else
         add_only_needed=true;
 
-    fscanf(f,"InterleaveRem %d\n",&IntVar);
-    std::cout<<"INTERLEAVE REMOVE "<<IntVar<<std::endl;
-    if (IntVar==0)
-        interleave_removal=false;
-    else
-        interleave_removal=true;
+//    fscanf(f,"InterleaveRem %d\n",&IntVar);
+//    std::cout<<"INTERLEAVE REMOVE "<<IntVar<<std::endl;
+//    if (IntVar==0)
+//        interleave_removal=false;
+//    else
+//        interleave_removal=true;
 
-    fscanf(f,"InterleaveSmooth %d\n",&IntVar);
-    std::cout<<"INTERLEAVE SMOOTH "<<IntVar<<std::endl;
-    if (IntVar==0)
-        interleave_smooth=false;
-    else
-        interleave_smooth=true;
+//    fscanf(f,"InterleaveSmooth %d\n",&IntVar);
+//    std::cout<<"INTERLEAVE SMOOTH "<<IntVar<<std::endl;
+//    if (IntVar==0)
+//        interleave_smooth=false;
+//    else
+//        interleave_smooth=true;
 
     fscanf(f,"FinalRem %d\n",&IntVar);
     std::cout<<"FINAL REMOVE "<<IntVar<<std::endl;
@@ -467,9 +468,10 @@ void UpdateVisualNodes()
     PTr.GetActiveReceiversType(TVChoosen,ChoosenReceiversNode);
 
     PTr.GetUnsatisfied(UnsatisfiedNodes);
-//    for (size_t i=0;i<UnsatisfiedNodes.size();i++)
-//        std::cout<<"Unsatisfied "<<UnsatisfiedNodes[i]<<std::endl;
+
     PTr.GetVisualCornersPos(PatchCornerPos);
+
+    PTr.GetTraceableFlatNodes(TraceableFlatNode);
 }
 
 void InitStructures()
@@ -485,8 +487,7 @@ void InitStructures()
 
     PreProcessMesh(mesh);
 
-    VGraph.Init();//SingPos);
-
+    VGraph.Init(true);//SingPos);
 
     GLGraph.InitDisplacedPos();
 
@@ -506,25 +507,33 @@ void TW_CALL InitGraph(void *)
 
 void TW_CALL JoinNarrow(void *)
 {
-    PTr.JoinNarrow();
+    PTr.JoinConcaveStep();
+    PTr.UpdatePartitionsFromChoosen();
+    PTr.ColorByPartitions();
     UpdateVisualNodes();
 }
 
 void TW_CALL JoinConcave(void *)
 {
-    PTr.JoinConcave();
+    PTr.JoinConcaveStep();
+    PTr.UpdatePartitionsFromChoosen();
+    PTr.ColorByPartitions();
     UpdateVisualNodes();
 }
 
 void TW_CALL AddLoops(void *)
 {
-    PTr.TraceLoops();
+    PTr.TraceLoops(false);
+    PTr.UpdatePartitionsFromChoosen();
+    PTr.ColorByPartitions();
     UpdateVisualNodes();
 }
 
 void TW_CALL TraceBorder(void *)
 {
-    PTr.JoinBoundaries();
+    PTr.JoinBoundaries(false);
+    PTr.UpdatePartitionsFromChoosen();
+    PTr.ColorByPartitions();
     UpdateVisualNodes();
 }
 
@@ -560,7 +569,9 @@ void TW_CALL BatchProcess(void *)
 {
     InitStructures();
     //PTr.BatchProcess();
-    PTr.BatchAddLoops(true,false,false,true,false);
+    PTr.BatchAddLoops(true,false);//,false,true);//,false);
+    PTr.UpdatePartitionsFromChoosen();
+    PTr.ColorByPartitions();
     CurrPatchMode=CMPatchCol;
 //    CurrCandidates.clear();
 //    PTr.GetCurrCandidates(CurrCandidates);
@@ -607,7 +618,7 @@ void TW_CALL RecursiveProcess(void *)
 {
     InitStructures();
     //RecursiveProcess<CMesh>(PTr,Drift);
-    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,interleave_removal,final_removal,interleave_smooth);
+    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal);//,interleave_smooth);
     CurrPatchMode=CMPatchCol;
     drawField=false;
     drawSharpF=false;
@@ -647,7 +658,10 @@ void TW_CALL SubdividePatches(void *)
 void TW_CALL BatchRemoval(void *)
 {
     PTr.SetAllRemovable();
-    PTr.BatchRemoval(false);
+    PTr.BatchRemoval();
+    PTr.UpdatePartitionsFromChoosen(true);
+    PTr.ColorByPartitions();
+
     CurrPatchMode=CMPatchCol;
     drawField=false;
     drawSharpF=false;
@@ -789,7 +803,7 @@ void TW_CALL SaveData(void *)
 void  ProcessAllBatch()
 {
     InitStructures();
-    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,interleave_removal,final_removal,interleave_smooth);
+    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal);//,interleave_smooth);
     //RecursiveProcess<CMesh>(PTr,Drift,true,true,true);
     CurrPatchMode=CMPatchCol;
     PTr.BatchRemoval();
@@ -892,10 +906,11 @@ void InitLoopBar(QWidget *w)
     TwAddVarRW(bar,"MaxValence",TW_TYPE_INT32,&PTr.MaxVal,"label='Max Valence'");
     TwAddVarRW(bar,"CCLarkability",TW_TYPE_DOUBLE,&PTr.CClarkability,"label='CCLarkability'");
     TwAddVarRW(bar,"ConcaveNeed",TW_TYPE_INT32,&PTr.Concave_Need,"label='Concave Need'");
-    TwAddVarRW(bar,"MaxValence",TW_TYPE_INT32,&PTr.MaxVal,"label='Max Valence'");
+    //TwAddVarRW(bar,"MaxValence",TW_TYPE_INT32,&PTr.MaxVal,"label='Max Valence'");
+    TwAddVarRW(bar,"MatchVal",TW_TYPE_BOOLCPP,&PTr.match_valence,"label='Match Valence'");
     TwAddVarRW(bar,"AddNeed",TW_TYPE_BOOLCPP,&add_only_needed,"label='Add Only need'");
-    TwAddVarRW(bar,"InterRem",TW_TYPE_BOOLCPP,&interleave_removal,"label='Interleave removal'");
-    TwAddVarRW(bar,"InterSmth",TW_TYPE_BOOLCPP,&interleave_smooth,"label='Interleave smooth'");
+    //TwAddVarRW(bar,"InterRem",TW_TYPE_BOOLCPP,&interleave_removal,"label='Interleave removal'");
+    //TwAddVarRW(bar,"InterSmth",TW_TYPE_BOOLCPP,&interleave_smooth,"label='Interleave smooth'");
     TwAddVarRW(bar,"FinalRem",TW_TYPE_BOOLCPP,&final_removal,"label='Final removal'");
     TwAddButton(bar,"RecursiveProcess",RecursiveProcess,0," label='Recursive Process' ");
     TwAddButton(bar,"Subdivide",SubdividePatches,0," label='Subdivide Patches' ");
@@ -1011,7 +1026,7 @@ void GLWidget::paintGL ()
         glWrap.Draw(GLW::DrawMode(drawmode),GLW::CMPerFace,GLW::TMNone);
 
         if (drawField)//&&(has_field))
-            vcg::GLField<CMesh>::GLDrawFaceField(mesh,false,false,0.007);
+            vcg::GLField<CMesh>::GLDrawFaceField(mesh,false,false,0.005);
 
         if (drawSing)//&&(has_field))
             vcg::GLField<CMesh>::GLDrawSingularity(mesh);
@@ -1023,7 +1038,7 @@ void GLWidget::paintGL ()
         if (drawConcaveReceivers)
             GLGraph.GLDrawNodes(ConcaveReceiversNode,mesh.bbox.Diag()*0.005);
         if (drawFlatEmitters)
-            GLGraph.GLDrawNodes(FlatEmittersNode,mesh.bbox.Diag()*0.005);
+            GLGraph.GLDrawNodes(FlatEmittersNode,mesh.bbox.Diag()*0.005,false,10,true);
         if (drawChoosenEmitters)
             GLGraph.GLDrawNodes(ChoosenEmittersNode,mesh.bbox.Diag()*0.005);
         if (drawFlatReceivers)
@@ -1055,6 +1070,8 @@ void GLWidget::paintGL ()
 
         if (drawPaths)
             GLGraph.GLDrawPaths(ChosenCandidates,ChosenIsLoop,mesh.bbox.Diag()*0.01,drawPathNodes);
+
+        //GLGraph.GLDrawNodes(TraceableFlatNode,mesh.bbox.Diag()*0.002);
 
         //GLGraph.GLDrawSingNodes(mesh.bbox.Diag()*0.002);
     }

@@ -111,118 +111,366 @@ public:
         //vcg::face::Pos<FaceType> currPos(F0,IndexV);
     }
 
-    //*** COLLIDING FUNCTIONS ***
-    //return true if two traces collides
-    static bool CollideTraces(const VertexFieldGraph<MeshType> &VFGraph,
-                              const std::vector<size_t > &TraceN0,
-                              bool IsLoopTr0,
-                              const std::vector<size_t > &TraceN1,
-                              bool IsLoopTr1)
+    static bool CollideSubSequence(const VertexFieldGraph<MeshType> &VFGraph,
+                                   const std::vector<size_t > &TraceN0,
+                                   const std::vector<size_t > &TraceN1,
+                                   bool IsLoopTr0,bool IsLoopTr1,
+                                   const std::vector<size_t > &SameV)
     {
-        //quick rejection test based on vertex indexes
-        std::set<CoordType> VIndexTrace0;
-        for (size_t i=0;i<TraceN0.size();i++)
-            VIndexTrace0.insert(VFGraph.NodePos(TraceN0[i]));
-
-        bool HasSameV=false;
-        for (size_t i=0;i<TraceN1.size();i++)
-        {
-            if(VIndexTrace0.count(VFGraph.NodePos(TraceN1[i]))==1)
-            {
-                HasSameV=true;
-                break;
-            }
-        }
-        if (!HasSameV)return false;
-
-        //then check if there is the same geometric edge
-        std::set<std::pair<CoordType,CoordType> > PathEdges0;
-        size_t Limit0=TraceN0.size()-1;
-        if (IsLoopTr0)Limit0++;
-        for (size_t i=0;i<Limit0;i++)
-        {
-            CoordType Pos0=VFGraph.NodePos(TraceN0[i]);
-            CoordType Pos1=VFGraph.NodePos(TraceN0[(i+1)%TraceN0.size()]);
-            std::pair<CoordType,CoordType> Key(std::min(Pos0,Pos1),std::max(Pos0,Pos1));
-            PathEdges0.insert(Key);
-        }
-        size_t Limit1=TraceN1.size()-1;
-        if (IsLoopTr1)Limit1++;
-        for (size_t i=0;i<Limit1;i++)
-        {
-            CoordType Pos0=VFGraph.NodePos(TraceN1[i]);
-            CoordType Pos1=VFGraph.NodePos(TraceN1[(i+1)%TraceN1.size()]);
-            std::pair<CoordType,CoordType> Key(std::min(Pos0,Pos1),std::max(Pos0,Pos1));
-            if (PathEdges0.count(Key)>0)return true;
-        }
-
-        //first check if there is the same node (or opposite in M2)
-        std::set<size_t> PathNodes0(TraceN0.begin(),TraceN0.end());
-
-        //in this case add also the opposite
-        //        if (IsLoopTr0)
-        //        {
-        for (size_t i=0;i<TraceN0.size();i++)
-            PathNodes0.insert(VertexFieldGraph<MeshType>::TangentNode(TraceN0[i]));
-        //        }
-        //        else
-        //        {
-        //            //otherwise not the first and the last
-        //            for (size_t i=1;i<TraceN0.size()-1;i++)
-        //                PathNodes0.insert(VertexFieldGraph<MeshType>::TangentNode(TraceN0[i]));
-        //        }
-
-        for (size_t i=0;i<TraceN1.size();i++)
-        {
-            size_t NodeN1=TraceN1[i];
-            if (PathNodes0.count(NodeN1)>0)return true;
-
-            //add the opposite of the first/last only when is loop
-            //if ((!IsLoopTr0)&&((i==0)||(i==(TraceN1.size()-1))))continue;
-            size_t NodeOppN1=VertexFieldGraph<MeshType>::TangentNode(NodeN1);
-            if (PathNodes0.count(NodeOppN1)>0)return true;
-        }
-
         //check strange propagation configuration that might happens
         //due to discretization
+        size_t Limit0=TraceN0.size()-1;
+        if (IsLoopTr0)Limit0++;
+        size_t Limit1=TraceN1.size()-1;
+        if (IsLoopTr1)Limit1++;
+
         size_t Start0=1;
         size_t Start1=1;
         if (IsLoopTr0)Start0=0;
         if (IsLoopTr1)Start1=0;
         size_t Size0=TraceN0.size();
         size_t Size1=TraceN1.size();
-        for (size_t i=Start0;i<Limit0;i++)
+        assert(SameV.size()>0);
+        //check only for the same vertex
+        for (size_t s=0;s<SameV.size();s++)
         {
-            //not check on twins or border
-            if (VFGraph.IsBorder(TraceN0[i]))continue;
-            std::vector<size_t> VIndex0;
-            size_t I0=(i+Size0-1)%Size0;
-            size_t I1=i;
-            size_t I2=(i+1)%Size0;
-            size_t IndexV0=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[I0]);
-            size_t IndexV1=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[I1]);
-            size_t IndexV2=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[I2]);
-            VIndex0.push_back(IndexV0);
-            VIndex0.push_back(IndexV1);
-            VIndex0.push_back(IndexV2);
-            for (size_t j=Start1;j<Limit1;j++)
+            size_t VIndex=SameV[s];
+            for (size_t i=Start0;i<Limit0;i++)
             {
-                if (VFGraph.IsBorder(TraceN1[j]))continue;
-                std::vector<size_t> VIndex1;
-                size_t I0=(j+Size1-1)%Size1;
-                size_t I1=j;
-                size_t I2=(j+1)%Size1;
-                size_t IndexV0=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[I0]);
-                size_t IndexV1=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[I1]);
-                size_t IndexV2=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[I2]);
-                VIndex1.push_back(IndexV0);
-                VIndex1.push_back(IndexV1);
-                VIndex1.push_back(IndexV2);
-                if (CollideSubSequence(VFGraph,VIndex0,VIndex1))return true;
+                //not check on twins or border
+                if (VFGraph.IsBorder(TraceN0[i]))continue;
+                std::vector<size_t> VIndex0;
+                size_t I0=(i+Size0-1)%Size0;
+                size_t I1=i;
+                size_t I2=(i+1)%Size0;
+                size_t IndexV0=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[I0]);
+                size_t IndexV1=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[I1]);
+                //check only when the middle index is the one among the shared
+                if (IndexV1!=VIndex)continue;
+                size_t IndexV2=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[I2]);
+                VIndex0.push_back(IndexV0);
+                VIndex0.push_back(IndexV1);
+                VIndex0.push_back(IndexV2);
+                for (size_t j=Start1;j<Limit1;j++)
+                {
+                    if (VFGraph.IsBorder(TraceN1[j]))continue;
+                    std::vector<size_t> VIndex1;
+                    size_t I0=(j+Size1-1)%Size1;
+                    size_t I1=j;
+                    size_t I2=(j+1)%Size1;
+                    size_t IndexV0=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[I0]);
+                    size_t IndexV1=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[I1]);
+                    //check only when the middle index is the one among the shared
+                    if (IndexV1!=VIndex)continue;
+                    size_t IndexV2=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[I2]);
+                    VIndex1.push_back(IndexV0);
+                    VIndex1.push_back(IndexV1);
+                    VIndex1.push_back(IndexV2);
+                    if (CollideSubSequence(VFGraph,VIndex0,VIndex1))return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    //    //*** COLLIDING FUNCTIONS ***
+    //    //return true if two traces collides
+    //    static bool CollideTraces(const VertexFieldGraph<MeshType> &VFGraph,
+    //                              const std::vector<size_t > &TraceN0,
+    //                              bool IsLoopTr0,
+    //                              const std::vector<size_t > &TraceN1,
+    //                              bool IsLoopTr1)
+    //    {
+    //        //quick rejection test based on vertex indexes
+    //        std::set<CoordType> VIndexTrace0;
+    //        for (size_t i=0;i<TraceN0.size();i++)
+    //            VIndexTrace0.insert(VFGraph.NodePos(TraceN0[i]));
+
+    //        bool HasSameV=false;
+    //        for (size_t i=0;i<TraceN1.size();i++)
+    //        {
+    //            if(VIndexTrace0.count(VFGraph.NodePos(TraceN1[i]))==1)
+    //            {
+    //                HasSameV=true;
+    //                break;
+    //            }
+    //        }
+    //        if (!HasSameV)return false;
+
+    //        //then check if there is the same geometric edge
+    //        std::set<std::pair<CoordType,CoordType> > PathEdges0;
+    //        size_t Limit0=TraceN0.size()-1;
+    //        if (IsLoopTr0)Limit0++;
+    //        for (size_t i=0;i<Limit0;i++)
+    //        {
+    //            CoordType Pos0=VFGraph.NodePos(TraceN0[i]);
+    //            CoordType Pos1=VFGraph.NodePos(TraceN0[(i+1)%TraceN0.size()]);
+    //            std::pair<CoordType,CoordType> Key(std::min(Pos0,Pos1),std::max(Pos0,Pos1));
+    //            PathEdges0.insert(Key);
+    //        }
+    //        size_t Limit1=TraceN1.size()-1;
+    //        if (IsLoopTr1)Limit1++;
+    //        for (size_t i=0;i<Limit1;i++)
+    //        {
+    //            CoordType Pos0=VFGraph.NodePos(TraceN1[i]);
+    //            CoordType Pos1=VFGraph.NodePos(TraceN1[(i+1)%TraceN1.size()]);
+    //            std::pair<CoordType,CoordType> Key(std::min(Pos0,Pos1),std::max(Pos0,Pos1));
+    //            if (PathEdges0.count(Key)>0)return true;
+    //        }
+
+    //        //first check if there is the same node (or opposite in M2)
+    //        std::set<size_t> PathNodes0(TraceN0.begin(),TraceN0.end());
+
+    //        //in this case add also the opposite
+    //        //        if (IsLoopTr0)
+    //        //        {
+    //        for (size_t i=0;i<TraceN0.size();i++)
+    //            PathNodes0.insert(VertexFieldGraph<MeshType>::TangentNode(TraceN0[i]));
+    //        //        }
+    //        //        else
+    //        //        {
+    //        //            //otherwise not the first and the last
+    //        //            for (size_t i=1;i<TraceN0.size()-1;i++)
+    //        //                PathNodes0.insert(VertexFieldGraph<MeshType>::TangentNode(TraceN0[i]));
+    //        //        }
+
+    //        for (size_t i=0;i<TraceN1.size();i++)
+    //        {
+    //            size_t NodeN1=TraceN1[i];
+    //            if (PathNodes0.count(NodeN1)>0)return true;
+
+    //            //add the opposite of the first/last only when is loop
+    //            //if ((!IsLoopTr0)&&((i==0)||(i==(TraceN1.size()-1))))continue;
+    //            size_t NodeOppN1=VertexFieldGraph<MeshType>::TangentNode(NodeN1);
+    //            if (PathNodes0.count(NodeOppN1)>0)return true;
+    //        }
+
+    //        //check strange propagation configuration that might happens
+    //        //due to discretization
+    //        size_t Start0=1;
+    //        size_t Start1=1;
+    //        if (IsLoopTr0)Start0=0;
+    //        if (IsLoopTr1)Start1=0;
+    //        size_t Size0=TraceN0.size();
+    //        size_t Size1=TraceN1.size();
+    //        for (size_t i=Start0;i<Limit0;i++)
+    //        {
+    //            //not check on twins or border
+    //            if (VFGraph.IsBorder(TraceN0[i]))continue;
+    //            std::vector<size_t> VIndex0;
+    //            size_t I0=(i+Size0-1)%Size0;
+    //            size_t I1=i;
+    //            size_t I2=(i+1)%Size0;
+    //            size_t IndexV0=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[I0]);
+    //            size_t IndexV1=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[I1]);
+    //            size_t IndexV2=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[I2]);
+    //            VIndex0.push_back(IndexV0);
+    //            VIndex0.push_back(IndexV1);
+    //            VIndex0.push_back(IndexV2);
+    //            for (size_t j=Start1;j<Limit1;j++)
+    //            {
+    //                if (VFGraph.IsBorder(TraceN1[j]))continue;
+    //                std::vector<size_t> VIndex1;
+    //                size_t I0=(j+Size1-1)%Size1;
+    //                size_t I1=j;
+    //                size_t I2=(j+1)%Size1;
+    //                size_t IndexV0=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[I0]);
+    //                size_t IndexV1=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[I1]);
+    //                size_t IndexV2=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[I2]);
+    //                VIndex1.push_back(IndexV0);
+    //                VIndex1.push_back(IndexV1);
+    //                VIndex1.push_back(IndexV2);
+    //                if (CollideSubSequence(VFGraph,VIndex0,VIndex1))return true;
+    //            }
+    //        }
+
+    //        return false;
+    //    }
+
+    //*** COLLIDING FUNCTIONS ***
+    //return true if two traces collides
+    static bool CollideTraces(VertexFieldGraph<MeshType> &VFGraph,
+                              const std::vector<size_t > &TraceN0,
+                              bool IsLoopTr0,
+                              const std::vector<size_t > &TraceN1,
+                              bool IsLoopTr1)
+    {
+        //quick rejection test based on vertex indexes
+        vcg::tri::UnMarkAll<MeshType>(VFGraph.Mesh());
+        std::vector<size_t> SameV;
+        for (size_t i=0;i<TraceN0.size();i++)
+        {
+            size_t IndexV=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[i]);
+            VertexType *v=&VFGraph.Mesh().vert[IndexV];
+            vcg::tri::Mark(VFGraph.Mesh(),v);
+        }
+        //bool HasSameV=false;
+        for (size_t i=0;i<TraceN1.size();i++)
+        {
+            size_t IndexV=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[i]);
+            VertexType *v=&VFGraph.Mesh().vert[IndexV];
+            if (vcg::tri::IsMarked(VFGraph.Mesh(),v)){SameV.push_back(IndexV);}
+        }
+        if (SameV.size()==0)return false;
+
+        //            VIndexTrace0.insert(VFGraph.NodePos(TraceN0[i]));
+        //        std::set<CoordType> VIndexTrace0;
+        //        for (size_t i=0;i<TraceN0.size();i++)
+        //            VIndexTrace0.insert(VFGraph.NodePos(TraceN0[i]));
+
+        //        bool HasSameV=false;
+        //        for (size_t i=0;i<TraceN1.size();i++)
+        //        {
+        //            if(VIndexTrace0.count(VFGraph.NodePos(TraceN1[i]))==1)
+        //            {
+        //                HasSameV=true;
+        //                break;
+        //            }
+        //        }
+        //        if (!HasSameV)return false;
+
+        //        //then check if there is the same geometric edge
+        //        std::set<std::pair<CoordType,CoordType> > PathEdges0;
+        //        size_t Limit0=TraceN0.size()-1;
+        //        if (IsLoopTr0)Limit0++;
+        //        for (size_t i=0;i<Limit0;i++)
+        //        {
+        //            CoordType Pos0=VFGraph.NodePos(TraceN0[i]);
+        //            CoordType Pos1=VFGraph.NodePos(TraceN0[(i+1)%TraceN0.size()]);
+        //            std::pair<CoordType,CoordType> Key(std::min(Pos0,Pos1),std::max(Pos0,Pos1));
+        //            PathEdges0.insert(Key);
+        //        }
+        //        size_t Limit1=TraceN1.size()-1;
+        //        if (IsLoopTr1)Limit1++;
+        //        for (size_t i=0;i<Limit1;i++)
+        //        {
+        //            CoordType Pos0=VFGraph.NodePos(TraceN1[i]);
+        //            CoordType Pos1=VFGraph.NodePos(TraceN1[(i+1)%TraceN1.size()]);
+        //            std::pair<CoordType,CoordType> Key(std::min(Pos0,Pos1),std::max(Pos0,Pos1));
+        //            if (PathEdges0.count(Key)>0)return true;
+        //        }
+
+        //then check if there is the same geometric edge
+        size_t Limit0=TraceN0.size()-1;
+        if (IsLoopTr0)Limit0++;
+
+        size_t Limit1=TraceN1.size()-1;
+        if (IsLoopTr1)Limit1++;
+
+        //mark the shared ones
+        vcg::tri::UnMarkAll<MeshType>(VFGraph.Mesh());
+        for (size_t i=0;i<SameV.size();i++)
+        {
+            VertexType *v=&VFGraph.Mesh().vert[SameV[i]];
+            vcg::tri::Mark(VFGraph.Mesh(),v);
+        }
+
+        for (size_t i=0;i<Limit0;i++)
+        {
+            size_t VIndex0=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[i]);
+            size_t VIndex1=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[(i+1)%TraceN0.size()]);
+
+            VertexType *v0=&VFGraph.Mesh().vert[VIndex0];
+            if (!vcg::tri::IsMarked(VFGraph.Mesh(),v0))
+                continue;
+
+            VertexType *v1=&VFGraph.Mesh().vert[VIndex1];
+            if (!vcg::tri::IsMarked(VFGraph.Mesh(),v1))
+                continue;
+
+            std::pair<size_t,size_t> Key0(std::min(VIndex0,VIndex1),std::max(VIndex0,VIndex1));
+            //check if already
+            for (size_t i=0;i<Limit1;i++)
+            {
+                size_t VIndex0=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[i]);
+                size_t VIndex1=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[(i+1)%TraceN1.size()]);
+                std::pair<size_t,size_t> Key1(std::min(VIndex0,VIndex1),std::max(VIndex0,VIndex1));
+                if (Key0==Key1)return true;
             }
         }
 
-        return false;
+
+        //        //first check if there is the same node (or opposite in M2)
+        //        VFGraph.UnMarkAll();
+        //        std::set<size_t> PathNodes0(TraceN0.begin(),TraceN0.end());
+        //        for (size_t i=0;i<TraceN0.size();i++)
+        //            PathNodes0.insert(VertexFieldGraph<MeshType>::TangentNode(TraceN0[i]));
+
+        //        for (size_t i=0;i<TraceN1.size();i++)
+        //        {
+        //            size_t NodeN1=TraceN1[i];
+        //            if (PathNodes0.count(NodeN1)>0)return true;
+
+        //            //add the opposite of the first/last only when is loop
+        //            //if ((!IsLoopTr0)&&((i==0)||(i==(TraceN1.size()-1))))continue;
+        //            size_t NodeOppN1=VertexFieldGraph<MeshType>::TangentNode(NodeN1);
+        //            if (PathNodes0.count(NodeOppN1)>0)return true;
+        //        }
+
+        //first check if there is the same node (or opposite in M2)
+        VFGraph.UnMarkAll();
+        for (size_t i=0;i<TraceN0.size();i++)
+        {
+            VFGraph.Mark(TraceN0[i]);
+            VFGraph.Mark(VertexFieldGraph<MeshType>::TangentNode(TraceN0[i]));
+        }
+
+        for (size_t i=0;i<TraceN1.size();i++)
+        {
+            size_t NodeN1=TraceN1[i];
+            if (VFGraph.IsMarked(NodeN1))return true;
+        }
+
+        return (CollideSubSequence(VFGraph,TraceN0,TraceN1,IsLoopTr0,IsLoopTr1,SameV));
+        //        //check strange propagation configuration that might happens
+        //        //due to discretization
+        //        size_t Start0=1;
+        //        size_t Start1=1;
+        //        if (IsLoopTr0)Start0=0;
+        //        if (IsLoopTr1)Start1=0;
+        //        size_t Size0=TraceN0.size();
+        //        size_t Size1=TraceN1.size();
+        //        assert(SameV.size()>0);
+        //        //check only for the same vertex
+        //        for (size_t s=0;s<SameV.size();s++)
+        //        {
+        //            size_t VIndex=SameV[s];
+        //            for (size_t i=Start0;i<Limit0;i++)
+        //            {
+        //                //not check on twins or border
+        //                if (VFGraph.IsBorder(TraceN0[i]))continue;
+        //                std::vector<size_t> VIndex0;
+        //                size_t I0=(i+Size0-1)%Size0;
+        //                size_t I1=i;
+        //                size_t I2=(i+1)%Size0;
+        //                size_t IndexV0=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[I0]);
+        //                size_t IndexV1=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[I1]);
+        //                //check only when the middle index is the one among the shared
+        //                if (IndexV1!=VIndex)continue;
+        //                size_t IndexV2=VertexFieldGraph<MeshType>::NodeVertI(TraceN0[I2]);
+        //                VIndex0.push_back(IndexV0);
+        //                VIndex0.push_back(IndexV1);
+        //                VIndex0.push_back(IndexV2);
+        //                for (size_t j=Start1;j<Limit1;j++)
+        //                {
+        //                    if (VFGraph.IsBorder(TraceN1[j]))continue;
+        //                    std::vector<size_t> VIndex1;
+        //                    size_t I0=(j+Size1-1)%Size1;
+        //                    size_t I1=j;
+        //                    size_t I2=(j+1)%Size1;
+        //                    size_t IndexV0=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[I0]);
+        //                    size_t IndexV1=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[I1]);
+        //                    //check only when the middle index is the one among the shared
+        //                    if (IndexV1!=VIndex)continue;
+        //                    size_t IndexV2=VertexFieldGraph<MeshType>::NodeVertI(TraceN1[I2]);
+        //                    VIndex1.push_back(IndexV0);
+        //                    VIndex1.push_back(IndexV1);
+        //                    VIndex1.push_back(IndexV2);
+        //                    if (CollideSubSequence(VFGraph,VIndex0,VIndex1))return true;
+        //                }
+        //            }
+        //        }
+        //        return false;
     }
 
     //    static bool CollideWithTracesSet(const VertexFieldGraph<MeshType> &VFGraph,
@@ -245,7 +493,8 @@ public:
     //it can be also tuned to stop when it encounter a selected vertex
     static bool TraceToSelected(VertexFieldGraph<MeshType> &VertGraph,
                                 const size_t StartNode,
-                                std::vector<size_t> &IndexNodes)
+                                std::vector<size_t> &IndexNodes,
+                                bool DebugMsg=false)
     {
         VertGraph.UnMarkAll();
 
@@ -265,9 +514,14 @@ public:
 
             size_t NextNode;
             bool traced=TraceNext(VertGraph,CurrNode,NextNode);
+            if ((traced)&&(DebugMsg))
+                std::cout<<"did one tracing step"<<std::endl;
+
             if (!traced)
             {
-                //std::cout<<"stopped tracing"<<std::endl;
+                if (DebugMsg)
+                    std::cout<<"stopped tracing"<<std::endl;
+
                 return false;
             }
 

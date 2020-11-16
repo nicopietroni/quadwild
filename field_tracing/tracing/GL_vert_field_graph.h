@@ -47,7 +47,8 @@ public:
     void GLDrawNodes(const std::vector<size_t> &IndexN,
                      const ScalarType &size,
                      bool DrawDir=true,
-                     ScalarType GLSize=10)
+                     ScalarType GLSize=10,
+                     bool DrawNeigh=false)
     {
         glPushAttrib(GL_ALL_ATTRIB_BITS);
         glDisable(GL_LIGHTING);
@@ -74,7 +75,8 @@ public:
                 vcg::glVertex(DisplacedP[currN]+Dir*size/2);
                 glEnd();
             }
-            //GLDrawNodeNeigh(currN,2);
+            if (DrawNeigh)
+                GLDrawNodeNeigh(currN,2);
         }
 
         glPopAttrib();

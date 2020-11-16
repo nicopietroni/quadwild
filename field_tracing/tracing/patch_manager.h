@@ -3,13 +3,14 @@
 
 #include <wrap/igl/arap_parametrization.h>
 #include <wrap/igl/lscm_parametrization.h>
-#include <tracing/candidate_path.h>
+#include "candidate_path.h"
 #include "vert_field_graph.h"
 #include <vcg/complex/algorithms/parametrization/distortion.h>
 #include <vcg/space/outline2_packer.h>
 #include "catmull_clarkability.h"
 #include <vcg/space/triangle3.h>
 #include <vcg/complex/algorithms/create/platonic.h>
+#include <vcg/complex/algorithms/update/flag.h>
 
 template <class MeshType>
 typename MeshType::ScalarType MeshArea(MeshType &mesh)
@@ -62,20 +63,24 @@ int ExpectedValence(MeshType &mesh,const std::vector<size_t> &PatchFaces)
 {
     typedef typename MeshType::VertexType VertexType;
     int ExpVal=4;
-    vcg::tri::UpdateFlags<MeshType>::VertexClearV(mesh);
+    vcg::tri::UnMarkAll<MeshType>(mesh);
+    //vcg::tri::UpdateFlags<MeshType>::VertexClearV(mesh);
     for (size_t i=0;i<PatchFaces.size();i++)
     {
         for (size_t j=0;j<3;j++)
         {
             VertexType *v=mesh.face[PatchFaces[i]].V(j);
-            if (v->IsV())continue;
-            v->SetV();
+            if (vcg::tri::IsMarked(mesh,v))continue;
+            vcg::tri::Mark(mesh,v);
+            //if (v->IsV())continue;
+            //v->SetV();
+
             if (v->SingularityValence==4)continue;
             if (ExpVal!=4)return -1;//multiple singularities
             ExpVal=v->SingularityValence;
         }
     }
-    vcg:tri::UpdateFlags<MeshType>::VertexClearV(mesh);
+    vcg::tri::UpdateFlags<MeshType>::VertexClearV(mesh);
     return ExpVal;
 }
 
@@ -84,19 +89,22 @@ int NumSingularities(MeshType &mesh,const std::vector<size_t> &PatchFaces)
 {
     typedef typename MeshType::VertexType VertexType;
     int NumSing=0;
-    vcg::tri::UpdateFlags<MeshType>::VertexClearV(mesh);
+    //vcg::tri::UpdateFlags<MeshType>::VertexClearV(mesh);
+    vcg::tri::UnMarkAll<MeshType>(mesh);
     for (size_t i=0;i<PatchFaces.size();i++)
     {
         for (size_t j=0;j<3;j++)
         {
             VertexType *v=mesh.face[PatchFaces[i]].V(j);
-            if (v->IsV())continue;
-            v->SetV();
+            if (vcg::tri::IsMarked(mesh,v))continue;
+            vcg::tri::Mark(mesh,v);
+            //if (v->IsV())continue;
+            //v->SetV();
             if (v->SingularityValence==4)continue;
             NumSing++;
         }
     }
-    vcg:tri::UpdateFlags<MeshType>::VertexClearV(mesh);
+    vcg::tri::UpdateFlags<MeshType>::VertexClearV(mesh);
     return NumSing;
 }
 
@@ -218,7 +226,7 @@ void ParametrizeCorners(MeshType &mesh,bool scaleEdges,
 }
 
 template <class MeshType>
-void SelectCorners(MeshType &mesh,const std::vector<size_t> &CornersIDX)
+void SelectVertices(MeshType &mesh,const std::vector<size_t> &CornersIDX)
 {
     vcg::tri::UpdateSelection<MeshType>::VertexClear(mesh);
     for (size_t i=0;i<CornersIDX.size();i++)
@@ -230,6 +238,19 @@ void SelectCorners(MeshType &mesh,const std::vector<size_t> &CornersIDX)
     }
 }
 
+template <class MeshType>
+void SelectVertices(MeshType &mesh,const std::vector<std::vector<size_t> > &CornersIDX)
+{
+    vcg::tri::UpdateSelection<MeshType>::VertexClear(mesh);
+    for (size_t i=0;i<CornersIDX.size();i++)
+        for (size_t j=0;j<CornersIDX[i].size();j++)
+        {
+            size_t IndexV=CornersIDX[i][j];
+            assert(IndexV>=0);
+            assert(IndexV<mesh.vert.size());
+            mesh.vert[IndexV].SetS();
+        }
+}
 
 template <class MeshType>
 void GetIndexFromQ(MeshType &mesh,
@@ -276,7 +297,7 @@ void DeriveBorderSeq(MeshType &mesh,std::vector<std::vector<size_t> > &BorderSeq
             }
         }
     }
-    vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"testBorder.ply",vcg::tri::io::Mask::IOM_FLAGS);
+    //vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"testBorder.ply",vcg::tri::io::Mask::IOM_FLAGS);
     assert(found);
     assert(InitPos.IsBorder());
     //assert(InitPos.VFlip()->IsS());
@@ -300,63 +321,219 @@ void DeriveBorderSeq(MeshType &mesh,std::vector<std::vector<size_t> > &BorderSeq
     //std::cout<<"B"<<std::endl;
 }
 
+
+template <class MeshType>
+void DeriveFauxSeq(MeshType &mesh,
+                   const std::vector<size_t> &Faces,
+                   std::vector<std::vector<size_t> > &BorderSeq)
+{
+    typedef typename vcg::face::Pos<typename MeshType::FaceType> PosType;
+    BorderSeq.clear();
+    //set the initial pos
+    PosType InitPos;
+    bool found=false;
+    //for (size_t i=0;i<mesh.face.size();i++)
+    for (size_t i=0;i<Faces.size();i++)
+    {
+        size_t IndexF=Faces[i];
+        if (found)break;
+        for (size_t j=0;j<3;j++)
+        {
+            //if (!vcg::face::IsBorder(mesh.face[IndexF],j))continue;
+            if (mesh.face[IndexF].IsF(j))continue;
+            InitPos=PosType(&mesh.face[IndexF],j);
+            if (InitPos.VFlip()->IsS())
+            {
+                found=true;
+                break;
+            }
+        }
+    }
+    //vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"testBorder.ply",vcg::tri::io::Mask::IOM_FLAGS);
+    assert(found);
+    assert(!InitPos.IsFaux());
+    //assert(InitPos.VFlip()->IsS());
+
+    PosType CurrPos=InitPos;
+    BorderSeq.resize(1);
+    size_t IndexV=vcg::tri::Index(mesh,CurrPos.VFlip());
+    BorderSeq.back().push_back(IndexV);
+    //std::cout<<"A"<<std::endl;
+    do{
+        size_t IndexV=vcg::tri::Index(mesh,CurrPos.V());
+        BorderSeq.back().push_back(IndexV);
+        CurrPos.NextNotFaux();
+        if ((CurrPos!=InitPos)&&(CurrPos.VFlip()->IsS()))
+        {
+            BorderSeq.resize(BorderSeq.size()+1);
+            size_t IndexV=vcg::tri::Index(mesh,CurrPos.VFlip());
+            BorderSeq.back().push_back(IndexV);
+        }
+    }while (CurrPos!=InitPos);
+    //std::cout<<"B"<<std::endl;
+}
+
+//template <class MeshType>
+//void DerivePatchBorderSeq(MeshType &mesh,
+//                          const std::vector<size_t>  &PatchFaces,
+//                          const std::vector<size_t> &PatchCorners,
+//                          std::vector<std::vector<size_t> > &BorderSeq)
+//{
+//    int t0=clock();
+//    MeshType subMesh;
+//    GetMeshFromPatch(mesh,PatchFaces,subMesh);
+//    int t1=clock();
+
+//    std::vector<size_t> CornersIdx;
+//    GetIndexFromQ(subMesh,PatchCorners,CornersIdx);
+
+//    SelectCorners(subMesh,CornersIdx);
+//    if (CornersIdx.size()==0)return;
+//    DeriveBorderSeq(subMesh,BorderSeq);
+
+//    int t2=clock();
+//    //then set to original Index
+//    for (size_t j=0;j<BorderSeq.size();j++)
+//        for (size_t k=0;k<BorderSeq[j].size();k++)
+//            BorderSeq[j][k]=subMesh.vert[BorderSeq[j][k]].Q();
+
+//    std::cout<<"** Timing Border Seq **"<<std::endl;
+//    std::cout<<"Time Derive Mesh "<<t1-t0<<std::endl;
+//    std::cout<<"Time Derive Seq "<<t2-t1<<std::endl;
+//}
+
+//template <class MeshType>
+//void DerivePatchBorderSeq(MeshType &mesh,
+//                          const std::vector<size_t>  &PatchFaces,
+//                          const std::vector<size_t> &PatchCorners,
+//                          std::vector<std::vector<size_t> > &BorderSeq)
+//{
+//    typedef typename MeshType::FaceType FaceType;
+//    typedef typename MeshType::VertexType VertexType;
+
+////    //start from a corner and get a face
+////    //which is inside the patch
+////    std::vector<FaceType*> faceVec;
+////    std::vector<int> indVec;
+
+////    VertexType *v0=&mesh.vert[PatchCorners[0]];
+////    vcg::face::VFStarVF(v0,faceVec,indVec);
+////    FaceType* StartF=NULL;
+////    int indexV=-1;
+////    for (size_t i=0;i<faceVec.size();i++)
+////    {
+////        FaceType* currF=faceVec[i];
+////        if (currF.Q())
+////    }
+//        std::cout<<"** Timing Border Seq **"<<std::endl;
+
+//        int t0=clock();
+//        MeshType subMesh;
+//        GetMeshFromPatch(mesh,PatchFaces,subMesh);
+//        int t1=clock();
+//        std::cout<<"Time Derive Mesh "<<t1-t0<<std::endl;
+
+//        std::vector<size_t> CornersIdx;
+//        GetIndexFromQ(subMesh,PatchCorners,CornersIdx);
+
+//        SelectCorners(subMesh,CornersIdx);
+//        if (CornersIdx.size()==0)return;
+//        DeriveBorderSeq(subMesh,BorderSeq);
+
+//        int t2=clock();
+//        //then set to original Index
+//        for (size_t j=0;j<BorderSeq.size();j++)
+//            for (size_t k=0;k<BorderSeq[j].size();k++)
+//                BorderSeq[j][k]=subMesh.vert[BorderSeq[j][k]].Q();
+
+//        std::cout<<"Time Derive Seq "<<t2-t1<<std::endl;
+//}
+
+
 template <class MeshType>
 void DerivePatchBorderSeq(MeshType &mesh,
                           const std::vector<size_t>  &PatchFaces,
-                          const std::vector<size_t> &PatchCorners,
+                          //const std::vector<size_t> &PatchCorners,
                           std::vector<std::vector<size_t> > &BorderSeq)
 {
-    MeshType subMesh;
-    GetMeshFromPatch(mesh,PatchFaces,subMesh);
-    std::vector<size_t> CornersIdx;
-    GetIndexFromQ(subMesh,PatchCorners,CornersIdx);
+    //    typedef typename MeshType::FaceType FaceType;
+    //    typedef typename MeshType::VertexType VertexType;
+
+    //        std::cout<<"** Timing Border Seq **"<<std::endl;
+
+    //        int t0=clock();
+    //        MeshType subMesh;
+    //        GetMeshFromPatch(mesh,PatchFaces,subMesh);
+    //        int t1=clock();
+    //        std::cout<<"Time Derive Mesh "<<t1-t0<<std::endl;
+
+    //        std::vector<size_t> CornersIdx;
+    //        GetIndexFromQ(subMesh,PatchCorners,CornersIdx);
+
+    //        SelectVertices(subMesh,CornersIdx);
+    //SelectVertices(mesh,PatchCorners);
+    //if (CornersIdx.size()==0)return;
 
 
-    SelectCorners(subMesh,CornersIdx);
-    if (CornersIdx.size()==0)return;
-    DeriveBorderSeq(subMesh,BorderSeq);
+    DeriveFauxSeq<MeshType>(mesh,PatchFaces,BorderSeq);
 
-    //then set to original Index
-    for (size_t j=0;j<BorderSeq.size();j++)
-        for (size_t k=0;k<BorderSeq[j].size();k++)
-            BorderSeq[j][k]=subMesh.vert[BorderSeq[j][k]].Q();
+    //        int t2=clock();
+    //        //then set to original Index
+    //        for (size_t j=0;j<BorderSeq.size();j++)
+    //            std::cout<<BorderSeq[j].size()<<std::endl;
+    //            for (size_t k=0;k<BorderSeq[j].size();k++)
+    //                BorderSeq[j][k]=subMesh.vert[BorderSeq[j][k]].Q();
+
+    //std::cout<<"Time Derive Seq "<<t2-t1<<std::endl;
 }
+
+//template <class MeshType>
+//void DerivePatchBorderSeq(MeshType &mesh,
+//                          const std::vector<std::vector<size_t> > &PatchFaces,
+//                          const std::vector<std::vector<size_t> > &PatchCorners,
+//                          std::vector<std::vector<std::vector<size_t> > > &BorderSeq)
+//{
+//    BorderSeq.clear();
+//    //std::cout<<"Patches Num "<<PatchFaces.size()<<std::endl;
+//    BorderSeq.clear();
+//    BorderSeq.resize(PatchFaces.size());
+//    for (size_t i=0;i<PatchFaces.size();i++)
+//        DerivePatchBorderSeq(mesh,PatchFaces[i],PatchCorners[i],BorderSeq[i]);
+//}
 
 template <class MeshType>
-void DerivePatchBorderSeq(MeshType &mesh,
-                          const std::vector<std::vector<size_t> > &PatchFaces,
-                          const std::vector<std::vector<size_t> > &PatchCorners,
-                          std::vector<std::vector<std::vector<size_t> > > &BorderSeq)
+void SetFacePartitionOnFaceQ(MeshType &mesh,const std::vector<std::vector<size_t> > &PatchFaces)
 {
-    BorderSeq.clear();
-    //std::cout<<"Patches Num "<<PatchFaces.size()<<std::endl;
-    BorderSeq.clear();
-    BorderSeq.resize(PatchFaces.size());
+    vcg::tri::UpdateQuality<MeshType>::FaceConstant(mesh,-1);
     for (size_t i=0;i<PatchFaces.size();i++)
-    {
-        DerivePatchBorderSeq(mesh,PatchFaces[i],PatchCorners[i],BorderSeq[i]);
-        //        BorderSeq.resize(BorderSeq.size()+1);
-        //        MeshType subMesh;
-        //        GetMeshFromPatch(mesh,PatchFaces[i],subMesh);
-        //        std::vector<size_t> CornersIdx;
-        //        GetIndexFromQ(subMesh,PatchCorners[i],CornersIdx);
-
-
-        //        SelectCorners(subMesh,CornersIdx);
-        //        if (CornersIdx.size()==0)continue;
-        //        DeriveBorderSeq(subMesh,BorderSeq[i]);
-
-        //        //then set to original Index
-        //        for (size_t j=0;j<BorderSeq[i].size();j++)
-        //            for (size_t k=0;k<BorderSeq[i][j].size();k++)
-        //                BorderSeq[i][j][k]=subMesh.vert[BorderSeq[i][j][k]].Q();
-    }
+        for (size_t j=0;j<PatchFaces[i].size();j++)
+        {
+            assert(PatchFaces[i][j]<mesh.face.size());
+            mesh.face[PatchFaces[i][j]].Q()=i;
+        }
 }
+
+//template <class MeshType>
+//void DerivePatchBorderSeq(MeshType &mesh,
+//                          const std::vector<std::vector<size_t> > &PatchFaces,
+//                          const std::vector<std::vector<size_t> > &PatchCorners,
+//                          std::vector<std::vector<std::vector<size_t> > > &BorderSeq)
+//{
+//    BorderSeq.clear();
+//    //std::cout<<"Patches Num "<<PatchFaces.size()<<std::endl;
+//    BorderSeq.clear();
+//    BorderSeq.resize(PatchFaces.size());
+//    SetFacePartitionOnFaceQ(mesh,PatchFaces);
+//    SelectCorners(mesh,PatchCorners);
+//    for (size_t i=0;i<PatchFaces.size();i++)
+//        DerivePatchBorderSeq(mesh,PatchFaces[i],PatchCorners[i],BorderSeq[i]);
+//}
 
 template <class MeshType>
 typename MeshType::ScalarType FieldLenght(const MeshType &mesh,
                                           const std::vector<size_t> &BorderSeq,
-                                          std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+                                          std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
+//std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
     typedef typename MeshType::ScalarType ScalarType;
     ScalarType currL=0;
@@ -437,7 +614,7 @@ void ComputeUV(MeshType &mesh, ParamType PType,
     if (fixBorders)
     {
         SortedCorner.clear();
-        SelectCorners(mesh,CornersIdx);
+        SelectVertices(mesh,CornersIdx);
         std::vector<std::vector<size_t> > BorderSeq;
         DeriveBorderSeq(mesh,BorderSeq);
         for (size_t i=0;i<BorderSeq.size();i++)
@@ -495,12 +672,18 @@ void GetMeshFromPatch(MeshType &mesh,
 
     vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
 
+    size_t ExpNumF=0;
     for (size_t i=0;i<Partition.size();i++)
+    {
         mesh.face[Partition[i]].SetS();
+        ExpNumF++;
+    }
 
-    vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(mesh);
+    size_t ExpNumV=vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(mesh);
 
     PatchMesh.Clear();
+    PatchMesh.face.reserve(ExpNumF);
+    PatchMesh.vert.reserve(ExpNumV);
     vcg::tri::Append<MeshType,MeshType>::Mesh(PatchMesh,mesh,true);
     PatchMesh.UpdateAttributes();
 }
@@ -563,17 +746,28 @@ void ArrangeUVPatches(std::vector<MeshType*> &ParamPatches)
 
 
 template <class MeshType>
-void SelectMeshPatchBorders(MeshType &mesh,const std::vector<int>  &FacePatches)
+void SelectMeshPatchBorders(MeshType &mesh,
+                            const std::vector<int>  &FacePatches,
+                            bool SetF=false)
 {
     //std::set<std::pair<size_t,size_t> > BorderPatches;
-    vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(mesh);
+    if (!SetF)
+        vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(mesh);
+    else
+        vcg::tri::UpdateFlags<MeshType>::FaceSetF(mesh);
+
     assert(FacePatches.size()==mesh.face.size());
     //first add borders
     for (size_t i=0;i<mesh.face.size();i++)
         for (size_t j=0;j<3;j++)
         {
             if (mesh.face[i].IsB(j))
-                mesh.face[i].SetFaceEdgeS(j);
+            {
+                if (!SetF)
+                    mesh.face[i].SetFaceEdgeS(j);
+                else
+                    mesh.face[i].ClearF(j);
+            }
             else
             {
                 size_t FOpp=vcg::tri::Index(mesh,mesh.face[i].FFp(j));
@@ -582,9 +776,24 @@ void SelectMeshPatchBorders(MeshType &mesh,const std::vector<int>  &FacePatches)
                 //assert(FacePatches[i]>=0);
 
                 if (FacePatches[i]!=FacePatches[FOpp])
-                    mesh.face[i].SetFaceEdgeS(j);
+                {
+                    if (!SetF)
+                        mesh.face[i].SetFaceEdgeS(j);
+                    else
+                        mesh.face[i].ClearF(j);
+                }
             }
         }
+}
+
+template <class MeshType>
+void SelectMeshPatchBorders(MeshType &mesh,
+                            const std::vector<std::vector<size_t> >  &PatchFaces,
+                            bool SetF=false)
+{
+    std::vector<int > FacePartitions;
+    DerivePerFacePartition(mesh,PatchFaces,FacePartitions);
+    SelectMeshPatchBorders(mesh,FacePartitions,SetF);
 }
 
 template <class MeshType>
@@ -833,14 +1042,14 @@ void LaplacianBorderStep(MeshType &mesh,
     //        if (!mesh.vert[i].IsS())continue;
     //        mesh.vert[i].P()=mesh.vert[i].P()*Damp+AvPos[i]*(1-Damp);
     //    }
-//    for (size_t i=0;i<mesh.face.size();i++)
-//        for (size_t j=0;j<3;j++)
-//        {
-//            if (!mesh.face[i].IsFaceEdgeS(j))continue;
-//            std::cout<<i<<","<<j<<std::endl;
-//        }
-//    vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(mesh);
-//    return;
+    //    for (size_t i=0;i<mesh.face.size();i++)
+    //        for (size_t j=0;j<3;j++)
+    //        {
+    //            if (!mesh.face[i].IsFaceEdgeS(j))continue;
+    //            std::cout<<i<<","<<j<<std::endl;
+    //        }
+    //    vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(mesh);
+    //    return;
 
     //save previous selection
 
@@ -1011,13 +1220,13 @@ void ReprojectOn(MeshType &mesh,MeshType &target,
 template <class MeshType>
 void SaveEdgeSel(MeshType &mesh,std::vector<std::vector<bool> > &EdgeSel)
 {
-   EdgeSel.resize(mesh.face.size(),std::vector<bool>(3,false));
-   for (size_t i=0;i<mesh.face.size();i++)
-       for (size_t j=0;j<3;j++)
-       {
+    EdgeSel.resize(mesh.face.size(),std::vector<bool>(3,false));
+    for (size_t i=0;i<mesh.face.size();i++)
+        for (size_t j=0;j<3;j++)
+        {
             if (!mesh.face[i].IsFaceEdgeS(j))continue;
             EdgeSel[i][j]=true;
-       }
+        }
 }
 
 
@@ -1029,8 +1238,8 @@ void RestoreEdgeSel(MeshType &mesh,
     for (size_t i=0;i<mesh.face.size();i++)
         for (size_t j=0;j<3;j++)
         {
-             if (!EdgeSel[i][j])continue;
-             mesh.face[i].SetFaceEdgeS(j);
+            if (!EdgeSel[i][j])continue;
+            mesh.face[i].SetFaceEdgeS(j);
         }
 }
 
@@ -1059,15 +1268,15 @@ void SmoothMeshPatches(MeshType &mesh,
         //save old position
         std::vector<CoordType> OldPos;
         if (MinQ>0)
-        for (size_t i=0;i<mesh.vert.size();i++)
-            OldPos.push_back(mesh.vert[i].P());
+            for (size_t i=0;i<mesh.vert.size();i++)
+                OldPos.push_back(mesh.vert[i].P());
 
         //save old normals
         vcg::tri::UpdateNormal<MeshType>::PerFaceNormalized(mesh);
         std::vector<CoordType> OldNorm;
         if (MinQ>0)
-        for (size_t i=0;i<mesh.face.size();i++)
-            OldNorm.push_back(mesh.face[i].N());
+            for (size_t i=0;i<mesh.face.size();i++)
+                OldNorm.push_back(mesh.face[i].N());
 
         //PERFORM SMOOTHING
         LaplacianBorderStep(mesh,FacePatches,Damp);
@@ -1115,8 +1324,8 @@ void SmoothMeshPatches(MeshType &mesh,
         }
     }
     vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
-//    if (MinQ>0)
-//        SolveFolds(mesh,MinQ);
+    //    if (MinQ>0)
+    //        SolveFolds(mesh,MinQ);
 
     RestoreEdgeSel(mesh,EdgeSel);
 }
@@ -1165,19 +1374,31 @@ void SmoothMeshPatches(MeshType &mesh,
 //}
 
 template <class MeshType>
-void PatchesSideLenght(MeshType &mesh,
-                       const std::vector<size_t>  &PatchFaces,
-                       const std::vector<size_t>  &PatchCorners,
-                       std::vector<typename MeshType::ScalarType>  &CurvedL,
-                       std::vector<typename MeshType::ScalarType>  &EuclL,
-                       std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+void PatchSideLenght(MeshType &mesh,
+                     const std::vector<size_t>  &PatchFaces,
+                     const std::vector<size_t>  &PatchCorners,
+                     std::vector<typename MeshType::ScalarType>  &CurvedL,
+                     std::vector<typename MeshType::ScalarType>  &EuclL,
+                     std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
+//std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
     typedef typename MeshType::CoordType CoordType;
 
-
+    //    int t0=clock();
     //then get the border sequence
     std::vector<std::vector<size_t> > BorderSeq;
-    DerivePatchBorderSeq(mesh,PatchFaces,PatchCorners,BorderSeq);
+    BorderSeq.resize(PatchFaces.size());
+
+    if (PatchCorners.size()==0)return;
+    SelectVertices(mesh,PatchCorners);
+    //DerivePatchBorderSeq(mesh,PatchFaces,PatchCorners,BorderSeq);
+    DerivePatchBorderSeq(mesh,PatchFaces,BorderSeq);
+    //    std::cout<<"Size 0 "<<PatchCorners.size()<<std::endl;
+    //    std::cout<<"Size 1 "<<BorderSeq.size()<<std::endl;
+    //    std::cout<<"Size 2 "<<BorderSeq[0].size()<<std::endl;
+    //    assert(BorderSeq.size()==PatchCorners.size());
+
+    //    int t1=clock();
     for (size_t j=0;j<BorderSeq.size();j++)
     {
         CurvedL.push_back(FieldLenght(mesh,BorderSeq[j],EdgeMap));
@@ -1185,6 +1406,10 @@ void PatchesSideLenght(MeshType &mesh,
         CoordType Pos1=mesh.vert[BorderSeq[j].back()].P();
         EuclL.push_back((Pos1-Pos0).Norm());
     }
+    //    int t2=clock();
+    //        std::cout<<"** Timing Patch Length **"<<std::endl;
+    //        std::cout<<"Time Derive Border Seq "<<t1-t0<<std::endl;
+    //        std::cout<<"Time Derive Border Len "<<t2-t1<<std::endl;
 }
 
 template <class MeshType>
@@ -1193,31 +1418,32 @@ void PatchesSideLenght(MeshType &mesh,
                        const std::vector<std::vector<size_t> > &PatchCorners,
                        std::vector<std::vector<typename MeshType::ScalarType> > &CurvedL,
                        std::vector<std::vector<typename MeshType::ScalarType> > &EuclL,
-                       std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+                       std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
+//std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
-    //    typedef typename MeshType::CoordType CoordType;
-
-
-    //    //then get the border sequence
-    //    std::vector<std::vector<std::vector<size_t> > > BorderSeq;
-    //    DerivePatchBorderSeq(mesh,PatchFaces,PatchCorners,BorderSeq);
 
     CurvedL.clear();
     EuclL.clear();
     CurvedL.resize(PatchFaces.size());
     EuclL.resize(PatchFaces.size());
 
+    //    SetFacePartitionOnFaceQ(mesh,PatchFaces);
+    //    SelectCorners(mesh,PatchCorners);
+    //    SelectMeshPatchBorders(mesh,PatchFaces);
+
+    //    std::vector<std::vector<bool> > EdgeSel;
+    //    SaveEdgeSel(mesh,EdgeSel);
+    //    SelectMeshPatchBorders(mesh,PatchFaces);
+    //    RestoreEdgeSel(mesh,EdgeSel);
+
+    SelectMeshPatchBorders(mesh,PatchFaces,true);
+    SelectVertices(mesh,PatchCorners);
+
     for (size_t i=0;i<PatchFaces.size();i++)
     {
-        PatchesSideLenght(mesh,PatchFaces[i],PatchCorners[i],CurvedL[i],EuclL[i],EdgeMap);
+        PatchSideLenght(mesh,PatchFaces[i],PatchCorners[i],CurvedL[i],EuclL[i],EdgeMap);
     }
-    //        for (size_t j=0;j<BorderSeq[i].size();j++)
-    //        {
-    //            CurvedL[i].push_back(FieldLenght(mesh,BorderSeq[i][j],EdgeMap));
-    //            CoordType Pos0=mesh.vert[BorderSeq[i][j][0]].P();
-    //            CoordType Pos1=mesh.vert[BorderSeq[i][j].back()].P();
-    //            EuclL[i].push_back((Pos1-Pos0).Norm());
-    //        }
+
 }
 
 template <class MeshType>
@@ -1226,7 +1452,8 @@ void PatchesLenghtRatios(MeshType &mesh,
                          const std::vector<std::vector<size_t> > &PatchCorners,
                          std::vector<typename MeshType::ScalarType> &Variance,
                          std::vector<typename MeshType::ScalarType> &LenghtDist,
-                         std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+                         std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
+//std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
     typedef typename MeshType::ScalarType ScalarType;
     std::vector<std::vector<ScalarType> > SideL,EuclL;
@@ -1249,7 +1476,8 @@ template <class MeshType>
 void ColorByVarianceLenght(MeshType &mesh,
                            const std::vector<std::vector<size_t> > &PatchFaces,
                            const std::vector<std::vector<size_t> > &PatchCorners,
-                           std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+                           std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
+//std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
     typedef typename MeshType::ScalarType ScalarType;
     std::vector<ScalarType> VarianceL,DistL;
@@ -1269,7 +1497,8 @@ template <class MeshType>
 void ColorByDistortionLenght(MeshType &mesh,
                              const std::vector<std::vector<size_t> > &PatchFaces,
                              const std::vector<std::vector<size_t> > &PatchCorners,
-                             std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+                             std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
+//std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
     typedef typename MeshType::ScalarType ScalarType;
     std::vector<ScalarType> VarianceL,DistL;
@@ -1293,54 +1522,29 @@ template <class MeshType>
 void ColorByCatmullClarkability(MeshType &mesh,
                                 const std::vector<std::vector<size_t> > &PatchFaces,
                                 const std::vector<std::vector<size_t> > &PatchCorners,
-                                std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap,
-                                const typename MeshType::ScalarType ScaleVal,
-                                const typename MeshType::ScalarType Thr)
+                                std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap,
+                                const typename MeshType::ScalarType CClarkability,
+                                const typename MeshType::ScalarType avEdge,
+                                bool SkipValence4)
 {
     typedef typename MeshType::ScalarType ScalarType;
     std::vector<std::vector<ScalarType> > SideL,EuclL;
     PatchesSideLenght(mesh,PatchFaces,PatchCorners,SideL,EuclL,EdgeMap);
     for (size_t i=0;i<SideL.size();i++)
     {
-        bool CC=IsCatmullClarkable(PatchFaces[i].size(),SideL[i],Thr);
+        //bool CC=IsCatmullClarkable(PatchFaces[i].size(),SideL[i],Thr,SkipValence4);
+        size_t addedS=AddedSingularities(PatchFaces[i].size(),SideL[i],
+                                         CClarkability*avEdge,SkipValence4);
 
         for (size_t j=0;j<PatchFaces[i].size();j++)
         {
             size_t IndexF=PatchFaces[i][j];
-            if (CC)
+            if (addedS==0)
                 mesh.face[IndexF].C()=vcg::Color4b::Green;
             else
                 mesh.face[IndexF].C()=vcg::Color4b::Red;
-            //            if (CC>0)CC=1;
-            //            mesh.face[IndexF].Q()=CC;
-            //            if (CC>ScaleVal)CC=ScaleVal;
-            //            mesh.face[IndexF].Q()=CC;
         }
     }
-    //    std::pair<ScalarType, ScalarType> minmax = Stat<MeshType>::ComputePerFaceQualityMinMax(mesh);
-    //    std::cout<<"Min CC: "<<minmax.first<<std::endl;
-    //    std::cout<<"Max CC: "<<minmax.second<<std::endl;
-
-    //std::cout<<"TEST CC"<<std::endl;
-    //    ScalarType CC=CatmullClarkability(SideL[11]);
-    //    for (size_t i=0;i<SideL[11].size();i++)
-    //        std::cout<<"Value L: "<<SideL[11][i]<<std::endl;
-
-    //    std::cout<<"Value CC: "<<CC<<std::endl;
-
-    //std::pair<ScalarType, ScalarType> minmax(1,ScaleVal);
-    //if (ScaleVal<0)ScaleVal=3;
-    //    vcg::tri::UpdateColor<MeshType>::PerFaceQualityRamp(mesh,1,0);
-
-    //    for (size_t i=11;i<12;i++)
-    //    {
-    //    size_t i=11;
-    //    for (size_t j=0;j<PatchFaces[i].size();j++)
-    //    {
-    //        size_t IndexF=PatchFaces[i][j];
-    //        mesh.face[IndexF].C()=vcg::Color4b::Gray;
-    //    }
-    //   }
 }
 
 template <class MeshType>
@@ -1405,7 +1609,7 @@ void ColorByUVDistortionFaces(MeshType &mesh,
 }
 
 template <class MeshType>
-size_t NumEmitters(MeshType &mesh,
+size_t RemainingEmitters(MeshType &mesh,
                    std::vector<size_t> &PatchFaces,
                    std::vector<size_t> &VerticesNeeds)
 {
@@ -1465,53 +1669,242 @@ size_t NumEmitters(MeshType &mesh,
 
 //}
 
+template <class MeshType>
+void GetBorderSequenceFrom(MeshType &mesh,
+                           const vcg::face::Pos<typename MeshType::FaceType> &StartPos,
+                           std::vector<size_t> &BorderSequences)
+{
+    typedef typename MeshType::FaceType FaceType;
+    typedef typename vcg::face::Pos<FaceType> PosType;
+
+    BorderSequences.clear();
+    PosType CurrPos=StartPos;
+    //CurrPos.F()->SetS();
+    //search if there is a selected vertex
+    //std::cout<<"a"<<std::endl;
+    do
+    {
+        if (CurrPos.VFlip()->IsS())
+            CurrPos.FlipV();
+
+        if (!CurrPos.V()->IsS())
+            CurrPos.NextB();
+
+    }while((!CurrPos.V()->IsS())&&(CurrPos!=StartPos));
+    //std::cout<<"b"<<std::endl;
+    //CurrPos.F()->SetS();
+
+    //then start
+    size_t IndexV=vcg::tri::Index(mesh,CurrPos.V());
+    BorderSequences.push_back(IndexV);
+
+    //go on the other side
+    CurrPos.FlipV();
+    assert(CurrPos.IsBorder());
+    PosType Pos0=CurrPos;
+    do
+    {
+        //CurrPos.F()->SetS();
+        size_t IndexV=vcg::tri::Index(mesh,CurrPos.V());
+        BorderSequences.push_back(IndexV);
+        if (!CurrPos.V()->IsS())
+            CurrPos.NextB();
+    }while((!CurrPos.V()->IsS())&&(CurrPos!=Pos0));
+    //    std::cout<<"c"<<std::endl;
+    if (CurrPos.V()->IsS())
+    {
+        size_t IndexV=vcg::tri::Index(mesh,CurrPos.V());
+        BorderSequences.push_back(IndexV);
+    }
+}
+
+//get individual sequences of sharp features
+template <class MeshType>
+void GetBorderSequences(MeshType &mesh,const std::vector<size_t> &Corners,
+                        std::vector<std::vector<size_t> > &BorderSequences)
+{
+    typedef typename MeshType::FaceType FaceType;
+    typedef typename MeshType::CoordType CoordType;
+    typedef typename vcg::face::Pos<FaceType> PosType;
+
+    vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
+    SelectVertices(mesh,Corners);
+    //    vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"test.ply",vcg::tri::io::Mask::IOM_FLAGS);
+    //    exit(0);
+    std::unordered_set<std::pair<size_t,size_t> > VisitedEdges;
+    bool found_start=false;
+    //size_t num=0;
+    do{
+        found_start=false;
+        PosType StartPos;
+        for (size_t i=0;i<mesh.face.size();i++)
+        {
+            //find first border edge which has not been already processed
+            for (size_t j=0;j<3;j++)
+            {
+                if (!vcg::face::IsBorder(mesh.face[i],j))continue;
+                size_t IndexV0=vcg::tri::Index(mesh,mesh.face[i].V0(j));
+                size_t IndexV1=vcg::tri::Index(mesh,mesh.face[i].V1(j));
+                std::pair<size_t,size_t> Key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
+                if (VisitedEdges.count(Key)>0)continue;
+                found_start=true;
+                StartPos=PosType(&mesh.face[i],j);
+                //std::cout<<"found "<<IndexV0<<","<<IndexV1<<std::endl;
+                break;
+            }
+            if (found_start)break;
+        }
+
+        if (found_start)
+        {
+            std::vector<size_t> CurrBorderSequence;
+            //std::cout<<"a"<<std::endl;
+            assert(StartPos.IsBorder());
+            GetBorderSequenceFrom(mesh,StartPos,CurrBorderSequence);
+            //            std::cout<<"size "<<CurrBorderSequence.size()<<std::endl;
+            //            vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"test.ply",vcg::tri::io::Mask::IOM_FLAGS);
+
+            //std::cout<<"b"<<std::endl;
+            //            bool isLoop=(CurrBorderSequence[0]==CurrBorderSequence.back());
+            //            assert(CurrBorderSequence.size()>=2);
+            //            size_t Limit=CurrBorderSequence.size();
+            //            size_t Size=CurrBorderSequence.size();
+            //            if (!isLoop)
+            //                Limit--;
+            for (size_t j=0;j<CurrBorderSequence.size()-1;j++)
+            {
+                size_t IndexV0=CurrBorderSequence[j];
+                size_t IndexV1=CurrBorderSequence[(j+1)%CurrBorderSequence.size()];
+                std::pair<size_t,size_t> Key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
+                VisitedEdges.insert(Key);
+            }
+            BorderSequences.push_back(CurrBorderSequence);
+            //            for (size_t i=0;i<CurrBorderSequence.size();i++)
+            //                std::cout<<CurrBorderSequence[i]<<",";
+            //            std::cout<<std::endl;
+            //            exit(0);
+        }
+        //        num++;
+        //        if ((num%100)==0)
+        //        {
+        //            std::cout<<"Step "<<num<<std::endl;
+        //            std::cout<<"Size "<<VisitedEdges.size()<<std::endl;
+        //        }
+    }while (found_start);
+
+    //then sort them globally
+    for (size_t i=0;i<BorderSequences.size();i++)
+    {
+        bool IsLoop=(BorderSequences[i][0]==BorderSequences[i].back());
+        if (IsLoop)
+        {
+            //erase last repeated element
+            BorderSequences[i].pop_back();
+            //get the smallest
+            size_t smallestI=0;
+            CoordType smallestPos=mesh.vert[BorderSequences[i][0]].P();
+            for (size_t j=1;j<BorderSequences[i].size();j++)
+            {
+                CoordType currPos=mesh.vert[BorderSequences[i][j]].P();
+                if (currPos>smallestPos)continue;
+                smallestPos=currPos;
+                smallestI=j;
+            }
+
+            //then re-order
+            std::vector<size_t> NewBorderSeq;
+            size_t sizeSeq=BorderSequences[i].size();
+            for (size_t j=0;j<sizeSeq;j++)
+            {
+                size_t IndexV=(j+smallestI)%sizeSeq;
+                NewBorderSeq.push_back(BorderSequences[i][IndexV]);
+            }
+            BorderSequences[i]=NewBorderSeq;
+            //then reverse if needed
+            CoordType Pos0=mesh.vert[BorderSequences[i][1]].P();
+            CoordType Pos1=mesh.vert[BorderSequences[i].back()].P();
+            if (Pos1<Pos0)
+                std::reverse(BorderSequences[i].begin()+1,BorderSequences[i].end());
+        }else
+        {
+            //then reverse if needed
+            CoordType Pos0=mesh.vert[BorderSequences[i][0]].P();
+            CoordType Pos1=mesh.vert[BorderSequences[i].back()].P();
+            if (Pos1<Pos0)
+                std::reverse(BorderSequences[i].begin(),BorderSequences[i].end());
+        }
+    }
+}
 
 template <class MeshType>
 void GetPatchInfo(MeshType &mesh,
                   std::vector<std::vector<size_t> > &PatchFaces,
                   std::vector<std::vector<size_t> > &PatchCorners,
                   std::vector<size_t> &VerticesNeeds,
-                  std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap,
+                  std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap,
                   std::vector<PatchInfo<typename MeshType::ScalarType> > &PInfo,
-                  const typename MeshType::ScalarType Thr)
+                  const typename MeshType::ScalarType Thr,
+                  bool SkipValence4)
 {
     typedef typename MeshType::ScalarType ScalarType;
     PInfo.clear();
     PInfo.resize(PatchFaces.size());
 
-    //std::vector<std::vector<typename MeshType::ScalarType> > CurvedL,EuclL;
-
-    //PatchesSideLenght(mesh,PatchFaces,PatchCorners,CurvedL,EuclL,EdgeMap);
-
+    SelectMeshPatchBorders(mesh,PatchFaces,true);
+    size_t int0=0;
+    size_t int1=0;
+    size_t int2=0;
+    size_t int3=0;
+    size_t int4=0;
     for (size_t i=0;i<PatchFaces.size();i++)
     {
+        size_t t0=clock();
         PInfo[i].NumCorners=PatchCorners[i].size();
-        PInfo[i].NumEmitters=NumEmitters(mesh,PatchFaces[i],VerticesNeeds);
-        PInfo[i].Genus=PatchGenus(mesh,PatchFaces[i]);
-        PInfo[i].ExpectedValence=ExpectedValence(mesh,PatchFaces[i]);
-        PInfo[i].NumSing=NumSingularities(mesh,PatchFaces[i]);
-        //NumSing
-        //PInfo[i].CurvedL=CurvedL[i];
-        //PInfo[i].CornerL=EuclL[i];
+        PInfo[i].NumEmitters=RemainingEmitters(mesh,PatchFaces[i],VerticesNeeds);
+        size_t t1=clock();
+        int0+=t1-t0;
 
-        if ((PInfo[i].NumCorners<3)||
-                (PInfo[i].NumCorners>6)||
+        PInfo[i].Genus=PatchGenus(mesh,PatchFaces[i]);
+        size_t t2=clock();
+        int1=t2-t1;
+
+        PInfo[i].ExpectedValence=ExpectedValence(mesh,PatchFaces[i]);
+        size_t t3=clock();
+        int2+=t3-t2;
+
+        PInfo[i].NumSing=NumSingularities(mesh,PatchFaces[i]);
+        size_t t4=clock();
+        int3+=t4-t3;
+
+        if ((PInfo[i].NumCorners<MIN_ADMITTIBLE)||
+                (PInfo[i].NumCorners>MAX_ADMITTIBLE)||
                 (PInfo[i].Genus!=1)||
-                (PInfo[i].NumEmitters>0)
-                )
+                (PInfo[i].NumEmitters>0)||
+                (Thr<=0))
         {
             PInfo[i].CClarkability=false;
         }
         else
         {
             std::vector<typename MeshType::ScalarType > CurvedL,EuclL;
-            PatchesSideLenght(mesh,PatchFaces[i],PatchCorners[i],CurvedL,EuclL,EdgeMap);
+            PatchSideLenght(mesh,PatchFaces[i],PatchCorners[i],CurvedL,EuclL,EdgeMap);
             PInfo[i].CurvedL=CurvedL;
             PInfo[i].CornerL=EuclL;
-            PInfo[i].CClarkability=IsCatmullClarkable(PatchFaces[i].size(),CurvedL,Thr);
+            PInfo[i].CClarkability=IsCatmullClarkable(PatchFaces[i].size(),CurvedL,Thr,SkipValence4);
+            //            PInfo[i].CurvedL=CurvedL[i];
+            //            PInfo[i].CornerL=EuclL[i];
+            //            PInfo[i].CClarkability=IsCatmullClarkable(PatchFaces[i].size(),PInfo[i].CurvedL,Thr);
         }
+        size_t t5=clock();
+        int4+=t5-t4;
     }
 
+    //        std::cout<<"** Timing Patch Type Update **"<<std::endl;
+    //        std::cout<<"Time Step Emitters "<<int0<<std::endl;
+    //        std::cout<<"Time Step Genus "<<int1<<std::endl;
+    //        std::cout<<"Time Step Exp Val "<<int2<<std::endl;
+    //        std::cout<<"Time Step Num Sing "<<int3<<std::endl;
+    //        std::cout<<"Time Step CCability "<<int4<<std::endl<<std::endl;
 }
 
 
@@ -1575,6 +1968,117 @@ typename MeshType::ScalarType NonOkArea(MeshType &mesh,
 //    return CurrN;
 //}
 
+//template <class MeshType>
+//bool BetterConfiguaration(MeshType &mesh,
+//                          const std::vector<std::vector<size_t> > &PatchFaces0,
+//                          const std::vector<std::vector<size_t> > &PatchFaces1,
+//                          const std::vector<PatchInfo<typename MeshType::ScalarType> > &PInf0,
+//                          const std::vector<PatchInfo<typename MeshType::ScalarType> > &PInf1,
+//                          size_t MinSides,size_t MaxSides,
+//                          const typename MeshType::ScalarType CClarkability,
+//                          const typename MeshType::ScalarType avgEdge,
+//                          bool match_sing_valence)
+//{
+//    typedef typename MeshType::ScalarType ScalarType;
+//    size_t NonOKGenus0=0;
+//    size_t NonOKGenus1=0;
+//    size_t NonOKEmitters0=0;
+//    size_t NonOKEmitters1=0;
+//    size_t NonOKSize0=0;
+//    size_t NonOKSize1=0;
+//    size_t Sing0=0;
+//    size_t Sing1=0;
+//    //at least one sing inside
+//    int MatchSing0=0;
+//    int MatchSing1=0;
+//    int MaxInternalSing0=1;
+//    int MaxInternalSing1=1;
+//    for (size_t i=0;i<PInf0.size();i++)
+//    {
+//        if (PInf0[i].Genus!=1)NonOKGenus0++;
+//        if (PInf0[i].NumEmitters>0)NonOKEmitters0++;
+//        if (PInf0[i].NumCorners<(int)MinSides)NonOKSize0++;
+//        if (PInf0[i].NumCorners>(int)MaxSides)NonOKSize0++;
+//        if (match_sing_valence)
+//        {
+//            MaxInternalSing0=std::max(MaxInternalSing0,PInf0[i].NumSing);
+//            //            if (PInf0[i].NumCorners!=(int)PInf0[i].ExpectedValence)
+//            //                NonOkVal0++;
+//            if ((PInf0[i].ExpectedValence!=4)&&
+//                    (PInf0[i].NumCorners==(int)PInf0[i].ExpectedValence))
+//                MatchSing0++;
+//        }
+//        //if match singularity than no need to check CCability for valence 4
+//        if (CClarkability>0)
+//            Sing0+=AddedSingularities(PatchFaces0[i].size(),PInf0[i].CurvedL,CClarkability*avgEdge,match_sing_valence);
+//        //if ((CClarkability>0)&&(PInf0[i].CClarkability>CClarkability))NonOKCC0++;
+//    }
+
+//    for (size_t i=0;i<PInf1.size();i++)
+//    {
+//        if (PInf1[i].Genus!=1)NonOKGenus1++;
+//        if (PInf1[i].NumEmitters>0)NonOKEmitters1++;
+//        if (PInf1[i].NumCorners<(int)MinSides)NonOKSize1++;
+//        if (PInf1[i].NumCorners>(int)MaxSides)NonOKSize1++;
+//        if (match_sing_valence)
+//        {
+//            MaxInternalSing1=std::max(MaxInternalSing1,PInf1[i].NumSing);
+//            //            if (PInf1[i].NumCorners!=(int)PInf1[i].ExpectedValence)
+//            //                NonOkVal1++;
+//            if ((PInf1[i].ExpectedValence!=4)&&
+//                    (PInf1[i].NumCorners==(int)PInf1[i].ExpectedValence))
+//                MatchSing1++;
+//        }
+//        //if match singularity than no need to check CCability for valence 4
+//        if (CClarkability>0)
+//            Sing1+=AddedSingularities(PatchFaces1[i].size(),PInf1[i].CurvedL,CClarkability*avgEdge,match_sing_valence);
+//        //if ((CClarkability>0)&&(PInf1[i].CClarkability>CClarkability))NonOKCC1++;
+//    }
+//    if (NonOKGenus1!=NonOKGenus0)
+//        return (NonOKGenus1<NonOKGenus0);
+
+//    if (NonOKEmitters1!=NonOKEmitters0)
+//        return (NonOKEmitters1<NonOKEmitters0);
+
+//    if (NonOKSize1!=NonOKSize0)
+//        return (NonOKSize1<NonOKSize0);
+
+//    if (MaxInternalSing1!=MaxInternalSing0)
+//        return (MaxInternalSing1<MaxInternalSing0);
+
+//    if (MatchSing1!=MatchSing0)
+//        return(MatchSing1>MatchSing0);
+//    //    ScalarType NormNonOkVal0=((ScalarType)NonOkVal0)/((ScalarType)PInf0.size());
+//    //    ScalarType NormNonOkVal1=((ScalarType)NonOkVal1)/((ScalarType)PInf1.size());
+//    //    if (NormNonOkVal0!=NormNonOkVal1)return (NonOkVal1<NonOkVal0);
+
+//    //    if (NonOkVal1!=NonOkVal0)
+//    //        return (NonOkVal1<NonOkVal0);
+
+//    //    //the same number of error do not remove
+//    //    if ((NonOkVal1>0)&&(NonOkVal0>0))
+//    //        return false;
+
+//    //if (NonOKCC1!=NonOKCC0)return (NonOKCC1<NonOKCC0);
+
+//    if ((Sing0==0)&&(Sing1==0))return true;
+
+//    return (Sing1<Sing0);
+//    //return true;
+
+//    //    if (Sing0!=Sing1)return (Sing1<Sing0);
+//    //    return true;
+
+//    //    size_t Num0=NonOkPartitions(mesh,PInf0,MinSides,MaxSides,CatmullClarkability,QThresold);
+//    //    size_t Num1=NonOkPartitions(mesh,PInf1,MinSides,MaxSides,CatmullClarkability,QThresold);
+//    //    return (Num1<=Num0);
+//    //    typename MeshType::ScalarType Area0=NonOkArea(mesh,PatchFaces0,PInf0,MinSides,MaxSides,QThresold);
+//    //    typename MeshType::ScalarType Area1=NonOkArea(mesh,PatchFaces1,PInf1,MinSides,MaxSides,QThresold);
+//    //    std::cout<<"Area 0:"<<Area0;
+//    //    std::cout<<"Area 1:"<<Area1;
+//    //    return (Area1<=Area0);
+//}
+
 template <class MeshType>
 bool BetterConfiguaration(MeshType &mesh,
                           const std::vector<std::vector<size_t> > &PatchFaces0,
@@ -1584,7 +2088,8 @@ bool BetterConfiguaration(MeshType &mesh,
                           size_t MinSides,size_t MaxSides,
                           const typename MeshType::ScalarType CClarkability,
                           const typename MeshType::ScalarType avgEdge,
-                          bool match_sing_valence)
+                          bool match_sing_valence,
+                          bool print_debug=false)
 {
     typedef typename MeshType::ScalarType ScalarType;
     size_t NonOKGenus0=0;
@@ -1593,19 +2098,24 @@ bool BetterConfiguaration(MeshType &mesh,
     size_t NonOKEmitters1=0;
     size_t NonOKSize0=0;
     size_t NonOKSize1=0;
-    //    size_t NonOKCC0=0;
-    //    size_t NonOKCC1=0;
     size_t Sing0=0;
     size_t Sing1=0;
-//    size_t NonOkVal0=0;
-//    size_t NonOkVal1=0;
     //at least one sing inside
     int MatchSing0=0;
     int MatchSing1=0;
     int MaxInternalSing0=1;
     int MaxInternalSing1=1;
+
+    if (print_debug)
+        std::cout<<"*** REMOVAL STATS ***"<<std::endl;
+
+    if (print_debug)
+        std::cout<<"Num Patches 0:"<<PInf0.size()<<std::endl;
     for (size_t i=0;i<PInf0.size();i++)
     {
+        if (print_debug)
+            std::cout<<"Num Sides 0:"<<PInf0[i].NumCorners<<std::endl;
+
         if (PInf0[i].Genus!=1)NonOKGenus0++;
         if (PInf0[i].NumEmitters>0)NonOKEmitters0++;
         if (PInf0[i].NumCorners<(int)MinSides)NonOKSize0++;
@@ -1613,19 +2123,25 @@ bool BetterConfiguaration(MeshType &mesh,
         if (match_sing_valence)
         {
             MaxInternalSing0=std::max(MaxInternalSing0,PInf0[i].NumSing);
-//            if (PInf0[i].NumCorners!=(int)PInf0[i].ExpectedValence)
-//                NonOkVal0++;
+
             if ((PInf0[i].ExpectedValence!=4)&&
-                (PInf0[i].NumCorners==(int)PInf0[i].ExpectedValence))
+                    (PInf0[i].NumCorners==(int)PInf0[i].ExpectedValence))
                 MatchSing0++;
         }
+        //if match singularity than no need to check CCability for valence 4
         if (CClarkability>0)
-            Sing0+=AddedSingularities(PatchFaces0[i].size(),PInf0[i].CurvedL,CClarkability*avgEdge);
-        //if ((CClarkability>0)&&(PInf0[i].CClarkability>CClarkability))NonOKCC0++;
+        {
+            Sing0+=AddedSingularities(PatchFaces0[i].size(),PInf0[i].CurvedL,
+                                      CClarkability*avgEdge,match_sing_valence,print_debug);
+        }
     }
 
+    if (print_debug)
+        std::cout<<"Num Patches 1:"<<PInf1.size()<<std::endl;
     for (size_t i=0;i<PInf1.size();i++)
     {
+        if (print_debug)
+            std::cout<<"Num Sides 1:"<<PInf1[i].NumCorners<<std::endl;
         if (PInf1[i].Genus!=1)NonOKGenus1++;
         if (PInf1[i].NumEmitters>0)NonOKEmitters1++;
         if (PInf1[i].NumCorners<(int)MinSides)NonOKSize1++;
@@ -1633,16 +2149,40 @@ bool BetterConfiguaration(MeshType &mesh,
         if (match_sing_valence)
         {
             MaxInternalSing1=std::max(MaxInternalSing1,PInf1[i].NumSing);
-//            if (PInf1[i].NumCorners!=(int)PInf1[i].ExpectedValence)
-//                NonOkVal1++;
+
             if ((PInf1[i].ExpectedValence!=4)&&
-                (PInf1[i].NumCorners==(int)PInf1[i].ExpectedValence))
+                    (PInf1[i].NumCorners==(int)PInf1[i].ExpectedValence))
                 MatchSing1++;
         }
+        //if match singularity than no need to check CCability for valence 4
         if (CClarkability>0)
-            Sing1+=AddedSingularities(PatchFaces1[i].size(),PInf1[i].CurvedL,CClarkability*avgEdge);
-        //if ((CClarkability>0)&&(PInf1[i].CClarkability>CClarkability))NonOKCC1++;
+        {
+            Sing1+=AddedSingularities(PatchFaces1[i].size(),PInf1[i].CurvedL,
+                                      CClarkability*avgEdge,match_sing_valence,
+                                      print_debug);
+        }
+
     }
+    if (print_debug)
+    {
+        std::cout<<"Non Ok Genus 0:"<<NonOKGenus0<<std::endl;
+        std::cout<<"Non Ok Genus 1:"<<NonOKGenus1<<std::endl;
+        std::cout<<"Non Ok Emitters 0:"<<NonOKEmitters0<<std::endl;
+        std::cout<<"Non Ok Emitters 1:"<<NonOKEmitters1<<std::endl;
+        std::cout<<"Non Ok NonOKSize 0:"<<NonOKSize0<<std::endl;
+        std::cout<<"Non Ok NonOKSize 1:"<<NonOKSize1<<std::endl;
+        std::cout<<"MaxInternalSing 0:"<<MaxInternalSing0<<std::endl;
+        std::cout<<"MaxInternalSing 1:"<<MaxInternalSing1<<std::endl;
+        std::cout<<"MatchSing 0:"<<MatchSing0<<std::endl;
+        std::cout<<"MatchSing 1:"<<MatchSing1<<std::endl;
+        std::cout<<"Sing 0:"<<Sing0<<std::endl;
+        std::cout<<"Sing 1:"<<Sing1<<std::endl;
+    }
+    //    std::cout<<"CClarkability:"<<CClarkability<<std::endl;
+    //    std::cout<<"avgEdge:"<<avgEdge<<std::endl;
+    if (print_debug)
+        std::cout<<"*** END REMOVAL STATS ***"<<std::endl;
+
     if (NonOKGenus1!=NonOKGenus0)
         return (NonOKGenus1<NonOKGenus0);
 
@@ -1657,35 +2197,10 @@ bool BetterConfiguaration(MeshType &mesh,
 
     if (MatchSing1!=MatchSing0)
         return(MatchSing1>MatchSing0);
-//    ScalarType NormNonOkVal0=((ScalarType)NonOkVal0)/((ScalarType)PInf0.size());
-//    ScalarType NormNonOkVal1=((ScalarType)NonOkVal1)/((ScalarType)PInf1.size());
-//    if (NormNonOkVal0!=NormNonOkVal1)return (NonOkVal1<NonOkVal0);
-
-//    if (NonOkVal1!=NonOkVal0)
-//        return (NonOkVal1<NonOkVal0);
-
-//    //the same number of error do not remove
-//    if ((NonOkVal1>0)&&(NonOkVal0>0))
-//        return false;
-
-    //if (NonOKCC1!=NonOKCC0)return (NonOKCC1<NonOKCC0);
 
     if ((Sing0==0)&&(Sing1==0))return true;
 
     return (Sing1<Sing0);
-    //return true;
-
-    //    if (Sing0!=Sing1)return (Sing1<Sing0);
-    //    return true;
-
-    //    size_t Num0=NonOkPartitions(mesh,PInf0,MinSides,MaxSides,CatmullClarkability,QThresold);
-    //    size_t Num1=NonOkPartitions(mesh,PInf1,MinSides,MaxSides,CatmullClarkability,QThresold);
-    //    return (Num1<=Num0);
-    //    typename MeshType::ScalarType Area0=NonOkArea(mesh,PatchFaces0,PInf0,MinSides,MaxSides,QThresold);
-    //    typename MeshType::ScalarType Area1=NonOkArea(mesh,PatchFaces1,PInf1,MinSides,MaxSides,QThresold);
-    //    std::cout<<"Area 0:"<<Area0;
-    //    std::cout<<"Area 1:"<<Area1;
-    //    return (Area1<=Area0);
 }
 
 template <class MeshType>
@@ -1694,28 +2209,28 @@ void MeshTrace(const VertexFieldGraph<MeshType> &VFGraph,
                typename MeshType::ScalarType Width,
                MeshType &outMesh)
 {
-   typedef typename MeshType::CoordType CoordType;
-   typedef typename MeshType::ScalarType ScalarType;
-   outMesh.Clear();
-   size_t Limit=CurrTrace.PathNodes.size();
-   assert(Limit>=2);
-   //std::cout<<"Limit "<<Limit<<std::endl;
+    typedef typename MeshType::CoordType CoordType;
+    typedef typename MeshType::ScalarType ScalarType;
+    outMesh.Clear();
+    size_t Limit=CurrTrace.PathNodes.size();
+    assert(Limit>=2);
+    //std::cout<<"Limit "<<Limit<<std::endl;
 
-   size_t Size=CurrTrace.PathNodes.size();
-   if (CurrTrace.IsLoop)Limit++;
-   for (size_t i=0;i<Limit-1;i++)
-   {
-       size_t N0=CurrTrace.PathNodes[i];
-       size_t N1=CurrTrace.PathNodes[(i+1)%Size];
-//       std::cout<<"N0 "<<N0<<std::endl;
-//       std::cout<<"N1 "<<N1<<std::endl;
-       CoordType P0=VFGraph.NodePos(N0);
-       CoordType P1=VFGraph.NodePos(N1);
- //      std::cout<<"got position"<<std::endl;
-       MeshType TempMesh;
-       vcg::tri::OrientedCylinder(TempMesh,P0,P1,Width,true);
-       vcg::tri::Append<MeshType,MeshType>::Mesh(outMesh,TempMesh);
-   }
+    size_t Size=CurrTrace.PathNodes.size();
+    if (CurrTrace.IsLoop)Limit++;
+    for (size_t i=0;i<Limit-1;i++)
+    {
+        size_t N0=CurrTrace.PathNodes[i];
+        size_t N1=CurrTrace.PathNodes[(i+1)%Size];
+        //       std::cout<<"N0 "<<N0<<std::endl;
+        //       std::cout<<"N1 "<<N1<<std::endl;
+        CoordType P0=VFGraph.NodePos(N0);
+        CoordType P1=VFGraph.NodePos(N1);
+        //      std::cout<<"got position"<<std::endl;
+        MeshType TempMesh;
+        vcg::tri::OrientedCylinder(TempMesh,P0,P1,Width,true);
+        vcg::tri::Append<MeshType,MeshType>::Mesh(outMesh,TempMesh);
+    }
 }
 
 template <class MeshType>
