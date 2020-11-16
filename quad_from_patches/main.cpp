@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
     QuadCornersVect.erase(last, QuadCornersVect.end());
 
     //SmoothSubdivide(trimesh,quadmesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,100,0.5,EdgeSize);
-    MultiCostraintSmooth(quadmesh,trimesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,0.5,EdgeSize,100,2);
+    MultiCostraintSmooth(quadmesh,trimesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,0.5,EdgeSize,10,1);
 
     //SAVE OUTPUT
     outputFilename = meshFilename;

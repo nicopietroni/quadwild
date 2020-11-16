@@ -3127,6 +3127,7 @@ private:
 
     bool RemoveIfPossible(size_t IndexPath,bool debubg_msg=false)
     {
+        int t0=clock();
         if (ChoosenPaths[IndexPath].PathNodes.size()==0)return false;
         if (ChoosenPaths[IndexPath].Unremovable){std::cout<<"Unremoveable"<<std::endl;return false;}
         //if it includes a concave or narrow then cannot remove
@@ -3140,8 +3141,9 @@ private:
         std::vector<vcg::face::Pos<FaceType> > FacesPath;
         VFGraph.GetNodesPos(ChoosenPaths[IndexPath].PathNodes,ChoosenPaths[IndexPath].IsLoop,FacesPath);
 
+        int t1=clock();
         UpdatePatchAround(FacesPath);
-
+        int t2=clock();
         //UpdatePartitionsFromChoosen(true);
         std::vector<PatchInfo<ScalarType> > PatchInfos0=PatchInfos;
         std::vector<std::vector<size_t> > FacePatches0=Partitions;
@@ -3160,8 +3162,10 @@ private:
         }
         //deselect
         Mesh().SelectPos(FacesPath,false);
+        int t3=clock();
         //UpdatePartitionsFromChoosen(true);
         UpdatePatchAround(FacesPath);
+        int t4=clock();
         std::vector<PatchInfo<ScalarType> > PatchInfos1=PatchInfos;
         std::vector<std::vector<size_t> > FacePatches1=Partitions;
 
@@ -3178,11 +3182,13 @@ private:
         }
 
         bool CanRemove=true;
+        int t5=clock();
         //std::vector<typename MeshType::ScalarType> QThresold;
         CanRemove=BetterConfiguaration(Mesh(),FacePatches0,FacePatches1,
                                        PatchInfos0,PatchInfos1,MinVal,
                                        MaxVal,CClarkability,avgEdge,
                                        match_valence,debubg_msg);
+        int t6=clock();
         if (!CanRemove)
         {
             //restore
@@ -3190,6 +3196,13 @@ private:
             Mesh().SelectPos(FacesPath,true);
             return false;
         }
+
+//        std::cout<<"T0: "<<t1-t0<<std::endl;
+//        std::cout<<"T1: "<<t2-t1<<std::endl;
+//        std::cout<<"T2: "<<t3-t2<<std::endl;
+//        std::cout<<"T3: "<<t4-t3<<std::endl;
+//        std::cout<<"T4: "<<t5-t4<<std::endl;
+//        std::cout<<"T5: "<<t6-t5<<std::endl;
         return true;
     }
 

@@ -325,38 +325,6 @@ void GetQuadInterpW(const typename TriMeshType::FaceType &FTris,
 
     //then check there in only and only one -1
     assert((IndexV[0]==-1)||(IndexV[1]==-1)||(IndexV[2]==-1));
-
-    //   //and all different
-    //   std::cout<<" "<<FTris.cV(0)->cQ()<<" "<<FTris.cV(1)->Q()<<" "<<FTris.cV(2)->cQ()<<std::endl;
-
-    //   std::cout<<" "<<FTris.cV(0)->P().X()<<","<<
-    //                   FTris.cV(0)->P().Y()<<","<<
-    //                   FTris.cV(0)->P().Z()<<"-"<<
-    //                   FTris.cV(1)->P().X()<<","<<
-    //                   FTris.cV(1)->P().Y()<<","<<
-    //                   FTris.cV(1)->P().Z()<<"-"<<
-    //                   FTris.cV(2)->P().X()<<","<<
-    //                   FTris.cV(2)->P().Y()<<","<<
-    //                   FTris.cV(2)->P().Z()<<std::endl;
-
-
-    //   std::cout<<" "<<FPoly.cV(0)->cQ()<<" "<<FPoly.cV(1)->cQ()<<
-    //              " "<<FPoly.cV(2)->Q()<< " "<<FPoly.cV(3)->Q()<<std::endl;
-
-    //   std::cout<<" "<<FPoly.cV(0)->P().X()<<","<<
-    //                   FPoly.cV(0)->P().Y()<<","<<
-    //                   FPoly.cV(0)->P().Z()<<"-"<<
-    //                   FPoly.cV(1)->P().X()<<","<<
-    //                   FPoly.cV(1)->P().Y()<<","<<
-    //                   FPoly.cV(1)->P().Z()<<"-"<<
-    //                   FPoly.cV(2)->P().X()<<","<<
-    //                   FPoly.cV(2)->P().Y()<<","<<
-    //                   FPoly.cV(2)->P().Z()<<"-"<<
-    //              FPoly.cV(3)->P().X()<<","<<
-    //              FPoly.cV(3)->P().Y()<<","<<
-    //              FPoly.cV(3)->P().Z()<<std::endl;
-
-    //   std::cout<<" "<<IndexV[0]<<" "<<IndexV[1]<<" "<<IndexV[2]<<std::endl;
     assert((IndexV[0]!=IndexV[1])&&(IndexV[1]!=IndexV[2])&&(IndexV[0]!=IndexV[2]));
 
     for (size_t i=0;i<3;i++)
@@ -776,18 +744,18 @@ void BackProjectStepPositions(PolyMeshType &PolyM,TriMeshType &TriM,
     //assert(PolyProjBase.Corner.size()==PolyProjBase.Corner.size());
 
     //transform the polygonal mesh into triangle one
+    int t0=clock();
     TriMeshType poly_tris;
-
     InitPolyTrisMesh(PolyM,poly_tris);
 
     std::vector<std::vector<CoordType> > VertMove(PolyM.vert.size());
     std::vector<std::vector<ScalarType> > VertWeight(PolyM.vert.size());
-
+    int t1=clock();
     //first set the internal
     //then initialize the grid
     vcg::GridStaticPtr<TriFaceType,ScalarType> TriGrid;
     TriGrid.Set(poly_tris.face.begin(),poly_tris.face.end());
-
+    int t2=clock();
     for (size_t i=0;i<TriM.vert.size();i++)
     {
         if (TriProjBase.VertProjType[i]!=ProjSuface)continue;
@@ -795,7 +763,7 @@ void BackProjectStepPositions(PolyMeshType &PolyM,TriMeshType &TriM,
         CoordType TestPos=TriM.vert[i].P();
         GetMovingPointOnSurface(PolyM,poly_tris,TestPos,TriGrid,VertMove,VertWeight);
     }
-
+    int t3=clock();
     //normalize the weight and average the direction
     std::vector<CoordType> TargetMov(PolyM.vert.size(),CoordType(0,0,0));
     for (size_t i=0;i<VertWeight.size();i++)
@@ -824,6 +792,11 @@ void BackProjectStepPositions(PolyMeshType &PolyM,TriMeshType &TriM,
         else
             TargetPos.push_back(PolyM.vert[i].P()+TargetMov[i]);
     }
+    int t4=clock();
+//    std::cout<<"BProj T0: "<<t1-t0<<std::endl;
+//    std::cout<<"BProj T1: "<<t2-t1<<std::endl;
+//    std::cout<<"BProj T2: "<<t3-t2<<std::endl;
+//    std::cout<<"BProj T3: "<<t4-t3<<std::endl;
 }
 
 template <class PolyMeshType,class TriMeshType>
@@ -890,6 +863,7 @@ void SmoothInternal(PolyMeshType &PolyM,TriMeshType &TriM,
     //select only the one on borders
     vcg::tri::UpdateFlags<PolyMeshType>::VertexClearS(PolyM);
 
+//    int t0=clock();
     if (!UseSharp)
     {
         vcg::tri::UpdateFlags<PolyMeshType>::VertexSetS(PolyM);
@@ -904,13 +878,12 @@ void SmoothInternal(PolyMeshType &PolyM,TriMeshType &TriM,
     else
     {
         //then do one laplacian step
-        //std::vector<typename PolyMeshType::CoordType> TargetPos;
         if (SType==Laplacian)
             LaplacianPos(PolyM,Damp,TargetPosSmooth,false);
         else
             TemplatePos(PolyM,PolyProjBase,Damp,TargetPosSmooth);
     }
-
+//    int t1=clock();
     //smooth
     for (size_t i=0;i<PolyM.vert.size();i++)
     {
@@ -918,7 +891,7 @@ void SmoothInternal(PolyMeshType &PolyM,TriMeshType &TriM,
         if (PolyProjBase.VertProjType[i]==ProjSuface)
             PolyM.vert[i].P()=TargetPosSmooth[i];
     }
-
+//    int t2=clock();
     //back projection
     for (size_t i=0;i<back_proj_steps;i++)
     {
@@ -930,7 +903,7 @@ void SmoothInternal(PolyMeshType &PolyM,TriMeshType &TriM,
                 PolyM.vert[i].P()=TargetPosBackProj[i];
         }
     }
-
+//    int t3=clock();
     for (size_t i=0;i<PolyM.vert.size();i++)
     {
         if (BlockedV[i])continue;
@@ -945,6 +918,11 @@ void SmoothInternal(PolyMeshType &PolyM,TriMeshType &TriM,
             PolyM.vert[i].P()=closestPt;
         }
     }
+//    int t4=clock();
+//    std::cout<<"Internal T0: "<<t1-t0<<std::endl;
+//    std::cout<<"Internal T1: "<<t2-t1<<std::endl;
+//    std::cout<<"Internal T2: "<<t3-t2<<std::endl;
+//    std::cout<<"Internal T3: "<<t4-t3<<std::endl;
 }
 
 template <class PolyMeshType>
@@ -1010,6 +988,8 @@ void MultiCostraintSmooth(PolyMeshType &PolyM,
                        quad_corner,quad_face_partition,AvEdge,
                        TriProjBase,PolyProjBase);
 
+    std::cout<<"*** Done ***"<<std::endl;
+
     std::vector<bool> BlockedV(PolyM.vert.size(),false);
 
     vcg::GridStaticPtr<TriFaceType,ScalarType> TriGrid;
@@ -1017,12 +997,18 @@ void MultiCostraintSmooth(PolyMeshType &PolyM,
 
     for (size_t s=0;s<step_num;s++)
     {
+        //std::cout<<"Smoooth Feature step: "<<s<<std::endl;
+        //int t0=clock();
         SmoothSharpFeatures<PolyMeshType,TriMeshType>(PolyM,PolyProjBase,EdgeM,Damp,BlockedV);
+//        std::cout<<"Smoooth Internal step: "<<s<<std::endl;
+//        int t1=clock();
         SmoothInternal<PolyMeshType,TriMeshType>(PolyM,TriM,TriGrid,
                                                  TriProjBase,PolyProjBase,
                                                  back_proj_steps,
                                                  TemplateFit,Damp,
                                                  BlockedV,true);
+//        int t2=clock();
+//        std::cout<<"Concluded Smoothing step TFeat:"<<t1-t0<<" TInternal:"<<t2-t1<<std::endl;
     }
 
 }
