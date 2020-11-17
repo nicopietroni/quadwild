@@ -80,7 +80,7 @@ int ExpectedValence(MeshType &mesh,const std::vector<size_t> &PatchFaces)
             ExpVal=v->SingularityValence;
         }
     }
-    vcg::tri::UpdateFlags<MeshType>::VertexClearV(mesh);
+    //vcg::tri::UpdateFlags<MeshType>::VertexClearV(mesh);
     return ExpVal;
 }
 
@@ -104,40 +104,93 @@ int NumSingularities(MeshType &mesh,const std::vector<size_t> &PatchFaces)
             NumSing++;
         }
     }
-    vcg::tri::UpdateFlags<MeshType>::VertexClearV(mesh);
+    //vcg::tri::UpdateFlags<MeshType>::VertexClearV(mesh);
     return NumSing;
 }
+
+//template <class MeshType>
+//int PatchGenus(MeshType &mesh,const std::vector<size_t> &PatchFaces)
+//{
+
+//    SelectPatchFacesVert<MeshType>(mesh,PatchFaces);
+
+//    MeshType subM;
+//    vcg::tri::Append<MeshType,MeshType>::Mesh(subM,mesh,true);
+//    vcg::tri::Clean<MeshType>::RemoveDuplicateVertex(subM);
+//    vcg::tri::Allocator<MeshType>::CompactEveryVector(subM);
+
+//    std::set<std::pair<size_t,size_t> > EdgeSet;
+//    size_t NumF=0;
+//    size_t NumV=0;
+//    size_t NumE=0;
+//    for (size_t i=0;i<subM.face.size();i++)
+//    {
+//        if (!subM.face[i].IsS())continue;
+//        NumF++;
+//        for (size_t j=0;j<3;j++)
+//        {
+//            size_t IndV0=vcg::tri::Index(subM,subM.face[i].V0(j));
+//            size_t IndV1=vcg::tri::Index(subM,subM.face[i].V1(j));
+//            EdgeSet.insert(std::pair<size_t,size_t>(std::min(IndV0,IndV1),std::max(IndV0,IndV1)));
+//        }
+//    }
+//    for (size_t i=0;i<subM.vert.size();i++)
+//    {
+//        if (subM.vert[i].IsD())continue;
+//        if (subM.vert[i].IsS())NumV++;
+//    }
+
+//    NumE=EdgeSet.size();
+//    return ( NumV + NumF - NumE );
+//}
 
 template <class MeshType>
 int PatchGenus(MeshType &mesh,const std::vector<size_t> &PatchFaces)
 {
-    SelectPatchFacesVert<MeshType>(mesh,PatchFaces);
+   typedef typename MeshType::FaceType FaceType;
+   typedef typename MeshType::VertexType VertexType;
+   typedef typename MeshType::CoordType CoordType;
+//    SelectPatchFacesVert<MeshType>(mesh,PatchFaces);
 
-    MeshType subM;
-    vcg::tri::Append<MeshType,MeshType>::Mesh(subM,mesh,true);
-    vcg::tri::Clean<MeshType>::RemoveDuplicateVertex(subM);
-    vcg::tri::Allocator<MeshType>::CompactEveryVector(subM);
+//    MeshType subM;
+//    vcg::tri::Append<MeshType,MeshType>::Mesh(subM,mesh,true);
+//    vcg::tri::Clean<MeshType>::RemoveDuplicateVertex(subM);
+//    vcg::tri::Allocator<MeshType>::CompactEveryVector(subM);
 
-    std::set<std::pair<size_t,size_t> > EdgeSet;
-    size_t NumF=0;
+//    vcg::tri::UnMarkAll(mesh);
+
+    //std::unordered_set<std::pair<size_t,size_t> > EdgeSet;
+    std::set<std::pair<CoordType,CoordType> > EdgeSet;
+    std::set<CoordType> VertSet;
+    size_t NumF=PatchFaces.size();
     size_t NumV=0;
     size_t NumE=0;
-    for (size_t i=0;i<subM.face.size();i++)
+    for (size_t i=0;i<PatchFaces.size();i++)
     {
-        if (!subM.face[i].IsS())continue;
-        NumF++;
+        FaceType *f=&mesh.face[PatchFaces[i]];
         for (size_t j=0;j<3;j++)
         {
-            size_t IndV0=vcg::tri::Index(subM,subM.face[i].V0(j));
-            size_t IndV1=vcg::tri::Index(subM,subM.face[i].V1(j));
-            EdgeSet.insert(std::pair<size_t,size_t>(std::min(IndV0,IndV1),std::max(IndV0,IndV1)));
+            //count the vertex
+            //if (!vcg::tri::IsMarked(mesh,f->V0(j)))
+            if (!VertSet.count(f->P0(j)))
+            {
+                //vcg::tri::Mark(mesh,f->V0(j));
+                VertSet.insert(f->P0(j));
+                NumV++;
+            }
+//            size_t IndV0=vcg::tri::Index(mesh,f->V0(j));
+//            size_t IndV1=vcg::tri::Index(mesh,f->V1(j));
+//            EdgeSet.insert(std::pair<size_t,size_t>(std::min(IndV0,IndV1),std::max(IndV0,IndV1)));
+            CoordType P0=f->P0(j);
+            CoordType P1=f->P1(j);
+            EdgeSet.insert(std::pair<CoordType,CoordType>(std::min(P0,P1),std::max(P0,P1)));
         }
     }
-    for (size_t i=0;i<subM.vert.size();i++)
-    {
-        if (subM.vert[i].IsD())continue;
-        if (subM.vert[i].IsS())NumV++;
-    }
+//    for (size_t i=0;i<subM.vert.size();i++)
+//    {
+//        if (subM.vert[i].IsD())continue;
+//        if (subM.vert[i].IsS())NumV++;
+//    }
 
     NumE=EdgeSet.size();
     return ( NumV + NumF - NumE );
@@ -532,8 +585,8 @@ void SetFacePartitionOnFaceQ(MeshType &mesh,const std::vector<std::vector<size_t
 template <class MeshType>
 typename MeshType::ScalarType FieldLenght(const MeshType &mesh,
                                           const std::vector<size_t> &BorderSeq,
-                                          std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
-//std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+                                          //std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
+                                           std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
     typedef typename MeshType::ScalarType ScalarType;
     ScalarType currL=0;
@@ -1379,8 +1432,8 @@ void PatchSideLenght(MeshType &mesh,
                      const std::vector<size_t>  &PatchCorners,
                      std::vector<typename MeshType::ScalarType>  &CurvedL,
                      std::vector<typename MeshType::ScalarType>  &EuclL,
-                     std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
-//std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+                     //std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
+                    std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
     typedef typename MeshType::CoordType CoordType;
 
@@ -1418,8 +1471,8 @@ void PatchesSideLenght(MeshType &mesh,
                        const std::vector<std::vector<size_t> > &PatchCorners,
                        std::vector<std::vector<typename MeshType::ScalarType> > &CurvedL,
                        std::vector<std::vector<typename MeshType::ScalarType> > &EuclL,
-                       std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
-//std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+                       //std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
+                       std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
 
     CurvedL.clear();
@@ -1452,8 +1505,8 @@ void PatchesLenghtRatios(MeshType &mesh,
                          const std::vector<std::vector<size_t> > &PatchCorners,
                          std::vector<typename MeshType::ScalarType> &Variance,
                          std::vector<typename MeshType::ScalarType> &LenghtDist,
-                         std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
-//std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+                         //std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
+                           std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
     typedef typename MeshType::ScalarType ScalarType;
     std::vector<std::vector<ScalarType> > SideL,EuclL;
@@ -1476,8 +1529,8 @@ template <class MeshType>
 void ColorByVarianceLenght(MeshType &mesh,
                            const std::vector<std::vector<size_t> > &PatchFaces,
                            const std::vector<std::vector<size_t> > &PatchCorners,
-                           std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
-//std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+                           //std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
+                           std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
     typedef typename MeshType::ScalarType ScalarType;
     std::vector<ScalarType> VarianceL,DistL;
@@ -1497,8 +1550,8 @@ template <class MeshType>
 void ColorByDistortionLenght(MeshType &mesh,
                              const std::vector<std::vector<size_t> > &PatchFaces,
                              const std::vector<std::vector<size_t> > &PatchCorners,
-                             std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
-//std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+                             //std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
+                             std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
     typedef typename MeshType::ScalarType ScalarType;
     std::vector<ScalarType> VarianceL,DistL;
@@ -1522,7 +1575,8 @@ template <class MeshType>
 void ColorByCatmullClarkability(MeshType &mesh,
                                 const std::vector<std::vector<size_t> > &PatchFaces,
                                 const std::vector<std::vector<size_t> > &PatchCorners,
-                                std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap,
+                                //std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap,
+                                std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap,
                                 const typename MeshType::ScalarType CClarkability,
                                 const typename MeshType::ScalarType avEdge,
                                 bool SkipValence4)
@@ -1610,17 +1664,20 @@ void ColorByUVDistortionFaces(MeshType &mesh,
 
 template <class MeshType>
 size_t RemainingEmitters(MeshType &mesh,
-                   std::vector<size_t> &PatchFaces,
-                   std::vector<size_t> &VerticesNeeds)
+                         std::vector<size_t> &PatchFaces,
+                         std::vector<size_t> &VerticesNeeds)
 {
     size_t ret=0;
-    vcg::tri::UpdateFlags<MeshType>::VertexClearV(mesh);
+    //vcg::tri::UpdateFlags<MeshType>::VertexClearV(mesh);
+    vcg::tri::UnMarkAll(mesh);
     for (size_t i=0;i<PatchFaces.size();i++)
         for (size_t j=0;j<3;j++)
         {
             size_t IndexV=vcg::tri::Index(mesh,mesh.face[PatchFaces[i]].V(j));
-            if (mesh.vert[IndexV].IsV())continue;
-            mesh.vert[IndexV].SetV();
+            //if (mesh.vert[IndexV].IsV())continue;
+            if (vcg::tri::IsMarked(mesh,&mesh.vert[IndexV]))continue;
+            vcg::tri::Mark(mesh,&mesh.vert[IndexV]);
+            //mesh.vert[IndexV].SetV();
             ret+=VerticesNeeds[IndexV];
         }
     return ret;
@@ -1731,7 +1788,8 @@ void GetBorderSequences(MeshType &mesh,const std::vector<size_t> &Corners,
     SelectVertices(mesh,Corners);
     //    vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"test.ply",vcg::tri::io::Mask::IOM_FLAGS);
     //    exit(0);
-    std::unordered_set<std::pair<size_t,size_t> > VisitedEdges;
+    //std::unordered_set<std::pair<size_t,size_t> > VisitedEdges;
+    std::set<std::pair<size_t,size_t> > VisitedEdges;
     bool found_start=false;
     //size_t num=0;
     do{
@@ -1841,7 +1899,8 @@ void GetPatchInfo(MeshType &mesh,
                   std::vector<std::vector<size_t> > &PatchFaces,
                   std::vector<std::vector<size_t> > &PatchCorners,
                   std::vector<size_t> &VerticesNeeds,
-                  std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap,
+                  //std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap,
+                  std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap,
                   std::vector<PatchInfo<typename MeshType::ScalarType> > &PInfo,
                   const typename MeshType::ScalarType Thr,
                   bool SkipValence4)
@@ -1865,6 +1924,13 @@ void GetPatchInfo(MeshType &mesh,
         int0+=t1-t0;
 
         PInfo[i].Genus=PatchGenus(mesh,PatchFaces[i]);
+//        size_t Test=PatchGenus1(mesh,PatchFaces[i]);
+//        if (PInfo[i].Genus!=Test)
+//        {
+//            std::cout<<"Genus "<<PInfo[i].Genus<<std::endl;
+//            std::cout<<"Test "<<Test<<std::endl;
+//            assert(0);
+//        }
         size_t t2=clock();
         int1=t2-t1;
 

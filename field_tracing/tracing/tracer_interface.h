@@ -166,10 +166,13 @@ bool TraceSubPatch(const size_t &IndexPatch,
     SubTr.CopyParametersFrom(PTr);
     SubTr.CopyFrom(PTr,VertMap,IndexPatch);
     SubTr.InitTraceableBorders();
+
+    //SubTr.InitBorderDirMap();
     //this put 100 sample by default
     //SubTr.sample_ratio=-1;
     //SubTr.SampleLoopEmitters();
     size_t Added_paths=SubTr.CopyPathsFrom(PTr,VertMap);
+    SubTr.InitEdgeL();
     if (Added_paths>0)
     {
         std::cout<<"ADDED "<<Added_paths<<" EXTRA PATH IN SUBDIVISION"<<std::endl;
@@ -491,7 +494,7 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
 
     int t0=clock();
     //do a first step of tracing
-    PTr.Init(Drift,false);
+    PTr.Init(Drift,true);
     PTr.BatchAddLoops(false,onlyneeded);
 
     //then do a first partitions update
@@ -600,6 +603,8 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     int t1=clock();
     ScalarType ElpsedSec=(ScalarType)(t1-t0)/CLOCKS_PER_SEC;
     std::cout<<"**** FINAL ELAPSED TIME "<<ElpsedSec<<" Unsolved Partitions ****"<<std::endl;
+    ScalarType CopyMapSec=(ScalarType)timeCopyMap/CLOCKS_PER_SEC;
+    std::cout<<"(Time copy Map) "<<CopyMapSec<<std::endl;
 
 }
 

@@ -514,13 +514,13 @@ public:
 
             size_t NextNode;
             bool traced=TraceNext(VertGraph,CurrNode,NextNode);
-            if ((traced)&&(DebugMsg))
-                std::cout<<"did one tracing step"<<std::endl;
+//            if ((traced)&&(DebugMsg))
+//                std::cout<<"did one tracing step"<<std::endl;
 
             if (!traced)
             {
-                if (DebugMsg)
-                    std::cout<<"stopped tracing"<<std::endl;
+//                if (DebugMsg)
+//                    std::cout<<"stopped tracing"<<std::endl;
 
                 return false;
             }
@@ -917,18 +917,18 @@ public:
         return true;
     }
 
-    static void GetEdgeDir(const VertexFieldGraph<MeshType> &VFGraph,
-                           const size_t &IndexV0,
-                           const size_t &IndexV1,
-                           size_t &DirN0,
-                           size_t &DirN1)
-    {
-        CoordType Dir=VFGraph.Mesh().vert[IndexV1].P()-
-                VFGraph.Mesh().vert[IndexV0].P();
-        Dir.Normalize();
-        DirN0=VFGraph.GetClosestDirTo(IndexV0,Dir);
-        DirN1=VFGraph.GetClosestDirTo(IndexV1,-Dir);
-    }
+//    static void GetEdgeDir(const VertexFieldGraph<MeshType> &VFGraph,
+//                           const size_t &IndexV0,
+//                           const size_t &IndexV1,
+//                           size_t &DirN0,
+//                           size_t &DirN1)
+//    {
+//        CoordType Dir=VFGraph.Mesh().vert[IndexV1].P()-
+//                VFGraph.Mesh().vert[IndexV0].P();
+//        Dir.Normalize();
+//        DirN0=VFGraph.GetClosestDirTo(IndexV0,Dir);
+//        DirN1=VFGraph.GetClosestDirTo(IndexV1,-Dir);
+//    }
 
     static void SamplePoissonNodes(VertexFieldGraph<MeshType> &VFGraph,
                                    size_t sampleNum,

@@ -13,28 +13,24 @@
 #define MAX_ADMITTIBLE 6
 #define BORDER_SAMPLE 8
 
-namespace std {
+//namespace std {
 
-template <typename ScalarType>
-struct hash<typename vcg::Point3<ScalarType> > {
-    std::size_t operator()(typename vcg::Point3<ScalarType> &p) const {
-        return std::hash<ScalarType>()(p.X()) ^ std::hash<ScalarType>()(p.Y()) ^ std::hash<ScalarType>()(p.Z());
-    }
-};
+////template <typename ScalarType>
+////struct hash<typename vcg::Point3<ScalarType> > {
+////    std::size_t operator()(typename vcg::Point3<ScalarType> &p) const {
+////        return std::hash<ScalarType>()(p.X()) ^ std::hash<ScalarType>()(p.Y()) ^ std::hash<ScalarType>()(p.Z());
+////    }
+////};
 
-//   struct hash<vcg::Point3f> {
-//        std::size_t operator()(const vcg::Point3f &p) const {
-//            return std::hash<float>()(p.X()) ^ std::hash<float>()(p.Y()) ^ std::hash<float>()(p.Z());
-//        }
-//    };
-
-template<typename X, typename Y>
-struct hash<std::pair<X, Y> > {
-    std::size_t operator()(const std::pair<X, Y> &pair) const {
-        return std::hash<X>()(pair.first) ^ std::hash<Y>()(pair.second);
-    }
-};
-}
+//template<typename X, typename Y>
+//struct hash<std::pair<X, Y> > {
+//    const size_t _HASH_P0 = 73856093u;
+//    const size_t _HASH_P1 = 19349663u;
+//    std::size_t operator()(const std::pair<X, Y> &pair) const {
+//        return std::hash<X>()(pair.first)*_HASH_P0 ^ std::hash<Y>()(pair.second)*_HASH_P1;
+//    }
+//};
+//}
 
 #include "vert_field_graph.h"
 #include "graph_query.h"
@@ -138,94 +134,162 @@ std::vector<size_t> FilterFromSet(const std::vector<size_t> &ToFilter,
     return Filtered;
 }
 
+//template <class MeshType>
+//bool SelectMeshPatchBorders(MeshType &mesh,
+//                            const std::vector<CandidateTrace> &TraceSet)
+//{
+//    //std::set<std::pair<size_t,size_t> > BorderPatches;
+//    vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(mesh);
+//    vcg::tri::UpdateFlags<MeshType>::FaceClearF(mesh);
+
+//    //first add borders
+//    for (size_t i=0;i<mesh.face.size();i++)
+//        for (size_t j=0;j<3;j++)
+//        {
+//            if (!mesh.face[i].IsB(j))continue;
+//            mesh.face[i].SetFaceEdgeS(j);
+//            mesh.face[i].SetF(j);
+//        }
+
+//    std::unordered_set<std::pair<size_t,size_t> > BorderEdges;
+//    for (size_t i=0;i<TraceSet.size();i++)
+//    {
+//        if (TraceSet[i].PathNodes.size()==0)continue;
+
+//        size_t Limit=TraceSet[i].PathNodes.size()-1;
+//        if (TraceSet[i].IsLoop)Limit++;
+//        for (size_t j=0;j<Limit;j++)
+//        {
+//            size_t IndexN0=TraceSet[i].PathNodes[j];
+//            size_t IndexN1=TraceSet[i].PathNodes[(j+1)%TraceSet[i].PathNodes.size()];
+//            size_t IndexV0=VertexFieldGraph<MeshType>::NodeVertI(IndexN0);
+//            size_t IndexV1=VertexFieldGraph<MeshType>::NodeVertI(IndexN1);
+//            BorderEdges.insert(std::pair<size_t,size_t>(std::min(IndexV0,IndexV1),
+//                                                        std::max(IndexV0,IndexV1)));
+//        }
+//    }
+
+//    std::vector<size_t> NumSel(mesh.vert.size(),0);
+//    for (size_t i=0;i<mesh.face.size();i++)
+//        for (size_t j=0;j<3;j++)
+//        {
+//            size_t IndexV0=vcg::tri::Index(mesh,mesh.face[i].V0(j));
+//            size_t IndexV1=vcg::tri::Index(mesh,mesh.face[i].V1(j));
+//            std::pair<size_t,size_t> Key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
+//            if (BorderEdges.count(Key)==0)continue;
+//            mesh.face[i].SetFaceEdgeS(j);
+//            mesh.face[i].SetF(j);
+//            NumSel[IndexV0]++;
+//            NumSel[IndexV1]++;
+//        }
+
+//    for (size_t i=0;i<NumSel.size();i++)
+//    {
+//        if (mesh.vert[i].IsB())continue;
+//        assert(NumSel[i]%2==0);
+//        if (NumSel[i]==2)return false;
+//    }
+//    return true;
+//}
+
+template <class FaceType>
+bool IsSelectedMeshPos(const vcg::face::Pos<FaceType> &Pos)
+{
+    FaceType *f=Pos.F();
+    int e=Pos.E();
+    f->IsFaceEdgeS(e);
+}
+
+template <class FaceType>
+bool SelectMeshPos(vcg::face::Pos<FaceType> &Pos)
+{
+    FaceType *f=Pos.F();
+    int e=Pos.E();
+    f->SetFaceEdgeS(e);
+    f->SetF(e);
+
+    Pos.FlipF();
+
+    f=Pos.F();
+    e=Pos.E();
+    f->SetFaceEdgeS(e);
+    f->SetF(e);
+}
+
+
 template <class MeshType>
-bool SelectMeshPatchBorders(MeshType &mesh,
+bool SelectMeshPatchBorders(const VertexFieldGraph<MeshType> &VFGraph,
                             const std::vector<CandidateTrace> &TraceSet)
 {
+    typedef typename MeshType::FaceType FaceType;
+    typedef typename vcg::face::Pos<FaceType> PosType;
     //std::set<std::pair<size_t,size_t> > BorderPatches;
-    vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(mesh);
-    vcg::tri::UpdateFlags<MeshType>::FaceClearF(mesh);
+    int t0=clock();
+    vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(VFGraph.Mesh());
+    vcg::tri::UpdateFlags<MeshType>::FaceClearF(VFGraph.Mesh());
 
+    int t1=clock();
     //first add borders
-    for (size_t i=0;i<mesh.face.size();i++)
+    for (size_t i=0;i<VFGraph.Mesh().face.size();i++)
         for (size_t j=0;j<3;j++)
         {
-            if (!mesh.face[i].IsB(j))continue;
-            mesh.face[i].SetFaceEdgeS(j);
-            mesh.face[i].SetF(j);
+            if (!VFGraph.Mesh().face[i].IsB(j))continue;
+            VFGraph.Mesh().face[i].SetFaceEdgeS(j);
+            VFGraph.Mesh().face[i].SetF(j);
         }
-
-    std::unordered_set<std::pair<size_t,size_t> > BorderEdges;
+    int t2=clock();
+    //std::unordered_set<std::pair<size_t,size_t> > BorderEdges;
     for (size_t i=0;i<TraceSet.size();i++)
     {
         if (TraceSet[i].PathNodes.size()==0)continue;
-
-        size_t Limit=TraceSet[i].PathNodes.size()-1;
-        if (TraceSet[i].IsLoop)Limit++;
-        for (size_t j=0;j<Limit;j++)
+        std::vector<PosType> NodePos;
+        VFGraph.GetNodesPos(TraceSet[i].PathNodes,TraceSet[i].IsLoop,NodePos);
+        for (size_t j=0;j<NodePos.size();j++)
         {
-            size_t IndexN0=TraceSet[i].PathNodes[j];
-            size_t IndexN1=TraceSet[i].PathNodes[(j+1)%TraceSet[i].PathNodes.size()];
-            size_t IndexV0=VertexFieldGraph<MeshType>::NodeVertI(IndexN0);
-            size_t IndexV1=VertexFieldGraph<MeshType>::NodeVertI(IndexN1);
-            BorderEdges.insert(std::pair<size_t,size_t>(std::min(IndexV0,IndexV1),
-                                                        std::max(IndexV0,IndexV1)));
+            if (IsSelectedMeshPos(NodePos[j]))return false;//conflict collinear segs
+            SelectMeshPos(NodePos[j]);
         }
     }
+    int t3=clock();
+    //    std::cout<<"Update "<<std::endl;
+    //    std::cout<<"T0: "<<t1-t0<<std::endl;
+    //    std::cout<<"T1: "<<t2-t1<<std::endl;
+    //    std::cout<<"T2: "<<t3-t2<<std::endl;
 
-    std::vector<size_t> NumSel(mesh.vert.size(),0);
-    for (size_t i=0;i<mesh.face.size();i++)
-        for (size_t j=0;j<3;j++)
-        {
-            size_t IndexV0=vcg::tri::Index(mesh,mesh.face[i].V0(j));
-            size_t IndexV1=vcg::tri::Index(mesh,mesh.face[i].V1(j));
-            std::pair<size_t,size_t> Key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
-            if (BorderEdges.count(Key)==0)continue;
-            mesh.face[i].SetFaceEdgeS(j);
-            mesh.face[i].SetF(j);
-            NumSel[IndexV0]++;
-            NumSel[IndexV1]++;
-        }
 
-    for (size_t i=0;i<NumSel.size();i++)
-    {
-        if (mesh.vert[i].IsB())continue;
-        assert(NumSel[i]%2==0);
-        if (NumSel[i]==2)return false;
-    }
     return true;
 }
 
-struct EdgeVert
-{
-    size_t EV0;
-    size_t EV1;
-    size_t CurrV;
+//struct EdgeVert
+//{
+//    size_t EV0;
+//    size_t EV1;
+//    size_t CurrV;
 
-    EdgeVert(size_t _EV0,size_t _EV1,size_t _CurrV)
-    {
-        EV0=std::min(_EV0,_EV1);
-        EV1=std::max(_EV0,_EV1);
-        CurrV=_CurrV;
-    }
+//    EdgeVert(size_t _EV0,size_t _EV1,size_t _CurrV)
+//    {
+//        EV0=std::min(_EV0,_EV1);
+//        EV1=std::max(_EV0,_EV1);
+//        CurrV=_CurrV;
+//    }
 
-    inline bool operator ==(const EdgeVert &left)const
-    {
-        return ((EV0==left.EV0)&&
-                (EV1==left.EV1)&&
-                (CurrV==left.CurrV));
-    }
+//    inline bool operator ==(const EdgeVert &left)const
+//    {
+//        return ((EV0==left.EV0)&&
+//                (EV1==left.EV1)&&
+//                (CurrV==left.CurrV));
+//    }
 
-    inline bool operator <(const EdgeVert &left)const
-    {
-        if ((EV0==left.EV0)&&
-                (EV1==left.EV1))
-            return (CurrV<left.CurrV);
-        if (EV0==left.EV0)
-            return (EV1<left.EV1);
-        return (EV0<left.EV0);
-    }
-};
+//    inline bool operator <(const EdgeVert &left)const
+//    {
+//        if ((EV0==left.EV0)&&
+//                (EV1==left.EV1))
+//            return (CurrV<left.CurrV);
+//        if (EV0==left.EV0)
+//            return (EV1<left.EV1);
+//        return (EV0<left.EV0);
+//    }
+//};
 
 //this is a function to remove some trace that is collinear, it should never happen
 //but sometime it happens for a few cases, still should check the cause
@@ -270,13 +334,109 @@ void RemoveCollinearTraces(std::vector<CandidateTrace> &TraceSet)
     TraceSet=SwapTraceSet;
 }
 
+//template <class MeshType>
+//void GetEdgeDirVertMap(const VertexFieldGraph<MeshType> &VFGraph,
+//                       const std::vector<CandidateTrace> &TraceSet,
+//                       std::map<EdgeVert,size_t> &EdgeDirVert)
+//{
+//    EdgeDirVert.clear();
+//    int t0=clock();
+//    //for each edge set the direction per vertex
+//    for (size_t i=0;i<TraceSet.size();i++)
+//    {
+//        if (TraceSet[i].PathNodes.size()==0)continue;
+//        size_t Limit=TraceSet[i].PathNodes.size()-1;
+//        if (TraceSet[i].IsLoop)
+//            Limit++;
+//        for (size_t j=0;j<Limit;j++)
+//        {
+//            size_t IndexN0=TraceSet[i].PathNodes[j];
+//            size_t IndexN1=TraceSet[i].PathNodes[(j+1)%TraceSet[i].PathNodes.size()];
+//            size_t IndexV0=VertexFieldGraph<MeshType>::NodeVertI(IndexN0);
+//            size_t IndexV1=VertexFieldGraph<MeshType>::NodeVertI(IndexN1);
+
+//            assert(IndexV0!=IndexV1);
+//            size_t MinV=std::min(IndexV0,IndexV1);
+//            size_t MaxV=std::max(IndexV0,IndexV1);
+
+//            size_t DirV0=VertexFieldGraph<MeshType>::NodeDirI(IndexN0);
+//            size_t DirV1=VertexFieldGraph<MeshType>::NodeDirI(IndexN1);
+//            EdgeVert EdgeKey0(MinV,MaxV,IndexV0);
+//            EdgeVert EdgeKey1(MinV,MaxV,IndexV1);
+
+//            if (EdgeDirVert.count(EdgeKey0)>0)
+//            {
+//                std::cout<<"WARNING DOUBLE EDGE"<<std::endl;
+//                MeshType traceMesh;
+//                std::vector<bool> Selected(TraceSet.size(),false);
+//                Selected[i]=true;
+//                MeshTraces(VFGraph,TraceSet,Selected,traceMesh);
+//                vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_domain.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+//                vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_error.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+//                assert(0);
+//            }
+
+//            if (EdgeDirVert.count(EdgeKey1)>0)
+//            {
+//                std::cout<<"WARNING DOUBLE EDGE"<<std::endl;
+//                MeshType traceMesh;
+//                std::vector<bool> Selected(TraceSet.size(),false);
+//                Selected[i]=true;
+//                MeshTraces(VFGraph,TraceSet,Selected,traceMesh);
+//                vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_domain.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+//                vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_error.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+//                assert(0);
+//            }
+//            assert(EdgeDirVert.count(EdgeKey0)==0);
+//            assert(EdgeDirVert.count(EdgeKey1)==0);
+
+//            EdgeDirVert[EdgeKey0]=DirV0;
+
+
+//            EdgeDirVert[EdgeKey1]=((DirV1+2)%4);//put the inverse cause look internally the interval
+
+//        }
+//    }
+//    int t1=clock();
+//    //do the same for borders
+//    for (size_t i=0;i<VFGraph.Mesh().face.size();i++)
+//        for (size_t j=0;j<3;j++)
+//        {
+//            if (!vcg::face::IsBorder(VFGraph.Mesh().face[i],j))continue;
+//            size_t IndexV0=vcg::tri::Index(VFGraph.Mesh(),VFGraph.Mesh().face[i].V0(j));
+//            size_t IndexV1=vcg::tri::Index(VFGraph.Mesh(),VFGraph.Mesh().face[i].V1(j));
+//            size_t DirFlatV0,DirFlatV1;
+//            VertexFieldQuery<MeshType>::GetEdgeDir(VFGraph,IndexV0,IndexV1,DirFlatV0,DirFlatV1);
+
+//            assert(IndexV0!=IndexV1);
+//            size_t MinV=std::min(IndexV0,IndexV1);
+//            size_t MaxV=std::max(IndexV0,IndexV1);
+
+//            EdgeVert EdgeKey0(MinV,MaxV,IndexV0);
+//            EdgeVert EdgeKey1(MinV,MaxV,IndexV1);
+
+//            assert(EdgeDirVert.count(EdgeKey0)==0);
+//            EdgeDirVert[EdgeKey0]=DirFlatV0;
+//            assert(EdgeDirVert.count(EdgeKey1)==0);
+//            EdgeDirVert[EdgeKey1]= DirFlatV1;
+//        }
+//    int t2=clock();
+//    std::cout<<"Vert Maps : "<<std::endl;
+//    std::cout<<"T0: "<<t1-t0<<std::endl;
+//    std::cout<<"T1: "<<t2-t1<<std::endl;
+//}
+int timeCopyMap=0;
+
 template <class MeshType>
 void GetEdgeDirVertMap(const VertexFieldGraph<MeshType> &VFGraph,
                        const std::vector<CandidateTrace> &TraceSet,
                        std::map<EdgeVert,size_t> &EdgeDirVert)
 {
-    EdgeDirVert.clear();
-
+    //EdgeDirVert.clear();
+    int t0=clock();
+    EdgeDirVert=VFGraph.EdgeBorderDir;
+    int t1=clock();
+    timeCopyMap+=t1-t0;
     //for each edge set the direction per vertex
     for (size_t i=0;i<TraceSet.size();i++)
     {
@@ -300,70 +460,68 @@ void GetEdgeDirVertMap(const VertexFieldGraph<MeshType> &VFGraph,
             EdgeVert EdgeKey0(MinV,MaxV,IndexV0);
             EdgeVert EdgeKey1(MinV,MaxV,IndexV1);
 
-            if (EdgeDirVert.count(EdgeKey0)>0)
-            {
-                std::cout<<"WARNING DOUBLE EDGE"<<std::endl;
-                MeshType traceMesh;
-                std::vector<bool> Selected(TraceSet.size(),false);
-                Selected[i]=true;
-                MeshTraces(VFGraph,TraceSet,Selected,traceMesh);
-                vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_domain.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
-                vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_error.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
-                assert(0);
-            }
+//            if (EdgeDirVert.count(EdgeKey0)>0)
+//            {
+//                std::cout<<"WARNING DOUBLE EDGE"<<std::endl;
+//                MeshType traceMesh;
+//                std::vector<bool> Selected(TraceSet.size(),false);
+//                Selected[i]=true;
+//                MeshTraces(VFGraph,TraceSet,Selected,traceMesh);
+//                vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_domain.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+//                vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_error.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+//                assert(0);
+//            }
 
-            if (EdgeDirVert.count(EdgeKey1)>0)
-            {
-                std::cout<<"WARNING DOUBLE EDGE"<<std::endl;
-                MeshType traceMesh;
-                std::vector<bool> Selected(TraceSet.size(),false);
-                Selected[i]=true;
-                MeshTraces(VFGraph,TraceSet,Selected,traceMesh);
-                vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_domain.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
-                vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_error.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
-                assert(0);
-            }
+//            if (EdgeDirVert.count(EdgeKey1)>0)
+//            {
+//                std::cout<<"WARNING DOUBLE EDGE"<<std::endl;
+//                MeshType traceMesh;
+//                std::vector<bool> Selected(TraceSet.size(),false);
+//                Selected[i]=true;
+//                MeshTraces(VFGraph,TraceSet,Selected,traceMesh);
+//                vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_domain.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+//                vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_error.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+//                assert(0);
+//            }
             assert(EdgeDirVert.count(EdgeKey0)==0);
             assert(EdgeDirVert.count(EdgeKey1)==0);
 
             EdgeDirVert[EdgeKey0]=DirV0;
-            //            if (TraceSet[i].IsLoop)
-            //                EdgeDirVert[EdgeKey0].push_back((DirV0+2)%4);
-            //            else
-            //                if (j>0)//add the inverse direction in case it is not starting
-            //                    EdgeDirVert[EdgeKey0].push_back((DirV0+2)%4);
-
             EdgeDirVert[EdgeKey1]=((DirV1+2)%4);//put the inverse cause look internally the interval
-            //            if (TraceSet[i].IsLoop)
-            //                EdgeDirVert[EdgeKey1].push_back((DirV1+2)%4);
-            //            else
-            //                if (j!=(Limit-1))//add the inverse direction in case it is not ending
-            //                    EdgeDirVert[EdgeKey1].push_back((DirV1+2)%4);
+
         }
+        int t2=clock();
+        //        std::cout<<"Edge Map"<<std::endl;
+        //        std::cout<<"T0: "<<t1-t0<<std::endl;
+        //        std::cout<<"T1: "<<t2-t1<<std::endl;
     }
+    //    int t1=clock();
+    //    //do the same for borders
+    //    for (size_t i=0;i<VFGraph.Mesh().face.size();i++)
+    //        for (size_t j=0;j<3;j++)
+    //        {
+    //            if (!vcg::face::IsBorder(VFGraph.Mesh().face[i],j))continue;
+    //            size_t IndexV0=vcg::tri::Index(VFGraph.Mesh(),VFGraph.Mesh().face[i].V0(j));
+    //            size_t IndexV1=vcg::tri::Index(VFGraph.Mesh(),VFGraph.Mesh().face[i].V1(j));
+    //            size_t DirFlatV0,DirFlatV1;
+    //            //VertexFieldQuery<MeshType>::GetEdgeDir(VFGraph,IndexV0,IndexV1,DirFlatV0,DirFlatV1);
+    //            VFGraph.GetEdgeDir(IndexV0,IndexV1,DirFlatV0,DirFlatV1);
+    //            assert(IndexV0!=IndexV1);
+    //            size_t MinV=std::min(IndexV0,IndexV1);
+    //            size_t MaxV=std::max(IndexV0,IndexV1);
 
-    //do the same for borders
-    for (size_t i=0;i<VFGraph.Mesh().face.size();i++)
-        for (size_t j=0;j<3;j++)
-        {
-            if (!vcg::face::IsBorder(VFGraph.Mesh().face[i],j))continue;
-            size_t IndexV0=vcg::tri::Index(VFGraph.Mesh(),VFGraph.Mesh().face[i].V0(j));
-            size_t IndexV1=vcg::tri::Index(VFGraph.Mesh(),VFGraph.Mesh().face[i].V1(j));
-            size_t DirFlatV0,DirFlatV1;
-            VertexFieldQuery<MeshType>::GetEdgeDir(VFGraph,IndexV0,IndexV1,DirFlatV0,DirFlatV1);
+    //            EdgeVert EdgeKey0(MinV,MaxV,IndexV0);
+    //            EdgeVert EdgeKey1(MinV,MaxV,IndexV1);
 
-            assert(IndexV0!=IndexV1);
-            size_t MinV=std::min(IndexV0,IndexV1);
-            size_t MaxV=std::max(IndexV0,IndexV1);
-
-            EdgeVert EdgeKey0(MinV,MaxV,IndexV0);
-            EdgeVert EdgeKey1(MinV,MaxV,IndexV1);
-
-            assert(EdgeDirVert.count(EdgeKey0)==0);
-            EdgeDirVert[EdgeKey0]=DirFlatV0;
-            assert(EdgeDirVert.count(EdgeKey1)==0);
-            EdgeDirVert[EdgeKey1]= DirFlatV1;
-        }
+    //            assert(EdgeDirVert.count(EdgeKey0)==0);
+    //            EdgeDirVert[EdgeKey0]=DirFlatV0;
+    //            assert(EdgeDirVert.count(EdgeKey1)==0);
+    //            EdgeDirVert[EdgeKey1]= DirFlatV1;
+    //        }
+    //    int t2=clock();
+    //    std::cout<<"Vert Maps : "<<std::endl;
+    //    std::cout<<"T0: "<<t1-t0<<std::endl;
+    //    std::cout<<"T1: "<<t2-t1<<std::endl;
 }
 
 template <class MeshType>
@@ -399,19 +557,36 @@ void FindPerVertDirs(const VertexFieldGraph<MeshType> &VFGraph,
             size_t MaxV=std::max(IndexV0,IndexV1);
 
             EdgeVert EdgeKey0(MinV,MaxV,IndexV0);
-            if (EdgeDirVert.count(EdgeKey0)>0)
+            if (EdgeDirVert.count(EdgeKey0)>0)//||(VFGraph.EdgeBorderDir.count(EdgeKey0)>0))
             {
                 size_t EdgeDir=EdgeDirVert[EdgeKey0];
                 DirVert[IndexV0].push_back(EdgeDir);
             }
-
+////            else
+////            {
+//                //check also on borders
+//                if (VFGraph.EdgeBorderDir.count(EdgeKey0)>0)
+//                {
+//                    size_t EdgeDir=EdgeDirVert[EdgeKey0];
+//                    DirVert[IndexV0].push_back(EdgeDir);
+//                }
+////            }
 
             EdgeVert EdgeKey1(MinV,MaxV,IndexV1);
-            if (EdgeDirVert.count(EdgeKey1)>0)
+            if (EdgeDirVert.count(EdgeKey1)>0)//||(VFGraph.EdgeBorderDir.count(EdgeKey1)>0))
             {
                 size_t EdgeDir=EdgeDirVert[EdgeKey1];
                 DirVert[IndexV1].push_back(EdgeDir);
             }
+////            else
+////            {
+//                //check also on borders
+//                if (VFGraph.EdgeBorderDir.count(EdgeKey1)>0)
+//                {
+//                    size_t EdgeDir=EdgeDirVert[EdgeKey1];
+//                    DirVert[IndexV1].push_back(EdgeDir);
+//                }
+//            }
         }
     }
 }
@@ -1029,8 +1204,8 @@ private:
     std::vector<size_t> VerticesNeeds;
 
     //std::vector<std::vector<ScalarType> > EdgeL;
-    //std::map<std::pair<size_t,size_t>,ScalarType> EdgeL;
-    std::unordered_map<std::pair<size_t,size_t>,ScalarType> EdgeL;
+    std::map<std::pair<size_t,size_t>,ScalarType> EdgeL;
+    //std::unordered_map<std::pair<size_t,size_t>,ScalarType> EdgeL;
     ScalarType avgEdge;
 
     void InitAvEdge()
@@ -1103,6 +1278,7 @@ private:
         }
     }
 
+public:
     void InitEdgeL()
     {
         EdgeL.clear();
@@ -1111,7 +1287,7 @@ private:
         for (size_t i=0;i<ChoosenPaths.size();i++)
             AddEdgeL(ChoosenPaths[i]);
     }
-
+private:
     //CLASSIFICATION OF DIFFERENT KINDS OF VERTICES
     void InitVertType(const std::vector<size_t> &ConvexV,
                       const std::vector<size_t> &ConcaveV,
@@ -2655,7 +2831,7 @@ public:
         PartitionType.clear();
         PartitionType.resize(Partitions.size(),IsOK);
         int t0=clock();
-        InitEdgeL();
+        //InitEdgeL();
         int t1=clock();
         //if the singularity have been used then ccability of valence 4 is not computed
         GetPatchInfo(Mesh(),Partitions,PartitionCorners,VerticesNeeds,EdgeL,
@@ -2665,9 +2841,9 @@ public:
             UpdatePartitionType(i);
         int t3=clock();
 
-        //        std::cout<<"Time Init Lenghts "<<t1-t0<<std::endl;
-        //        std::cout<<"Time Get PInfo "<<t2-t1<<std::endl;
-        //        std::cout<<"Time Update Type "<<t3-t2<<std::endl;
+//                std::cout<<"Time Init Lenghts "<<t1-t0<<std::endl;
+//                std::cout<<"Time Get PInfo "<<t2-t1<<std::endl;
+//                std::cout<<"Time Update Type "<<t3-t2<<std::endl;
     }
 
 
@@ -2689,7 +2865,9 @@ public:
         //get the old border nodes
         SaveEdgeSel(Mesh(),EdgeSel0);
         //select with the new ones
-        SelectMeshPatchBorders(Mesh(),ChoosenPaths);
+        //SelectMeshPatchBorders(Mesh(),ChoosenPaths);
+        SelectMeshPatchBorders(VFGraph,ChoosenPaths);
+        int t2=clock();
         //get the new ones
         SaveEdgeSel(Mesh(),EdgeSel1);
 
@@ -2901,8 +3079,8 @@ public:
     void UpdatePartitionsFromChoosen(bool UpdateType=true)
     {
         //       int t0=clock();
-        bool IsOk=SelectMeshPatchBorders(Mesh(),ChoosenPaths);//SelectBorders();
-
+        //bool IsOk=SelectMeshPatchBorders(Mesh(),ChoosenPaths);//SelectBorders();
+        bool IsOk= SelectMeshPatchBorders(VFGraph,ChoosenPaths);
         if (!IsOk)
         {
             MeshType traceMesh;
@@ -4499,7 +4677,7 @@ public:
         //            UpdatePartitionsFromChoosen(false);
         //            SmoothPatches(2);
         //        }
-        //RemovePaths();//false);
+        RemovePaths();//false);
 
         if (split_on_removal)
             SplitIntoSubPaths();
@@ -4639,7 +4817,7 @@ public:
             {
                 if(Mesh().face[i].IsD())continue;
                 for(int j=0;j<3;j++)
-                    Mesh().face[i].V(j)->Q()+= face::WedgeAngleRad(Mesh().face[i],j);
+                    Mesh().face[i].V(j)->Q()+= vcg::face::WedgeAngleRad(Mesh().face[i],j);
             }
 
             //solve valence 4 not valid because of corners
@@ -4778,7 +4956,8 @@ public:
     void BatchAddLoops(bool ForceReceivers,
                        bool AddOnlyNeeded)
     {
-        UpdatePartitionsFromChoosen(true);
+        if (AddOnlyNeeded)
+            UpdatePartitionsFromChoosen(true);
 
         size_t numInitial=ChoosenPaths.size();
         if (ForceReceivers)
@@ -4916,12 +5095,12 @@ public:
             VertexFieldGraph<MeshType>::IndexNodes(i,NodesI);
             for (size_t j=0;j<NodesI.size();j++)
             {
-//                if (!VFGraph.IsActive(NodesI[j]))continue;
-//                if((NodeEmitterTypes[NodesI[j]]==TVNarrow)||
-//                        (NodeEmitterTypes[NodesI[j]]==TVConcave))
-//                {
-                    Remaining.push_back(NodesI[j]);
-//                }
+                //                if (!VFGraph.IsActive(NodesI[j]))continue;
+                //                if((NodeEmitterTypes[NodesI[j]]==TVNarrow)||
+                //                        (NodeEmitterTypes[NodesI[j]]==TVConcave))
+                //                {
+                Remaining.push_back(NodesI[j]);
+                //                }
             }
         }
     }

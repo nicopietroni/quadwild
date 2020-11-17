@@ -111,6 +111,38 @@ public:
     }
 };
 
+
+struct EdgeVert
+{
+    size_t EV0;
+    size_t EV1;
+    size_t CurrV;
+
+    EdgeVert(size_t _EV0,size_t _EV1,size_t _CurrV)
+    {
+        EV0=std::min(_EV0,_EV1);
+        EV1=std::max(_EV0,_EV1);
+        CurrV=_CurrV;
+    }
+
+    inline bool operator ==(const EdgeVert &left)const
+    {
+        return ((EV0==left.EV0)&&
+                (EV1==left.EV1)&&
+                (CurrV==left.CurrV));
+    }
+
+    inline bool operator <(const EdgeVert &left)const
+    {
+        if ((EV0==left.EV0)&&
+                (EV1==left.EV1))
+            return (CurrV<left.CurrV);
+        if (EV0==left.EV0)
+            return (EV1<left.EV1);
+        return (EV0<left.EV0);
+    }
+};
+
 template <class MeshType>
 class VertexFieldGraph
 {
@@ -132,6 +164,8 @@ class VertexFieldGraph
     bool DebugMsg;
 
 public:
+
+    std::map<EdgeVert,size_t> EdgeBorderDir;
 
     struct NeighInfo
     {
@@ -368,6 +402,17 @@ public:
             std::cout<<"permormed removed steps "<<step<<std::endl;
     }
 
+    void GetEdgeDir(const size_t &IndexV0,
+                           const size_t &IndexV1,
+                           size_t &DirN0,
+                           size_t &DirN1)const
+    {
+        CoordType Dir=Mesh().vert[IndexV1].P()-
+                      Mesh().vert[IndexV0].P();
+        Dir.Normalize();
+        DirN0=GetClosestDirTo(IndexV0,Dir);
+        DirN1=GetClosestDirTo(IndexV1,-Dir);
+    }
 private:
 
     //the node structure
@@ -607,8 +652,8 @@ private:
         }
     }
 
-    //std::map<std::pair<size_t,size_t>,vcg::face::Pos<FaceType> > VertPos;
-    std::unordered_map<std::pair<size_t,size_t>,vcg::face::Pos<FaceType> > VertPos;
+    std::map<std::pair<size_t,size_t>,vcg::face::Pos<FaceType> > VertPos;
+    //std::unordered_map<std::pair<size_t,size_t>,vcg::face::Pos<FaceType> > VertPos;
 
     void InitVertPosMap()
     {
@@ -622,6 +667,34 @@ private:
                                              std::max(IndexV0,IndexV1));
                 vcg::face::Pos<FaceType> currPos(&Mesh().face[i],j);
                 VertPos[key]=currPos;
+            }
+    }
+
+
+
+    void InitBorderDirMap()
+    {
+        //do the same for borders
+        for (size_t i=0;i<Mesh().face.size();i++)
+            for (size_t j=0;j<3;j++)
+            {
+                if (!vcg::face::IsBorder(Mesh().face[i],j))continue;
+                size_t IndexV0=vcg::tri::Index(Mesh(),Mesh().face[i].V0(j));
+                size_t IndexV1=vcg::tri::Index(Mesh(),Mesh().face[i].V1(j));
+                size_t DirFlatV0,DirFlatV1;
+                GetEdgeDir(IndexV0,IndexV1,DirFlatV0,DirFlatV1);
+
+                assert(IndexV0!=IndexV1);
+                size_t MinV=std::min(IndexV0,IndexV1);
+                size_t MaxV=std::max(IndexV0,IndexV1);
+
+                EdgeVert EdgeKey0(MinV,MaxV,IndexV0);
+                EdgeVert EdgeKey1(MinV,MaxV,IndexV1);
+
+                assert(EdgeBorderDir.count(EdgeKey0)==0);
+                EdgeBorderDir[EdgeKey0]=DirFlatV0;
+                assert(EdgeBorderDir.count(EdgeKey1)==0);
+                EdgeBorderDir[EdgeKey1]= DirFlatV1;
             }
     }
 
@@ -939,8 +1012,13 @@ public:
 
         //initialize connections
         InitConnections();
+
         //initialize pos map
         InitVertPosMap();
+
+        //initialize Border direction map
+        InitBorderDirMap();
+
         //initialize the rest used for queries
         NodeDist=std::vector<ScalarType>(NumNodes(),0);
         NodeFather=std::vector<int>(NumNodes(),-1);
@@ -1199,7 +1277,7 @@ public:
     }
 
     void GetNodesPos(const std::vector<size_t> &PathNodes,bool IsLoop,
-                     std::vector<vcg::face::Pos<FaceType> > &PathPos)
+                     std::vector<vcg::face::Pos<FaceType> > &PathPos)const
     {
 
         PathPos.clear();
