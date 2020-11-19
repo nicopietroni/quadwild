@@ -244,7 +244,7 @@ static void removeColinearFaces(Mesh & m, const ScalarType colinearThr = 0.001)
         para.cleanFlag = true;
         para.userSelectedCreases = false;
         para.selectedOnly = false;
-        para.maxSurfDist = m.bbox.Diag()/250.;
+        para.maxSurfDist = m.bbox.Diag()/500.;
         para.SetFeatureAngleDeg(30);
 
         vcg::tri::IsotropicRemeshing<Mesh>::Do(m, para);
@@ -386,7 +386,7 @@ public:
         std::shared_ptr<Mesh> ret = std::make_shared<Mesh>();
 
         vcg::tri::Append<Mesh, Mesh>::MeshCopy(*ret, m);
-
+	
         vcg::tri::Clean<Mesh>::RemoveDuplicateFace(*ret);
         vcg::tri::Clean<Mesh>::RemoveUnreferencedVertex(*ret);
         vcg::tri::Allocator<Mesh>::CompactEveryVector(*ret);
@@ -395,6 +395,11 @@ public:
 
         std::cout << "[AutoRemeshCleaner] Removing colinear faces by flip..." << std::endl;
         removeColinearFaces(*ret);
+
+	vcg::tri::Clean<Mesh>::RemoveZeroAreaFace(*ret);
+	vcg::tri::Clean<Mesh>::RemoveUnreferencedVertex(*ret);
+        vcg::tri::Allocator<Mesh>::CompactEveryVector(*ret);
+
 
         if (splitNonManifold)
             SplitNonManifold(*ret);
@@ -434,7 +439,7 @@ public:
         para.aspectRatioThr = 0.05;
         para.cleanFlag = false;
 
-        para.maxSurfDist = m.bbox.Diag() / 4000.;
+        para.maxSurfDist = m.bbox.Diag() / 2500.;
         para.surfDistCheck = m.FN() < 400000 ? par.surfDistCheck : false;
         para.userSelectedCreases = par.userSelectedCreases;
 
@@ -461,9 +466,12 @@ public:
 
             aspect = computeAR(*ret);
             ScalarType newFN = ret->FN();
-
+		std::cout << "Iter: "<<  countIterations << " faces: " << newFN << std::endl;
             deltaFN = std::abs(ret->FN() - prevFN);
             prevFN = newFN;
+
+	    if (aspect >= par.targetAspect && newFN >= 30000 && newFN <= 100000)
+		break;
 
             if (aspect >= par.targetAspect /*&& ret->FN() > par.initialApproximateFN*/)
             {
