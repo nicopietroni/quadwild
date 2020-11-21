@@ -54,6 +54,7 @@
 
 #include <wrap/io_trimesh/export_ply.h>
 #include <vcg/complex/algorithms/parametrization/tangent_field_operators.h>
+#include <vcg/complex/algorithms/parametrization/uv_utils.h>
 //#include <vcg/complex/algorithms/polygonal_algorithms.h>
 //#include <vcg/complex/algorithms/parametrization/tangent_field_operators.h>
 //#include <vcg/complex/algorithms/curve_on_manifold.h>
@@ -133,7 +134,6 @@ public:
         vcg::tri::UpdateTopology<CMesh>::VertexFace(*this);
         vcg::tri::UpdateFlags<CMesh>::FaceBorderFromFF(*this);
         vcg::tri::UpdateFlags<CMesh>::VertexBorderFromFaceBorder(*this);
-
     }
 
     bool LoadField(std::string field_filename)
@@ -161,6 +161,19 @@ public:
             return true;
         }
         return false;
+    }
+
+    void ScatterColorByQualityFace()
+    {
+        int MaxV=0;
+        for (size_t i=0;i<face.size();i++)
+            MaxV=std::max(MaxV,(int)face[i].Q());
+
+        for (size_t i=0;i<face.size();i++)
+        {
+            vcg::Color4b CurrCol=vcg::Color4b::Scatter((int)MaxV+1,(int)face[i].Q());
+            face[i].C()=CurrCol;
+        }
     }
 
     bool LoadMesh(std::string filename)
@@ -241,6 +254,18 @@ public:
         std::sort(SharpCoords.begin(),SharpCoords.end());
         auto last=std::unique(SharpCoords.begin(),SharpCoords.end());
         SharpCoords.erase(last, SharpCoords.end());
+    }
+
+    void UpdateSharpFeaturesFromSelection()
+    {
+        SharpFeatures.clear();
+        for (size_t i=0;i<face.size();i++)
+            for (size_t j=0;j<3;j++)
+            {
+                if (!face[i].IsFaceEdgeS(j))continue;
+                SharpFeatures.push_back(std::pair<size_t,size_t>(i,j));
+                //std::cout<<"DE BOIA"<<std::endl;
+            }
     }
 
     void SelectSharpFeatures()
@@ -334,19 +359,19 @@ public:
            SelectPos(ToSel[i],SetSel);
     }
 
-    void GLDrawSharpEdges()
+    void GLDrawSharpEdges(vcg::Color4b col=vcg::Color4b(255,0,0,255))
     {
         glPushAttrib(GL_ALL_ATTRIB_BITS);
         glDisable(GL_LIGHTING);
         glDepthRange(0,0.9999);
-        glLineWidth(10);
+        glLineWidth(5);
         glBegin(GL_LINES);
         for (size_t i=0;i<face.size();i++)
             for (size_t j=0;j<3;j++)
             {
                 if (!face[i].IsFaceEdgeS(j))continue;
 
-                vcg::glColor(vcg::Color4b(255,0,0,255));
+                vcg::glColor(col);
 
                 CoordType Pos0=face[i].P0(j);
                 CoordType Pos1=face[i].P1(j);
@@ -413,6 +438,119 @@ public:
                     return;
                 }
             }
+    }
+
+    void MoveCenterOnZero()
+    {
+        CoordType Center=bbox.Center();
+        for (size_t i=0;i<vert.size();i++)
+            vert[i].P()-=Center;
+        UpdateAttributes();
+    }
+
+    void RestoreRPos()
+    {
+        for (size_t i=0;i<vert.size();i++)
+            vert[i].P()=vert[i].RPos;
+    }
+
+    void InitRPos()
+    {
+        for (size_t i=0;i<vert.size();i++)
+            vert[i].RPos=vert[i].P();
+    }
+
+
+    CoordType UVTo3DPos(const vcg::Point2<ScalarType> &UVPos)
+    {
+        CoordType Pos(0,0,0);
+        Pos.X()=UVPos.X();
+        Pos.Y()=UVPos.Y();
+        return Pos;
+    }
+
+    void GLDrawEdgeUV()
+    {
+        glPushAttrib(GL_ALL_ATTRIB_BITS);
+        glPushMatrix();
+        vcg::Box2<ScalarType> uv_box=vcg::tri::UV_Utils<CMesh>::PerWedgeUVBox(*this);
+        vcg::glScale(3.0f/uv_box.Diag());
+        vcg::glTranslate(CoordType(-uv_box.Center().X(),
+                                   -uv_box.Center().Y(),0));
+        glDisable(GL_LIGHTING);
+        glDisable(GL_LIGHT0);
+        glLineWidth(10);
+        //glDepthRange(0,0.9999);
+        glBegin(GL_LINES);
+        for (size_t i=0;i<face.size();i++)
+        {
+            vcg::glColor(face[i].C());
+            CoordType Pos[3];
+            Pos[0]=UVTo3DPos(face[i].WT(0).P());
+            Pos[1]=UVTo3DPos(face[i].WT(1).P());
+            Pos[2]=UVTo3DPos(face[i].WT(2).P());
+            for (size_t j=0;j<3;j++)
+            {
+                if (!face[i].IsFaceEdgeS(j))continue;
+                vcg::glColor(vcg::Color4b(0,0,0,255));
+                vcg::glVertex(Pos[j]);
+                vcg::glVertex(Pos[(j+1)%3]);
+            }
+        }
+        glEnd();
+        glPopMatrix();
+        glPopAttrib();
+    }
+
+    void GLDrawUV(int TxtIndex=-1,bool colorPerVert=false)
+    {
+        glPushAttrib(GL_ALL_ATTRIB_BITS);
+        glPushMatrix();
+        vcg::Box2<ScalarType> uv_box=vcg::tri::UV_Utils<CMesh>::PerWedgeUVBox(*this);
+        vcg::glScale(3.0f/uv_box.Diag());
+        //ScalarType UVScale=3.0f/uv_box.Diag();
+        vcg::glTranslate(CoordType(-uv_box.Center().X(),
+                                   -uv_box.Center().Y(),0));
+        glDisable(GL_LIGHTING);
+        glDisable(GL_LIGHT0);
+
+        if (TxtIndex>=0)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glEnable(GL_TEXTURE_2D);
+            glBindTexture(GL_TEXTURE_2D, TxtIndex);
+        }
+        glBegin(GL_TRIANGLES);
+        for (size_t i=0;i<face.size();i++)
+        {
+            if (!colorPerVert)
+                vcg::glColor(face[i].C());
+            CoordType Pos0=UVTo3DPos(face[i].WT(0).P());
+            CoordType Pos1=UVTo3DPos(face[i].WT(1).P());
+            CoordType Pos2=UVTo3DPos(face[i].WT(2).P());
+
+            if (TxtIndex>=0)
+                vcg::glTexCoord(face[i].WT(0).P());
+            if (colorPerVert)
+                vcg::glColor(face[i].V(0)->C());
+
+            vcg::glVertex(Pos0);
+            if (TxtIndex>=0)
+                vcg::glTexCoord(face[i].WT(1).P());
+            if (colorPerVert)
+                vcg::glColor(face[i].V(1)->C());
+
+            vcg::glVertex(Pos1);
+            if (TxtIndex>=0)
+                vcg::glTexCoord(face[i].WT(2).P());
+            if (colorPerVert)
+                vcg::glColor(face[i].V(2)->C());
+
+            vcg::glVertex(Pos2);
+        }
+        glEnd();
+        glPopMatrix();
+        glPopAttrib();
     }
 };
 

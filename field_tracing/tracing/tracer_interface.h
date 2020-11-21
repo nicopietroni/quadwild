@@ -487,7 +487,8 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
                       const typename MeshType::ScalarType Drift,
                       bool onlyneeded,
                       //bool inteleaveremoval,
-                      bool finalremoval)
+                      bool finalremoval,
+                      bool PreRemoveStep=true)
                       //bool interleave_smooth=false)
 {
     typedef typename MeshType::ScalarType ScalarType;
@@ -584,7 +585,7 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     {
         //PTr.UpdatePartitionsFromChoosen(true);
         PTr.SetAllRemovable();
-        PTr.BatchRemoval();
+        PTr.BatchRemoval(PreRemoveStep);
         std::cout<<"**** After Last Removal Step ****"<<std::endl;
         PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex,PatchTypes);
         WriteUnsolvedStats(PatchTypes);

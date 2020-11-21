@@ -147,17 +147,17 @@ int NumSingularities(MeshType &mesh,const std::vector<size_t> &PatchFaces)
 template <class MeshType>
 int PatchGenus(MeshType &mesh,const std::vector<size_t> &PatchFaces)
 {
-   typedef typename MeshType::FaceType FaceType;
-   typedef typename MeshType::VertexType VertexType;
-   typedef typename MeshType::CoordType CoordType;
-//    SelectPatchFacesVert<MeshType>(mesh,PatchFaces);
+    typedef typename MeshType::FaceType FaceType;
+    typedef typename MeshType::VertexType VertexType;
+    typedef typename MeshType::CoordType CoordType;
+    //    SelectPatchFacesVert<MeshType>(mesh,PatchFaces);
 
-//    MeshType subM;
-//    vcg::tri::Append<MeshType,MeshType>::Mesh(subM,mesh,true);
-//    vcg::tri::Clean<MeshType>::RemoveDuplicateVertex(subM);
-//    vcg::tri::Allocator<MeshType>::CompactEveryVector(subM);
+    //    MeshType subM;
+    //    vcg::tri::Append<MeshType,MeshType>::Mesh(subM,mesh,true);
+    //    vcg::tri::Clean<MeshType>::RemoveDuplicateVertex(subM);
+    //    vcg::tri::Allocator<MeshType>::CompactEveryVector(subM);
 
-//    vcg::tri::UnMarkAll(mesh);
+    //    vcg::tri::UnMarkAll(mesh);
 
     //std::unordered_set<std::pair<size_t,size_t> > EdgeSet;
     std::set<std::pair<CoordType,CoordType> > EdgeSet;
@@ -178,19 +178,19 @@ int PatchGenus(MeshType &mesh,const std::vector<size_t> &PatchFaces)
                 VertSet.insert(f->P0(j));
                 NumV++;
             }
-//            size_t IndV0=vcg::tri::Index(mesh,f->V0(j));
-//            size_t IndV1=vcg::tri::Index(mesh,f->V1(j));
-//            EdgeSet.insert(std::pair<size_t,size_t>(std::min(IndV0,IndV1),std::max(IndV0,IndV1)));
+            //            size_t IndV0=vcg::tri::Index(mesh,f->V0(j));
+            //            size_t IndV1=vcg::tri::Index(mesh,f->V1(j));
+            //            EdgeSet.insert(std::pair<size_t,size_t>(std::min(IndV0,IndV1),std::max(IndV0,IndV1)));
             CoordType P0=f->P0(j);
             CoordType P1=f->P1(j);
             EdgeSet.insert(std::pair<CoordType,CoordType>(std::min(P0,P1),std::max(P0,P1)));
         }
     }
-//    for (size_t i=0;i<subM.vert.size();i++)
-//    {
-//        if (subM.vert[i].IsD())continue;
-//        if (subM.vert[i].IsS())NumV++;
-//    }
+    //    for (size_t i=0;i<subM.vert.size();i++)
+    //    {
+    //        if (subM.vert[i].IsD())continue;
+    //        if (subM.vert[i].IsS())NumV++;
+    //    }
 
     NumE=EdgeSet.size();
     return ( NumV + NumF - NumE );
@@ -586,7 +586,7 @@ template <class MeshType>
 typename MeshType::ScalarType FieldLenght(const MeshType &mesh,
                                           const std::vector<size_t> &BorderSeq,
                                           //std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
-                                           std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+                                          std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
     typedef typename MeshType::ScalarType ScalarType;
     ScalarType currL=0;
@@ -767,25 +767,31 @@ void GetUVOutline(MeshType &testM,
 }
 
 template <class MeshType>
-void ArrangeUVPatches(std::vector<MeshType*> &ParamPatches)
+void ArrangeUVPatches(std::vector<MeshType*> &ParamPatches,
+                      typename MeshType::ScalarType borders=0)
 {
     typedef typename MeshType::ScalarType ScalarType;
     std::vector<std::vector<vcg::Point2<ScalarType> > > ParaOutlines;
     ParaOutlines.resize(ParamPatches.size());
 
-    vcg::Box2d box2D;
+    vcg::Box2d box2D,totalBox;
     ScalarType AreaUV=0;
     for (size_t i=0;i<ParamPatches.size();i++)
     {
         GetUVOutline<MeshType>(*ParamPatches[i],ParaOutlines[i],box2D);
         AreaUV+=(box2D.DimX()*box2D.DimY());
+        totalBox.Add(box2D);
     }
-    int EdgeSize=floor(sqrt(AreaUV)+0.5);
+    ScalarType borderMeshSpace=0;
+    if (borders>0)
+        borderMeshSpace=totalBox.Diag()*borders;
+
+    int EdgeSize=floor(1000);//sqrt(AreaUV)+0.5);
     EdgeSize=std::max(EdgeSize,1);
     vcg::Point2i siz(EdgeSize*2,EdgeSize*2);
     vcg::Point2<ScalarType> coveredA;
     std::vector<vcg::Similarity2<ScalarType> > trVec;
-    vcg::PolyPacker<ScalarType>::PackAsObjectOrientedRect(ParaOutlines,siz,trVec,coveredA);
+    vcg::PolyPacker<ScalarType>::PackAsObjectOrientedRect(ParaOutlines,siz,trVec,coveredA,borderMeshSpace);
 
     for (size_t i=0;i<ParamPatches.size();i++)
     {
@@ -1069,46 +1075,32 @@ void LaplacianPos(MeshType &mesh,
 }
 
 template <class MeshType>
-void LaplacianInternalStep(MeshType &mesh,const std::vector<int>  &FacePatches,
-                           typename MeshType::ScalarType Damp=0.5)
+void LaplacianInternalStep(MeshType &mesh,//const std::vector<int>  &FacePatches,
+                           typename MeshType::ScalarType Damp)//,bool FixV)
 {
-    SelectVertOnMeshPatchBorders(mesh,FacePatches);
+    //SelectVertOnMeshPatchBorders(mesh,FacePatches);
     std::vector<typename MeshType::CoordType> AvPos;
     LaplacianPos(mesh,AvPos,false);
     for (size_t i=0;i<mesh.vert.size();i++)
     {
         if (mesh.vert[i].IsS())continue;
+        //if (mesh.vert[i].IsV() && FixV)continue;
         mesh.vert[i].P()=mesh.vert[i].P()*Damp+AvPos[i]*(1-Damp);
     }
 }
 
 template <class MeshType>
 void LaplacianBorderStep(MeshType &mesh,
-                         const std::vector<int>  &FacePatches,
-                         typename MeshType::ScalarType Damp=0.5)
+                         //const std::vector<int>  &FacePatches,
+                         typename MeshType::ScalarType Damp)//,
+                         //bool FixV)
 {
-    //    SelectVertOnMeshPatchBorders(mesh,FacePatches);
-    //    std::vector<typename MeshType::CoordType> AvPos;
-    //    LaplacianPos(mesh,AvPos,true);
-    //    for (size_t i=0;i<mesh.vert.size();i++)
-    //    {
-    //        if (!mesh.vert[i].IsS())continue;
-    //        mesh.vert[i].P()=mesh.vert[i].P()*Damp+AvPos[i]*(1-Damp);
-    //    }
-    //    for (size_t i=0;i<mesh.face.size();i++)
-    //        for (size_t j=0;j<3;j++)
-    //        {
-    //            if (!mesh.face[i].IsFaceEdgeS(j))continue;
-    //            std::cout<<i<<","<<j<<std::endl;
-    //        }
-    //    vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(mesh);
-    //    return;
 
     //save previous selection
 
     typedef typename MeshType::CoordType CoordType;
     typedef typename MeshType::ScalarType ScalarType;
-    SelectMeshPatchBorders(mesh,FacePatches);
+    //SelectMeshPatchBorders(mesh,FacePatches);
 
     std::vector<size_t> NumDiv(mesh.vert.size(),0);
     std::vector<typename MeshType::CoordType> AvPos(mesh.vert.size(),
@@ -1136,9 +1128,11 @@ void LaplacianBorderStep(MeshType &mesh,
         //no contributes
         if (NumDiv[i]==0)continue;
         CoordType TargetPos=AvPos[i]/(ScalarType)NumDiv[i];
+        if (mesh.vert[i].IsB())continue;
+        //if (mesh.vert[i].IsV()&&FixV)continue;
         mesh.vert[i].P()=mesh.vert[i].P()*Damp+TargetPos*(1-Damp);
     }
-    vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(mesh);
+    //vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(mesh);
 }
 
 template <class MeshType>
@@ -1296,6 +1290,97 @@ void RestoreEdgeSel(MeshType &mesh,
         }
 }
 
+//template <class MeshType>
+//void SmoothMeshPatches(MeshType &mesh,
+//                       const std::vector<int>  &FacePatches,
+//                       size_t Steps=3,
+//                       typename MeshType::ScalarType Damp=0.5,
+//                       typename MeshType::ScalarType MinQ=0.2)
+//{
+//    typedef typename MeshType::CoordType CoordType;
+//    typedef typename MeshType::FaceType FaceType;
+//    typedef typename MeshType::ScalarType ScalarType;
+
+//    std::vector<std::vector<bool> > EdgeSel;
+//    SaveEdgeSel(mesh,EdgeSel);
+
+//    MeshType TargetMesh;
+//    vcg::tri::Append<MeshType,MeshType>::Mesh(TargetMesh,mesh);
+//    TargetMesh.UpdateAttributes();
+//    vcg::GridStaticPtr<FaceType,ScalarType> Gr;
+//    Gr.Set(TargetMesh.face.begin(),TargetMesh.face.end());
+
+//    vcg::tri::UpdateFlags<MeshType>::VertexClearV(mesh);
+//    for (size_t s=0;s<Steps;s++)
+//    {
+//        //save old position
+//        std::vector<CoordType> OldPos;
+//        if (MinQ>0)
+//            for (size_t i=0;i<mesh.vert.size();i++)
+//                OldPos.push_back(mesh.vert[i].P());
+
+//        //save old normals
+//        vcg::tri::UpdateNormal<MeshType>::PerFaceNormalized(mesh);
+//        std::vector<CoordType> OldNorm;
+//        if (MinQ>0)
+//            for (size_t i=0;i<mesh.face.size();i++)
+//                OldNorm.push_back(mesh.face[i].N());
+
+//        //PERFORM SMOOTHING
+//        LaplacianBorderStep(mesh,FacePatches,Damp,true);
+//        ReprojectOn(mesh,TargetMesh,Gr);
+//        LaplacianInternalStep(mesh,FacePatches,Damp,true);
+//        ReprojectOn(mesh,TargetMesh,Gr);
+//        if (MinQ<=0)continue;
+
+//        //save new position
+//        std::vector<CoordType> NewPos;
+//        for (size_t i=0;i<mesh.vert.size();i++)
+//            NewPos.push_back(mesh.vert[i].P());
+
+//        //restore old position
+//        for (size_t i=0;i<mesh.vert.size();i++)
+//            mesh.vert[i].P()=OldPos[i];
+
+//        for (size_t i=0;i<mesh.vert.size();i++)
+//        {
+//            //if border not change
+//            if (mesh.vert[i].IsB())continue;
+//            //try new position
+//            mesh.vert[i].P()=NewPos[i];
+//            std::vector<FaceType*> FaceVec;
+//            std::vector<int> Indexes;
+//            vcg::face::VFStarVF(&mesh.vert[i],FaceVec,Indexes);
+
+//            bool IsOk=true;
+//            for (size_t i=0;i<FaceVec.size();i++)
+//            {
+//                size_t IndexF=vcg::tri::Index(mesh,FaceVec[i]);
+//                CoordType P0=FaceVec[i]->P(0);
+//                CoordType P1=FaceVec[i]->P(1);
+//                CoordType P2=FaceVec[i]->P(2);
+//                CoordType NewNormF=vcg::Normal(P0,P1,P2);
+//                NewNormF.Normalize();
+//                CoordType OldNormF=OldNorm[IndexF];
+//                if ((NewNormF*OldNormF)<0){IsOk=false;break;}
+//                ScalarType QFace=vcg::QualityRadii(P0,P1,P2);
+//                if (QFace<MinQ){IsOk=false;break;}
+//            }
+//            //restore if not ok
+//            if (!IsOk)
+//            {
+//                mesh.vert[i].SetV();
+//                mesh.vert[i].P()=OldPos[i];
+//            }
+//        }
+//    }
+//    vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
+//    //    if (MinQ>0)
+//    //        SolveFolds(mesh,MinQ);
+
+//    RestoreEdgeSel(mesh,EdgeSel);
+//}
+
 template <class MeshType>
 void SmoothMeshPatches(MeshType &mesh,
                        const std::vector<int>  &FacePatches,
@@ -1310,70 +1395,82 @@ void SmoothMeshPatches(MeshType &mesh,
     std::vector<std::vector<bool> > EdgeSel;
     SaveEdgeSel(mesh,EdgeSel);
 
+    //select borders
+    SelectMeshPatchBorders(mesh,FacePatches);
+    SelectVertOnMeshPatchBorders(mesh,FacePatches);
+
+    //init reprojection grid
     MeshType TargetMesh;
     vcg::tri::Append<MeshType,MeshType>::Mesh(TargetMesh,mesh);
     TargetMesh.UpdateAttributes();
     vcg::GridStaticPtr<FaceType,ScalarType> Gr;
     Gr.Set(TargetMesh.face.begin(),TargetMesh.face.end());
 
+    //then for each smooth step
     for (size_t s=0;s<Steps;s++)
     {
-        //save old position
+        //save old position in case quality check is needed
         std::vector<CoordType> OldPos;
         if (MinQ>0)
+        {
             for (size_t i=0;i<mesh.vert.size();i++)
                 OldPos.push_back(mesh.vert[i].P());
+        }
 
         //save old normals
         vcg::tri::UpdateNormal<MeshType>::PerFaceNormalized(mesh);
         std::vector<CoordType> OldNorm;
         if (MinQ>0)
+        {
             for (size_t i=0;i<mesh.face.size();i++)
                 OldNorm.push_back(mesh.face[i].N());
+        }
 
         //PERFORM SMOOTHING
-        LaplacianBorderStep(mesh,FacePatches,Damp);
+        LaplacianBorderStep(mesh,Damp);//,true);
         ReprojectOn(mesh,TargetMesh,Gr);
-        LaplacianInternalStep(mesh,FacePatches,Damp);
+        LaplacianInternalStep(mesh,Damp);//,true);
         ReprojectOn(mesh,TargetMesh,Gr);
+
+        //no quality check we are fine!
         if (MinQ<=0)continue;
 
-        //save new position
-        std::vector<CoordType> NewPos;
-        for (size_t i=0;i<mesh.vert.size();i++)
-            NewPos.push_back(mesh.vert[i].P());
-
-        //restore old position
-        for (size_t i=0;i<mesh.vert.size();i++)
-            mesh.vert[i].P()=OldPos[i];
-
-        for (size_t i=0;i<mesh.vert.size();i++)
+        //check each face
+        for (size_t i=0;i<mesh.face.size();i++)
         {
-            //if border not change
-            if (mesh.vert[i].IsB())continue;
-            //try new position
-            mesh.vert[i].P()=NewPos[i];
-            std::vector<FaceType*> FaceVec;
-            std::vector<int> Indexes;
-            vcg::face::VFStarVF(&mesh.vert[i],FaceVec,Indexes);
-
-            bool IsOk=true;
-            for (size_t i=0;i<FaceVec.size();i++)
+            //find the one that has 2 boder edges
+            int indexE=-1;
+            for (size_t j=0;j<3;j++)
             {
-                size_t IndexF=vcg::tri::Index(mesh,FaceVec[i]);
-                CoordType P0=FaceVec[i]->P(0);
-                CoordType P1=FaceVec[i]->P(1);
-                CoordType P2=FaceVec[i]->P(2);
-                CoordType NewNormF=vcg::Normal(P0,P1,P2);
-                NewNormF.Normalize();
-                CoordType OldNormF=OldNorm[IndexF];
-                if ((NewNormF*OldNormF)<0){IsOk=false;break;}
-                ScalarType QFace=vcg::QualityRadii(P0,P1,P2);
-                if (QFace<MinQ){IsOk=false;break;}
+                if (mesh.face[i].IsFaceEdgeS(j) &&
+                        mesh.face[i].IsFaceEdgeS((j+1)%3))
+                    indexE=j;
             }
+            if (indexE==-1)continue;
+            size_t IndexV=vcg::tri::Index(mesh,mesh.face[i].V(indexE));
+
+            //if border not change
+            if (mesh.vert[IndexV].IsB())continue;
+
+            //check quality of the face
+            bool IsOk=true;
+            CoordType P0=mesh.face[i].P(0);
+            CoordType P1=mesh.face[i].P(1);
+            CoordType P2=mesh.face[i].P(2);
+            CoordType NewNormF=vcg::Normal(P0,P1,P2);
+            NewNormF.Normalize();
+            CoordType OldNormF=OldNorm[i];
+            if ((NewNormF*OldNormF)<0)
+                IsOk=false;
+            ScalarType QFace=vcg::QualityRadii(P0,P1,P2);
+            if (QFace<MinQ)
+                IsOk=false;
+
             //restore if not ok
             if (!IsOk)
-                mesh.vert[i].P()=OldPos[i];
+            {
+                mesh.vert[IndexV].P()=OldPos[IndexV];
+            }
         }
     }
     vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
@@ -1433,7 +1530,7 @@ void PatchSideLenght(MeshType &mesh,
                      std::vector<typename MeshType::ScalarType>  &CurvedL,
                      std::vector<typename MeshType::ScalarType>  &EuclL,
                      //std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
-                    std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+                     std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
     typedef typename MeshType::CoordType CoordType;
 
@@ -1506,7 +1603,7 @@ void PatchesLenghtRatios(MeshType &mesh,
                          std::vector<typename MeshType::ScalarType> &Variance,
                          std::vector<typename MeshType::ScalarType> &LenghtDist,
                          //std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap)
-                           std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
+                         std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType> &EdgeMap)
 {
     typedef typename MeshType::ScalarType ScalarType;
     std::vector<std::vector<ScalarType> > SideL,EuclL;
@@ -1610,7 +1707,7 @@ void ParametrizePatches(MeshType &mesh,
                         bool FixBorders,
                         bool ScaleEdges,
                         bool Arrange=true,
-                        bool Save=false)
+                        typename MeshType::ScalarType borderArrange=0)
 {
     std::vector<MeshType*> ParamPatches;
     for (size_t i=0;i<PatchFaces.size();i++)
@@ -1623,7 +1720,7 @@ void ParametrizePatches(MeshType &mesh,
                                    FixBorders,ScaleEdges);
     }
     if (Arrange)
-        ArrangeUVPatches(ParamPatches);
+        ArrangeUVPatches(ParamPatches,borderArrange);
 
     splittedUV.Clear();
     for (size_t i=0;i<PatchFaces.size();i++)
@@ -1631,11 +1728,11 @@ void ParametrizePatches(MeshType &mesh,
         vcg::tri::Append<MeshType,MeshType>::Mesh(splittedUV,*ParamPatches[i]);
         delete(ParamPatches[i]);
     }
-    if (Save)
-    {
-        SetUVtoPos(splittedUV);
-        vcg::tri::io::ExporterPLY<MeshType>::Save(splittedUV,"parametrize.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
-    }
+//    if (Save)
+//    {
+//        SetUVtoPos(splittedUV);
+//        vcg::tri::io::ExporterPLY<MeshType>::Save(splittedUV,"parametrize.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+//    }
 }
 
 
@@ -1729,6 +1826,7 @@ size_t RemainingEmitters(MeshType &mesh,
 template <class MeshType>
 void GetBorderSequenceFrom(MeshType &mesh,
                            const vcg::face::Pos<typename MeshType::FaceType> &StartPos,
+                           std::vector<vcg::face::Pos<typename MeshType::FaceType> > &SeqPos,
                            std::vector<size_t> &BorderSequences)
 {
     typedef typename MeshType::FaceType FaceType;
@@ -1736,6 +1834,7 @@ void GetBorderSequenceFrom(MeshType &mesh,
 
     BorderSequences.clear();
     PosType CurrPos=StartPos;
+    SeqPos.clear();
     //CurrPos.F()->SetS();
     //search if there is a selected vertex
     //std::cout<<"a"<<std::endl;
@@ -1759,13 +1858,17 @@ void GetBorderSequenceFrom(MeshType &mesh,
     CurrPos.FlipV();
     assert(CurrPos.IsBorder());
     PosType Pos0=CurrPos;
+    SeqPos.push_back(CurrPos);
     do
     {
         //CurrPos.F()->SetS();
         size_t IndexV=vcg::tri::Index(mesh,CurrPos.V());
         BorderSequences.push_back(IndexV);
         if (!CurrPos.V()->IsS())
+        {
             CurrPos.NextB();
+            SeqPos.push_back(CurrPos);
+        }
     }while((!CurrPos.V()->IsS())&&(CurrPos!=Pos0));
     //    std::cout<<"c"<<std::endl;
     if (CurrPos.V()->IsS())
@@ -1775,81 +1878,169 @@ void GetBorderSequenceFrom(MeshType &mesh,
     }
 }
 
+////get individual sequences of sharp features
+//template <class MeshType>
+//void GetBorderSequences(MeshType &mesh,const std::vector<size_t> &Corners,
+//                        std::vector<std::vector<size_t> > &BorderSequences)
+//{
+//    typedef typename MeshType::FaceType FaceType;
+//    typedef typename MeshType::CoordType CoordType;
+//    typedef typename vcg::face::Pos<FaceType> PosType;
+
+//    vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
+//    SelectVertices(mesh,Corners);
+//    //    vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"test.ply",vcg::tri::io::Mask::IOM_FLAGS);
+//    //    exit(0);
+//    //std::unordered_set<std::pair<size_t,size_t> > VisitedEdges;
+//    std::set<std::pair<size_t,size_t> > VisitedEdges;
+//    bool found_start=false;
+//    //size_t num=0;
+//    do{
+//        found_start=false;
+//        PosType StartPos;
+//        for (size_t i=0;i<mesh.face.size();i++)
+//        {
+//            //find first border edge which has not been already processed
+//            for (size_t j=0;j<3;j++)
+//            {
+//                if (!vcg::face::IsBorder(mesh.face[i],j))continue;
+//                size_t IndexV0=vcg::tri::Index(mesh,mesh.face[i].V0(j));
+//                size_t IndexV1=vcg::tri::Index(mesh,mesh.face[i].V1(j));
+//                std::pair<size_t,size_t> Key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
+//                if (VisitedEdges.count(Key)>0)continue;
+//                found_start=true;
+//                StartPos=PosType(&mesh.face[i],j);
+//                //std::cout<<"found "<<IndexV0<<","<<IndexV1<<std::endl;
+//                break;
+//            }
+//            if (found_start)break;
+//        }
+
+//        if (found_start)
+//        {
+//            std::vector<size_t> CurrBorderSequence;
+//            //std::cout<<"a"<<std::endl;
+//            assert(StartPos.IsBorder());
+//            GetBorderSequenceFrom(mesh,StartPos,CurrBorderSequence);
+//            //            std::cout<<"size "<<CurrBorderSequence.size()<<std::endl;
+//            //            vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"test.ply",vcg::tri::io::Mask::IOM_FLAGS);
+
+//            //std::cout<<"b"<<std::endl;
+//            //            bool isLoop=(CurrBorderSequence[0]==CurrBorderSequence.back());
+//            //            assert(CurrBorderSequence.size()>=2);
+//            //            size_t Limit=CurrBorderSequence.size();
+//            //            size_t Size=CurrBorderSequence.size();
+//            //            if (!isLoop)
+//            //                Limit--;
+//            for (size_t j=0;j<CurrBorderSequence.size()-1;j++)
+//            {
+//                size_t IndexV0=CurrBorderSequence[j];
+//                size_t IndexV1=CurrBorderSequence[(j+1)%CurrBorderSequence.size()];
+//                std::pair<size_t,size_t> Key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
+//                VisitedEdges.insert(Key);
+//            }
+//            BorderSequences.push_back(CurrBorderSequence);
+//            //            for (size_t i=0;i<CurrBorderSequence.size();i++)
+//            //                std::cout<<CurrBorderSequence[i]<<",";
+//            //            std::cout<<std::endl;
+//            //            exit(0);
+//        }
+//        //        num++;
+//        //        if ((num%100)==0)
+//        //        {
+//        //            std::cout<<"Step "<<num<<std::endl;
+//        //            std::cout<<"Size "<<VisitedEdges.size()<<std::endl;
+//        //        }
+//    }while (found_start);
+
+//    //then sort them globally
+//    for (size_t i=0;i<BorderSequences.size();i++)
+//    {
+//        bool IsLoop=(BorderSequences[i][0]==BorderSequences[i].back());
+//        if (IsLoop)
+//        {
+//            //erase last repeated element
+//            BorderSequences[i].pop_back();
+//            //get the smallest
+//            size_t smallestI=0;
+//            CoordType smallestPos=mesh.vert[BorderSequences[i][0]].P();
+//            for (size_t j=1;j<BorderSequences[i].size();j++)
+//            {
+//                CoordType currPos=mesh.vert[BorderSequences[i][j]].P();
+//                if (currPos>smallestPos)continue;
+//                smallestPos=currPos;
+//                smallestI=j;
+//            }
+
+//            //then re-order
+//            std::vector<size_t> NewBorderSeq;
+//            size_t sizeSeq=BorderSequences[i].size();
+//            for (size_t j=0;j<sizeSeq;j++)
+//            {
+//                size_t IndexV=(j+smallestI)%sizeSeq;
+//                NewBorderSeq.push_back(BorderSequences[i][IndexV]);
+//            }
+//            BorderSequences[i]=NewBorderSeq;
+//            //then reverse if needed
+//            CoordType Pos0=mesh.vert[BorderSequences[i][1]].P();
+//            CoordType Pos1=mesh.vert[BorderSequences[i].back()].P();
+//            if (Pos1<Pos0)
+//                std::reverse(BorderSequences[i].begin()+1,BorderSequences[i].end());
+//        }else
+//        {
+//            //then reverse if needed
+//            CoordType Pos0=mesh.vert[BorderSequences[i][0]].P();
+//            CoordType Pos1=mesh.vert[BorderSequences[i].back()].P();
+//            if (Pos1<Pos0)
+//                std::reverse(BorderSequences[i].begin(),BorderSequences[i].end());
+//        }
+//    }
+//}
+
 //get individual sequences of sharp features
 template <class MeshType>
 void GetBorderSequences(MeshType &mesh,const std::vector<size_t> &Corners,
-                        std::vector<std::vector<size_t> > &BorderSequences)
+                        std::vector<std::vector<size_t> > &BorderSequences,
+                        bool DebugMsg=false)
 {
     typedef typename MeshType::FaceType FaceType;
     typedef typename MeshType::CoordType CoordType;
     typedef typename vcg::face::Pos<FaceType> PosType;
 
+    if (DebugMsg)
+        std::cout<<"Deriving Sequences"<<std::endl;
     vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
     SelectVertices(mesh,Corners);
-    //    vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"test.ply",vcg::tri::io::Mask::IOM_FLAGS);
-    //    exit(0);
-    //std::unordered_set<std::pair<size_t,size_t> > VisitedEdges;
-    std::set<std::pair<size_t,size_t> > VisitedEdges;
-    bool found_start=false;
-    //size_t num=0;
-    do{
-        found_start=false;
-        PosType StartPos;
-        for (size_t i=0;i<mesh.face.size();i++)
-        {
-            //find first border edge which has not been already processed
-            for (size_t j=0;j<3;j++)
-            {
-                if (!vcg::face::IsBorder(mesh.face[i],j))continue;
-                size_t IndexV0=vcg::tri::Index(mesh,mesh.face[i].V0(j));
-                size_t IndexV1=vcg::tri::Index(mesh,mesh.face[i].V1(j));
-                std::pair<size_t,size_t> Key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
-                if (VisitedEdges.count(Key)>0)continue;
-                found_start=true;
-                StartPos=PosType(&mesh.face[i],j);
-                //std::cout<<"found "<<IndexV0<<","<<IndexV1<<std::endl;
-                break;
-            }
-            if (found_start)break;
-        }
 
-        if (found_start)
+    vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(mesh);
+    bool found_start=false;
+
+    for (size_t i=0;i<mesh.face.size();i++)
+    {
+        //find first border edge which has not been already processed
+        for (size_t j=0;j<3;j++)
         {
+            if (!vcg::face::IsBorder(mesh.face[i],j))continue;
+            if (mesh.face[i].IsFaceEdgeS(j))continue;
+            found_start=true;
+            PosType StartPos=PosType(&mesh.face[i],j);
+
             std::vector<size_t> CurrBorderSequence;
             //std::cout<<"a"<<std::endl;
             assert(StartPos.IsBorder());
-            GetBorderSequenceFrom(mesh,StartPos,CurrBorderSequence);
-            //            std::cout<<"size "<<CurrBorderSequence.size()<<std::endl;
-            //            vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"test.ply",vcg::tri::io::Mask::IOM_FLAGS);
+            std::vector<PosType> PosBorderSeq;
+            GetBorderSequenceFrom(mesh,StartPos,PosBorderSeq,CurrBorderSequence);
 
-            //std::cout<<"b"<<std::endl;
-            //            bool isLoop=(CurrBorderSequence[0]==CurrBorderSequence.back());
-            //            assert(CurrBorderSequence.size()>=2);
-            //            size_t Limit=CurrBorderSequence.size();
-            //            size_t Size=CurrBorderSequence.size();
-            //            if (!isLoop)
-            //                Limit--;
-            for (size_t j=0;j<CurrBorderSequence.size()-1;j++)
-            {
-                size_t IndexV0=CurrBorderSequence[j];
-                size_t IndexV1=CurrBorderSequence[(j+1)%CurrBorderSequence.size()];
-                std::pair<size_t,size_t> Key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
-                VisitedEdges.insert(Key);
-            }
+            for (size_t j=0;j<PosBorderSeq.size()-1;j++)
+                PosBorderSeq[j].F()->SetFaceEdgeS(PosBorderSeq[j].E());
+
             BorderSequences.push_back(CurrBorderSequence);
-            //            for (size_t i=0;i<CurrBorderSequence.size();i++)
-            //                std::cout<<CurrBorderSequence[i]<<",";
-            //            std::cout<<std::endl;
-            //            exit(0);
-        }
-        //        num++;
-        //        if ((num%100)==0)
-        //        {
-        //            std::cout<<"Step "<<num<<std::endl;
-        //            std::cout<<"Size "<<VisitedEdges.size()<<std::endl;
-        //        }
-    }while (found_start);
 
+        }
+    }
+
+    if (DebugMsg)
+        std::cout<<"Making Globally Consistent "<<std::endl;
     //then sort them globally
     for (size_t i=0;i<BorderSequences.size();i++)
     {
@@ -1892,7 +2083,10 @@ void GetBorderSequences(MeshType &mesh,const std::vector<size_t> &Corners,
                 std::reverse(BorderSequences[i].begin(),BorderSequences[i].end());
         }
     }
+    if (DebugMsg)
+        std::cout<<"Done with Initializing Border Sequences"<<std::endl;
 }
+
 
 template <class MeshType>
 void GetPatchInfo(MeshType &mesh,
@@ -1924,13 +2118,13 @@ void GetPatchInfo(MeshType &mesh,
         int0+=t1-t0;
 
         PInfo[i].Genus=PatchGenus(mesh,PatchFaces[i]);
-//        size_t Test=PatchGenus1(mesh,PatchFaces[i]);
-//        if (PInfo[i].Genus!=Test)
-//        {
-//            std::cout<<"Genus "<<PInfo[i].Genus<<std::endl;
-//            std::cout<<"Test "<<Test<<std::endl;
-//            assert(0);
-//        }
+        //        size_t Test=PatchGenus1(mesh,PatchFaces[i]);
+        //        if (PInfo[i].Genus!=Test)
+        //        {
+        //            std::cout<<"Genus "<<PInfo[i].Genus<<std::endl;
+        //            std::cout<<"Test "<<Test<<std::endl;
+        //            assert(0);
+        //        }
         size_t t2=clock();
         int1=t2-t1;
 

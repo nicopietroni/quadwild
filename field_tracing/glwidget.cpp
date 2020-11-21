@@ -1071,7 +1071,7 @@ void GLWidget::paintGL ()
         if (drawPaths)
             GLGraph.GLDrawPaths(ChosenCandidates,ChosenIsLoop,mesh.bbox.Diag()*0.01,drawPathNodes);
 
-        //GLGraph.GLDrawNodes(TraceableFlatNode,mesh.bbox.Diag()*0.002);
+        GLGraph.GLDrawNodes(TraceableFlatNode,mesh.bbox.Diag()*0.002);
 
         //GLGraph.GLDrawSingNodes(mesh.bbox.Diag()*0.002);
     }

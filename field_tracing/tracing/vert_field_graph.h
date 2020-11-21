@@ -984,8 +984,25 @@ public:
 //        RemoveSingularities();
 //    }
 
+    void Reset()
+    {
+        SetAllActive();
+        NodeDist.clear();
+        NodeFather.clear();
+        NodeJumps.clear();
+        NodeTwinJumps.clear();
+        SingNodes.clear();
+        IsSingVert.clear();
+        TMark=0;
+        RealBorderVert.clear();
+        EdgeBorderDir.clear();
+        Nodes.clear();
+        VertPos.clear();
+    }
+
     void Init(bool _DebugMsg=false)//std::vector<CoordType> &_Sing)
     {
+
         DebugMsg=_DebugMsg;
         //SingPos=std::set<CoordType>(_Sing.begin(),_Sing.end());
         //check if everything is ok

@@ -1411,6 +1411,7 @@ public:
         }
     }
 private:
+
     //THIS INITIALIZE THE EMITTERS FOR EACH VERTEX
     void InitEmitters()
     {
@@ -4670,20 +4671,27 @@ public:
         return (Size1-Size0);
     }
 
-    size_t BatchRemoval()//bool do_smooth=true)
+    size_t BatchRemoval(bool PreRemoveStep=true)//bool do_smooth=true)
     {
         //        if (do_smooth)
         //        {
         //            UpdatePartitionsFromChoosen(false);
         //            SmoothPatches(2);
         //        }
-        RemovePaths();//false);
+        if (PreRemoveStep)
+            RemovePaths();//false);
 
         if (split_on_removal)
             SplitIntoSubPaths();
 
         size_t Size0=ChoosenPaths.size();
         RemovePaths();
+
+        if (!PreRemoveStep)
+        {
+            SplitIntoSubPaths();
+            RemovePaths();// to be checked
+        }
 
         if (DebugMsg)
             WriteInfo();
@@ -5216,7 +5224,7 @@ public:
     void ComputePatchesUV()
     {
         MeshType splittedUV;
-        ParametrizePatches(Mesh(),splittedUV,Partitions,PartitionCorners,Arap,false,true,true,true);
+        ParametrizePatches(Mesh(),splittedUV,Partitions,PartitionCorners,Arap,false,true,true);
     }
 
     void SubdivideIrrPatches()
@@ -5255,6 +5263,24 @@ public:
 
         //        vcg::tri::io::ExporterPLY<MeshType>::Save(testMesh,"test_corners.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
 
+    }
+
+    void Reset()
+    {
+        Partitions.clear();
+        FacePartitions.clear();
+        PartitionType.clear();
+        PartitionCorners.clear();
+        PatchInfos.clear();
+        VertType.clear();
+        NodeEmitterTypes.clear();
+        NodeReceiverTypes.clear();
+        CurrNodeDist.clear();
+        Traceable.clear();
+        Candidates.clear();
+        ChoosenPaths.clear();
+        VerticesNeeds.clear();
+        EdgeL.clear();
     }
 
     PatchTracer(VertexFieldGraph<MeshType> &_VFGraph):VFGraph(_VFGraph)
