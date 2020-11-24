@@ -11,7 +11,8 @@
 #define MAX_TWIN_DIKSTRA 1
 #define MIN_ADMITTIBLE 3
 #define MAX_ADMITTIBLE 6
-#define BORDER_SAMPLE 8
+#define MAX_BORDER_SAMPLE 8
+#define MIN_BORDER_SAMPLE 1
 
 //namespace std {
 
@@ -638,6 +639,8 @@ void FindPartitionsCorners(const VertexFieldGraph<MeshType> &VFGraph,
     //    std::map<std::pair<size_t,size_t>,ScalarType> PartitionVertAngle;
     //    FindTraceAngles(VFGraph,Partitions,PartitionVertAngle);
 
+    vcg::tri::UpdateQuality<MeshType>::FaceConstant(VFGraph.Mesh(),-1);
+
     //first initialize the quality of each face with the partition
     for (size_t i=0;i<Partitions.size();i++)
     {
@@ -982,16 +985,19 @@ void ColorMeshByExpValence(MeshType &mesh,
     //vcg::tri::UpdateSelection<MeshType>::FaceClear(Mesh());
     for (size_t i=0;i<Partitions.size();i++)
     {
-        int ExpVal=ExpectedValence(mesh,Partitions[i]);
+        bool OnCorner=false;
+        int ExpVal=ExpectedValence(mesh,Partitions[i],PartitionCorners[i],OnCorner);
         vcg::Color4b CurrCol;
         if (ExpVal==-1)
             CurrCol=vcg::Color4b::Gray;
         else
         {
-            if (PartitionCorners[i].size()==ExpVal)
-                CurrCol=vcg::Color4b::Green;
-            if (PartitionCorners[i].size()!=ExpVal)
+//            if (PartitionCorners[i].size()==ExpVal)
+//                CurrCol=vcg::Color4b::Green;
+            if ((PartitionCorners[i].size()!=ExpVal)&&(!OnCorner))
                 CurrCol=vcg::Color4b::Red;
+            else
+                CurrCol=vcg::Color4b::Green;
         }
         for (size_t j=0;j<Partitions[i].size();j++)
             mesh.face[Partitions[i][j]].C()=CurrCol;
@@ -1197,6 +1203,9 @@ private:
 
     //DATA STRUCTURES FOR THE PATH AND THE NEEDS FOR EACH VERTEX
     std::vector<CandidateTrace> Candidates;
+
+    std::vector<CandidateTrace> DiscardedCandidates;
+
 public:
     ScalarType MaxNarrowWeight;
     std::vector<CandidateTrace> ChoosenPaths;
@@ -1473,6 +1482,22 @@ private:
         SampleLoopEmitters();
     }
 
+    //remove the connection with singularities that are not concave
+    //or narrow and we should not trace from them
+    void InvalidateNonConcaveSing()
+    {
+        for (size_t i=0;i<VertType.size();i++)
+        {
+            if (VertType[i]!=TVFlat)continue;
+            if (!VFGraph.IsSingVert[i])continue;
+            //get all nodes associated
+            std::vector<size_t> Nodes;
+            VertexFieldGraph<MeshType>::IndexNodes(i,Nodes);
+            for (size_t i=0;i<Nodes.size();i++)
+                VFGraph.RemoveConnections(Nodes[i]);
+        }
+    }
+
     //SET AS NON VALID ALL THE TANGENT NODES ON THE SIDE AND THE OTHER THAT CANNOT BE
     //USED FOR TRACING
     void InvalidateTangentNodes()
@@ -1535,9 +1560,15 @@ private:
                                                                  Candidates[i].IsLoop,Drift);
             //std::cout<<"SIZE "<<Candidates[i].PathNodes.size()<<std::endl;
             bool SelfInt=VertexFieldQuery<MeshType>::SelfIntersect(VFGraph,Candidates[i].PathNodes,Candidates[i].IsLoop);
-            if (SelfInt){SelfIntN++;continue;}
+            if (SelfInt){
+                SelfIntN++;
+                DiscardedCandidates.push_back(Candidates[i]);
+                continue;
+            }
             if (expanded)
                 ExpandedCandidates.push_back(Candidates[i]);
+            else
+                DiscardedCandidates.push_back(Candidates[i]);
         }
         if (DebugMsg)
             std::cout<<"Self Intersections "<<SelfIntN<<std::endl;
@@ -1596,6 +1627,8 @@ private:
         InitEmitters();
 
         InvalidateTangentNodes();
+
+        InvalidateNonConcaveSing();
 
         InitVerticesNeeds();
 
@@ -1692,16 +1725,27 @@ private:
             size_t IndexV1=VertexFieldGraph<MeshType>::NodeVertI(IndexN1);
 
             //if it has already a trace then go on
-            if ((UseVertNeeds)&&((VerticesNeeds[IndexV0]==0)&&(VerticesNeeds[IndexV1]==0)))continue;
+            if ((UseVertNeeds)&&((VerticesNeeds[IndexV0]==0)&&(VerticesNeeds[IndexV1]==0)))
+            {
+                DiscardedCandidates.push_back(Candidates[i]);
+                continue;
+            }
 
 
             //bool collide=CollideWithChoosen(CurrTrace,IsCurrLoop,StartConflPath);
             bool collide = CollideWithCandidateSet(VFGraph,Candidates[i],ChoosenPaths);
-            if (collide)continue;
+            if (collide)
+            {
+                DiscardedCandidates.push_back(Candidates[i]);
+                continue;
+            }
 
             if ((UsePartitionNeeds)&&
                     (!SplitSomeNonOKPartition(VFGraph,Candidates[i],Partitions,FacePartitions,PartitionType)))
+            {
+                DiscardedCandidates.push_back(Candidates[i]);
                 continue;
+            }
 
             //ChoosenPaths.push_back(Candidates[i]);
             //assert(ChoosenPaths.back().PathNodes.size()>=2);
@@ -3298,6 +3342,8 @@ private:
         }
         //then retrieve partitions
         RetrievePatchesFromSelEdges(Mesh(),IdxFaces,Partitions);
+
+        DerivePerFacePartition(Mesh(),Partitions,FacePartitions);
         //find corners
         FindPartitionsCorners<MeshType>(VFGraph,VertType,ChoosenPaths,Partitions,PartitionCorners);
         //find type
@@ -3315,6 +3361,7 @@ private:
         if (PathHasTJunction(IndexPath))return false;
         //CHECK ENDPOINTS!
         assert(IndexPath<ChoosenPaths.size());
+
 
         //get the old configuration
         std::vector<vcg::face::Pos<FaceType> > FacesPath;
@@ -3367,6 +3414,7 @@ private:
                                        PatchInfos0,PatchInfos1,MinVal,
                                        MaxVal,CClarkability,avgEdge,
                                        match_valence,debubg_msg);
+
         int t6=clock();
         if (!CanRemove)
         {
@@ -3375,6 +3423,8 @@ private:
             Mesh().SelectPos(FacesPath,true);
             return false;
         }
+
+//        //END DEBUG CODE, NOT USEFUL
 
 //        std::cout<<"T0: "<<t1-t0<<std::endl;
 //        std::cout<<"T1: "<<t2-t1<<std::endl;
@@ -3731,7 +3781,8 @@ public:
         }
     }
 
-    void InitTraceableBorders(size_t suBSteps=BORDER_SAMPLE)
+    void InitTraceableBorders()//size_t minsuBSteps=MIN_BORDER_SAMPLE,
+                              //size_t maxsuBSteps=MAX_BORDER_SAMPLE)
     {
         std::vector<size_t> ConcaveV;
         GetVertexType(TVConcave,ConcaveV);
@@ -3759,17 +3810,52 @@ public:
             Traceable[IndexN]=false;
         }
 
+        //for each non OK patch set the useful vertices
+        std::vector<bool> UsefulV(Mesh().vert.size(),false);
+        for (size_t i=0;i<Partitions.size();i++)
+        {
+            if (PartitionType[i]==IsOK)continue;
+            for (size_t j=0;j<Partitions[i].size();j++)
+            {
+                FaceType *f=&Mesh().face[Partitions[i][j]];
+                for (size_t k=0;k<3;k++)
+                {
+                    size_t IndexV=vcg::tri::Index(Mesh(),f->V(k));
+                    UsefulV[IndexV]=true;
+                }
+            }
+        }
+
+        ScalarType totLen=0;
+        for (size_t i=0;i<BorderSequences.size();i++)
+        {
+            ScalarType angle,len;
+            GetSequencesLenghtAngle(Mesh(),BorderSequences[i],angle,len);
+            totLen+=len;
+        }
+        ScalarType lenInt=totLen/1000;
         //std::cout<<"There are "<<BorderSequences.size()<<" border sequences"<<std::endl;
         for (size_t i=0;i<BorderSequences.size();i++)
         {
-            //std::cout<<"Size "<<BorderSequences[i].size()<<std::endl;
-            size_t Step=BorderSequences[i].size()/suBSteps;
+            ScalarType angle,len;
+            GetSequencesLenghtAngle(Mesh(),BorderSequences[i],angle,len);
+//            std::cout<<"Size "<<BorderSequences[i].size()<<std::endl;
+            ScalarType angleInt=((1.75*M_PI)/(MAX_BORDER_SAMPLE+1));
+            //std::cout<<"Angle "<<angle<<std::endl;
+            size_t DivisionAngle=floor(0.5+angle/angleInt);
+            //ScalarType lenInt=Mesh().bbox.Diag()*0.1;//(Mesh().bbox.Diag()*0.25)/MAX_BORDER_SAMPLE;
+            size_t DivisionLen=floor(0.5+len/lenInt);
+            size_t Division=std::max(DivisionAngle,DivisionLen);
+            //Division=std::min(Division,(size_t)MAX_BORDER_SAMPLE+1);
+            Division=std::max(Division,(size_t)MIN_BORDER_SAMPLE+1);
+            size_t Step=floor(0.5+((ScalarType)BorderSequences[i].size()/(ScalarType)Division));
             Step=std::max(Step,(size_t)1);
             for (size_t j=0;j<BorderSequences[i].size();j+=Step)
             {
                 //std::cout<<BorderSequences[i][j]<<" ";
                 size_t currVIndex=BorderSequences[i][j];
                 if (VertType[currVIndex]!=TVFlat)continue;
+                if (!UsefulV[currVIndex])continue;
                 assert(currVIndex<Mesh().vert.size());
                 std::vector<size_t> Nodes;
                 VertexFieldGraph<MeshType>::IndexNodes(currVIndex,Nodes);
@@ -3790,15 +3876,14 @@ public:
         DebugMsg=_DebugMsg;
         Drift=_Drift;
 
-
         InitStructures();
         InitEdgeL();
         ChoosenPaths.clear();
         //ChoosenIsLoop.clear();
         MaxNarrowWeight=sqrt(TotArea(Mesh()))*MAX_NARROW_CONST*Drift;
-        UpdatePartitionsFromChoosen();
-        ColorByPartitions();
         InitAvEdge();
+        UpdatePartitionsFromChoosen(true);
+        ColorByPartitions();
 
         Traceable=std::vector<bool>(VFGraph.NumNodes(),true);
         InitTraceableBorders();
@@ -4103,9 +4188,6 @@ public:
                     Mesh().vert[i].IsB())
                 VertType[i]=TVFlat;
 
-            //            if (VertType[i]==Internal)
-            //                VertType[i]=None;
-
             if ((VertType[i]==TVNarrow)&&(VerticesNeeds[i]==0))
                 VertType[i]=TVFlat;
 
@@ -4235,6 +4317,7 @@ public:
     //bool checkOnlylastConfl=false)
     {
         Candidates.clear();
+        DiscardedCandidates.clear();
 
         if (DebugMsg)
             std::cout<<"Adding candidates (Trace From)"<<std::endl;
@@ -4831,9 +4914,12 @@ public:
             //solve valence 4 not valid because of corners
             for (size_t i=0;i<PartitionCorners.size();i++)
             {
-                int ExpVal=ExpectedValence(Mesh(),Partitions[i]);
+                bool SingOnCorner=false;
+                int ExpVal=ExpectedValence(Mesh(),Partitions[i],PartitionCorners[i],SingOnCorner);
                 if (ExpVal!=4)continue;
-                if (PartitionCorners[i].size()>4)
+                if (SingOnCorner)continue;
+                if (ExpVal>PartitionCorners[i].size())continue;
+                if (PartitionCorners[i].size()!=4)
                 {
                     NeedFix++;
                     RemoveConvexCorners(PartitionCorners[i],PartitionCorners[i].size()-4);
@@ -5025,6 +5111,8 @@ public:
         std::vector<bool> CanEmit,CanReceive,MustDisable;
         GetTracingConfiguration(FromType,ToType,TrType,CanEmit,CanReceive,MustDisable);
 
+        //DiscardedCandidates.clear();
+
         VFGraph.SetAllActive();
         VFGraph.SetDisabledNodes(MustDisable);
 
@@ -5074,6 +5162,13 @@ public:
         CurrChosen.clear();
         for (size_t i=0;i<ChoosenPaths.size();i++)
             CurrChosen.push_back(ChoosenPaths[i].PathNodes);
+    }
+
+    void  GetCurrDiscarded(std::vector<std::vector<size_t> > &CurrDiscarded)
+    {
+        CurrDiscarded.clear();
+        for (size_t i=0;i<DiscardedCandidates.size();i++)
+            CurrDiscarded.push_back(DiscardedCandidates[i].PathNodes);
     }
 
     void  GetCurrVertDir(std::vector<std::vector<size_t> > &CurrV,
@@ -5132,6 +5227,12 @@ public:
     {
         ChosenIsLoop.clear();
         GetIsLoop(ChoosenPaths,ChosenIsLoop);
+    }
+
+    void GetCurrDiscardedIsLoop(std::vector<bool> &DiscardedIsLoop)
+    {
+        DiscardedIsLoop.clear();
+        GetIsLoop(DiscardedCandidates,DiscardedIsLoop);
     }
 
     void GetUnsolvedPartitionsIndex(std::vector<size_t > &UnsolvedPartitionIndex,

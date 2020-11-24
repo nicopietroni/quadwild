@@ -36,6 +36,7 @@ struct PatchInfo
     std::vector<ScalarType> Q;
     int ExpectedValence;
     int NumSing;
+    //bool SingOnCorner;
     PatchInfo()
     {
         NumEmitters=0;
@@ -44,6 +45,7 @@ struct PatchInfo
         CClarkability=false;//std::numeric_limits<ScalarType>::max();
         ExpectedValence=-1;
         NumSing=-1;
+        //SingOnCorner=false;
         //PossibleSing=-1;
     }
 };
@@ -59,7 +61,10 @@ void SelectPatchFacesVert(MeshType &totMesh,const std::vector<size_t> &PatchFace
 }
 
 template <class MeshType>
-int ExpectedValence(MeshType &mesh,const std::vector<size_t> &PatchFaces)
+int ExpectedValence(MeshType &mesh,
+                    const std::vector<size_t> &PatchFaces,
+                    const std::vector<size_t> &PatchCorners,
+                    bool &OnCorner)
 {
     typedef typename MeshType::VertexType VertexType;
     int ExpVal=4;
@@ -76,7 +81,15 @@ int ExpectedValence(MeshType &mesh,const std::vector<size_t> &PatchFaces)
             //v->SetV();
 
             if (v->SingularityValence==4)continue;
-            if (ExpVal!=4)return -1;//multiple singularities
+            if (ExpVal!=4){OnCorner=false;return -1;}//multiple singularities
+
+            //check if it is a corner or not
+            size_t IndexV=vcg::tri::Index(mesh,v);
+            std::vector<size_t>::const_iterator it = find (PatchCorners.begin(), PatchCorners.end(),IndexV);
+            if (it != PatchCorners.end())
+                OnCorner=true;//it is a corner of the patch
+            else
+                OnCorner=false;
             ExpVal=v->SingularityValence;
         }
     }
@@ -1999,6 +2012,34 @@ void GetBorderSequenceFrom(MeshType &mesh,
 
 //get individual sequences of sharp features
 template <class MeshType>
+void GetSequencesLenghtAngle(MeshType &mesh,
+                             std::vector<size_t> &BorderSequence,
+                             typename MeshType::ScalarType &angle,
+                             typename MeshType::ScalarType &lenght)
+{
+    typedef typename MeshType::CoordType CoordType;
+    typedef typename MeshType::ScalarType ScalarType;
+
+    angle=0;lenght=0;
+    assert(BorderSequence.size()>1);
+    CoordType Dir0=mesh.vert[BorderSequence[1]].P()-mesh.vert[BorderSequence[0]].P();
+    Dir0.Normalize();
+    for (size_t i=0;i<BorderSequence.size()-1;i++)
+    {
+        int IndxV0=BorderSequence[i];
+        int IndxV1=BorderSequence[(i+1)];
+        CoordType Dir1=(mesh.vert[IndxV1].P()-mesh.vert[IndxV0].P());
+        lenght+=Dir0.Norm();
+        Dir0.Normalize();
+        Dir1.Normalize();
+        ScalarType angleInt=fabs(vcg::Angle(Dir0,Dir1));
+        angle+=angleInt;
+        Dir0=Dir1;
+    }
+}
+
+//get individual sequences of sharp features
+template <class MeshType>
 void GetBorderSequences(MeshType &mesh,const std::vector<size_t> &Corners,
                         std::vector<std::vector<size_t> > &BorderSequences,
                         bool DebugMsg=false)
@@ -2031,7 +2072,7 @@ void GetBorderSequences(MeshType &mesh,const std::vector<size_t> &Corners,
             std::vector<PosType> PosBorderSeq;
             GetBorderSequenceFrom(mesh,StartPos,PosBorderSeq,CurrBorderSequence);
 
-            for (size_t j=0;j<PosBorderSeq.size()-1;j++)
+            for (size_t j=0;j<PosBorderSeq.size();j++)
                 PosBorderSeq[j].F()->SetFaceEdgeS(PosBorderSeq[j].E());
 
             BorderSequences.push_back(CurrBorderSequence);
@@ -2128,8 +2169,17 @@ void GetPatchInfo(MeshType &mesh,
         size_t t2=clock();
         int1=t2-t1;
 
-        PInfo[i].ExpectedValence=ExpectedValence(mesh,PatchFaces[i]);
+        bool SingOnCorner;
+        int ExpVal=ExpectedValence(mesh,PatchFaces[i],PatchCorners[i],SingOnCorner);
+
+        //tolerant wrt corner singularities
+        if (!SingOnCorner)
+            PInfo[i].ExpectedValence=ExpVal;
+        else
+            PInfo[i].ExpectedValence=PInfo[i].NumCorners;
+
         size_t t3=clock();
+
         int2+=t3-t2;
 
         PInfo[i].NumSing=NumSingularities(mesh,PatchFaces[i]);
@@ -2449,6 +2499,11 @@ bool BetterConfiguaration(MeshType &mesh,
     if (NonOKEmitters1!=NonOKEmitters0)
         return (NonOKEmitters1<NonOKEmitters0);
 
+//    if (NonOKSize0>0)
+//        return false;
+
+//    if (NonOKSize1>0)
+//        return false;
     if (NonOKSize1!=NonOKSize0)
         return (NonOKSize1<NonOKSize0);
 

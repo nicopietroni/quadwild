@@ -54,14 +54,59 @@ void GetCandidateNodes(const std::vector<CandidateTrace> &TraceSet,
         }
 }
 
+void GetCandidateNodes(const CandidateTrace &CurrTrace,
+                       std::vector<size_t> &ChoosenNodes)
+{
+    for (size_t j=0;j<CurrTrace.PathNodes.size();j++)
+    {
+        size_t IndexN=CurrTrace.PathNodes[j];
+        ChoosenNodes.push_back(IndexN);
+    }
+}
+
+template <class MeshType>
+void GetCandidateTangentNodes(const CandidateTrace &CurrTrace,
+                              std::vector<size_t> &ChoosenTangNodes)
+{
+    if (CurrTrace.IsLoop)
+    {
+        for (size_t j=0;j<CurrTrace.PathNodes.size();j++)
+        {
+            size_t IndexN=VertexFieldGraph<MeshType>::TangentNode(CurrTrace.PathNodes[j]);
+            ChoosenTangNodes.push_back(IndexN);
+        }
+    }
+    else
+    {
+        for (size_t j=1;j<CurrTrace.PathNodes.size()-1;j++)
+        {
+            size_t IndexN=VertexFieldGraph<MeshType>::TangentNode(CurrTrace.PathNodes[j]);
+            ChoosenTangNodes.push_back(IndexN);
+        }
+    }
+}
+
+//template <class MeshType>
+//void GetCandidateNodesNodesAndTangent(const std::vector<CandidateTrace> &TraceSet,
+//                                      std::vector<size_t> &ChoosenNodes)
+//{
+//    GetCandidateNodes(TraceSet,ChoosenNodes);
+//    std::vector<size_t> TangentNodes=ChoosenNodes;
+//    VertexFieldGraph<MeshType>::TangentNodes(TangentNodes);
+//    ChoosenNodes.insert(ChoosenNodes.end(),TangentNodes.begin(),TangentNodes.end());
+//}
+
 template <class MeshType>
 void GetCandidateNodesNodesAndTangent(const std::vector<CandidateTrace> &TraceSet,
                                       std::vector<size_t> &ChoosenNodes)
 {
     GetCandidateNodes(TraceSet,ChoosenNodes);
-    std::vector<size_t> TangentNodes=ChoosenNodes;
-    VertexFieldGraph<MeshType>::TangentNodes(TangentNodes);
-    ChoosenNodes.insert(ChoosenNodes.end(),TangentNodes.begin(),TangentNodes.end());
+    for (size_t i=0;i<TraceSet.size();i++)
+    {
+        std::vector<size_t> TangentNodes;
+        GetCandidateTangentNodes<MeshType>(TraceSet[i],TangentNodes);
+        ChoosenNodes.insert(ChoosenNodes.end(),TangentNodes.begin(),TangentNodes.end());
+    }
 }
 
 template <class MeshType>

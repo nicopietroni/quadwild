@@ -287,6 +287,7 @@ public:
     //        return false;
     //    }
 
+
     //*** COLLIDING FUNCTIONS ***
     //return true if two traces collides
     static bool CollideTraces(VertexFieldGraph<MeshType> &VFGraph,
@@ -295,6 +296,9 @@ public:
                               const std::vector<size_t > &TraceN1,
                               bool IsLoopTr1)
     {
+        assert(TraceN0.size()>1);
+        assert(TraceN1.size()>1);
+
         //quick rejection test based on vertex indexes
         vcg::tri::UnMarkAll<MeshType>(VFGraph.Mesh());
         std::vector<size_t> SameV;
@@ -409,10 +413,23 @@ public:
 
         //first check if there is the same node (or opposite in M2)
         VFGraph.UnMarkAll();
+        if (IsLoopTr0)//in this case mark all
+        {
         for (size_t i=0;i<TraceN0.size();i++)
         {
             VFGraph.Mark(TraceN0[i]);
             VFGraph.Mark(VertexFieldGraph<MeshType>::TangentNode(TraceN0[i]));
+        }
+        }
+        else {
+            //first and last without tangent
+            VFGraph.Mark(TraceN0[0]);
+            for (size_t i=1;i<TraceN0.size()-1;i++)
+            {
+                VFGraph.Mark(TraceN0[i]);
+                VFGraph.Mark(VertexFieldGraph<MeshType>::TangentNode(TraceN0[i]));
+            }
+            VFGraph.Mark(TraceN0.back());
         }
 
         for (size_t i=0;i<TraceN1.size();i++)

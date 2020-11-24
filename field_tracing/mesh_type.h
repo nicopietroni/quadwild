@@ -147,7 +147,7 @@ public:
             bool loaded=vcg::tri::io::ImporterFIELD<CMesh>::LoadFFIELD(*this,field_filename.c_str());
             if (!loaded)return false;
             vcg::tri::CrossField<CMesh>::OrientDirectionFaceCoherently(*this);
-            vcg::tri::CrossField<CMesh>::UpdateSingularByCross(*this);
+            vcg::tri::CrossField<CMesh>::UpdateSingularByCross(*this,true);
             return true;
         }
         if (position1!=-1)
@@ -157,7 +157,7 @@ public:
             std::cout<<"Imported ROSY field"<<std::endl;
             if (!loaded)return false;
             vcg::tri::CrossField<CMesh>::OrientDirectionFaceCoherently(*this);
-            vcg::tri::CrossField<CMesh>::UpdateSingularByCross(*this);
+            vcg::tri::CrossField<CMesh>::UpdateSingularByCross(*this,true);
             return true;
         }
         return false;

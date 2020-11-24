@@ -108,6 +108,8 @@ PatchTracer<CMesh> PTr(VGraph);
 std::vector<std::vector<size_t> > CurrCandidates;
 std::vector<bool> ChosenIsLoop;
 std::vector<std::vector<size_t> > ChosenCandidates;
+std::vector<bool> DiscardedIsLoop;
+std::vector<std::vector<size_t> > DiscardedCandidates;
 std::vector<typename CMesh::CoordType> PatchCornerPos;
 CMesh::ScalarType Drift=100;
 
@@ -367,42 +369,6 @@ void FindCurrentNum()
     }
 }
 
-//void LoadSetupFile(std::string path)
-//{
-//    FILE *f=fopen(path.c_str(),"rt");
-//    assert(f!=NULL);
-//    float Driftf;
-//    fscanf(f,"Drift %f\n",&Driftf);
-//    Drift=(CMesh::ScalarType)Driftf;
-//    std::cout<<"DRIFT "<<Drift<<std::endl;
-
-//    int IntVar=0;
-//    fscanf(f,"Split %d\n",&IntVar);
-//    std::cout<<"SPLIT "<<IntVar<<std::endl;
-//    if (IntVar==0)
-//        PTr.split_on_removal=false;
-//    else
-//        PTr.split_on_removal=true;
-
-//    fscanf(f,"IncreaseValRem %d\n",&IntVar);
-//    std::cout<<"INCREASE VAL "<<IntVar<<std::endl;
-//    if (IntVar==0)
-//        PTr.avoid_increase_valence=false;
-//    else
-//        PTr.avoid_increase_valence=true;
-
-//    fscanf(f,"IrregularRem %d\n",&IntVar);
-//    std::cout<<"IRR VAL "<<IntVar<<std::endl;
-//    if (IntVar==0)
-//        PTr.avoid_collapse_irregular=false;
-//    else
-//        PTr.avoid_collapse_irregular=true;
-
-//    float MaxDistortionf;
-//    fscanf(f,"DistortionL %f\n",&MaxDistortionf);
-//    PTr.max_lenght_distortion=(CMesh::ScalarType)MaxDistortionf;
-//    fclose(f);
-//}
 
 void UpdatePatchColor()
 {
@@ -436,11 +402,14 @@ void UpdateVisualNodes()
     ChosenCandidates.clear();
     PTr.GetCurrChosen(ChosenCandidates);
 
+    DiscardedCandidates.clear();
+    PTr.GetCurrDiscarded(DiscardedCandidates);
+
     ChosenIsLoop.clear();
-
-
     PTr.GetCurrChosenIsLoop(ChosenIsLoop);
 
+    DiscardedIsLoop.clear();
+    PTr.GetCurrDiscardedIsLoop(DiscardedIsLoop);
     //return;
 
     //PTr.GetConcaveEmitters(ConcaveEmittersNode);
@@ -507,7 +476,7 @@ void TW_CALL InitGraph(void *)
 
 void TW_CALL JoinNarrow(void *)
 {
-    PTr.JoinConcaveStep();
+    PTr.JoinNarrowStep();
     PTr.UpdatePartitionsFromChoosen();
     PTr.ColorByPartitions();
     UpdateVisualNodes();
@@ -544,75 +513,21 @@ void TW_CALL SmoothPathes(void *)
 }
 
 
-//void TW_CALL RemovePath(void *)
-//{
-//    PTr.RemovePaths();
-//    CurrCandidates.clear();
-//    PTr.GetCurrCandidates(CurrCandidates);
-
-//    ChosenCandidates.clear();
-//    PTr.GetCurrChosen(ChosenCandidates);
-
-//    ChosenIsLoop.clear();
-//    PTr.GetCurrChosenIsLoop(ChosenIsLoop);
-
-//    PTr.GetUnsatisfied(UnsatisfiedNodes);
-
-//    PTr.GetVisualCornersPos(PatchCornerPos);
-
-////    PTr.GetChoosenEmitters(ChoosenEmittersNode);
-////    PTr.GetChoosenReceivers(ChoosenReceiversNode);
-//}
-
-
 void TW_CALL BatchProcess(void *)
 {
     InitStructures();
     //PTr.BatchProcess();
-    PTr.BatchAddLoops(true,false);//,false,true);//,false);
+    PTr.BatchAddLoops(false,false);//,false,true);//,false);
     PTr.UpdatePartitionsFromChoosen();
     PTr.ColorByPartitions();
     CurrPatchMode=CMPatchCol;
-//    CurrCandidates.clear();
-//    PTr.GetCurrCandidates(CurrCandidates);
-
-//    ChosenCandidates.clear();
-//    PTr.GetCurrChosen(ChosenCandidates);
-//    ChosenIsLoop.clear();
-//    PTr.GetCurrChosenIsLoop(ChosenIsLoop);
-
-//    PTr.GetUnsatisfied(UnsatisfiedNodes);
-
-    //PTr.GetCornersPos(PatchCornerPos);
 
     drawField=false;
     drawSharpF=false;
     drawSing=false;
 
     UpdateVisualNodes();
-//    PTr.GetConcaveEmitters(ConcaveEmittersNode);
-//    PTr.GetConcaveReceivers(ConcaveReceiversNode);
-//    PTr.GetFlatEmitters(FlatEmittersNode);
-//    PTr.GetFlatReceivers(FlatReceiversNode);
-//    PTr.GetNarrowActiveEmitters(NarrowEmittersNode);
-//    PTr.GetNarrowActiveReceivers(NarrowReceiversNode);
-//    PTr.GetChoosenEmitters(ChoosenEmittersNode);
-//    PTr.GetChoosenReceivers(ChoosenReceiversNode);
-//    PTr.GetUnsatisfied(UnsatisfiedNodes);
-//    PTr.GetCornersPos(PatchCornerPos);
 }
-
-//void TW_CALL IterativeBatch(void *)
-//{
-//    InitStructures();
-//    //RecursiveProcess<CMesh>(PTr,Drift);
-//    RecursiveProcess3<CMesh>(PTr,Drift);
-////    CurrPatchMode=CMPatchCol;
-////    drawField=false;
-////    drawSharpF=false;
-////    drawSing=false;
-////    UpdateVisualNodes();
-//}
 
 void TW_CALL RecursiveProcess(void *)
 {
@@ -624,24 +539,11 @@ void TW_CALL RecursiveProcess(void *)
     drawSharpF=false;
     drawSing=false;
     UpdateVisualNodes();
-//    ChosenCandidates.clear();
-//    PTr.GetCurrChosen(ChosenCandidates);
-//    ChosenIsLoop.clear();
-//    PTr.GetCurrChosenIsLoop(ChosenIsLoop);
-//    PTr.GetUnsatisfied(UnsatisfiedNodes);
 }
 
 void TW_CALL ParametrizePatches(void *)
 {
     PTr.ComputePatchesUV();
-//    InitStructures();
-//    //RecursiveProcess<CMesh>(PTr,Drift);
-//    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,interleave_removal,final_removal);
-//    CurrPatchMode=CMPatchCol;
-//    drawField=false;
-//    drawSharpF=false;
-//    drawSing=false;
-//    UpdateVisualNodes();
 }
 
 void TW_CALL SubdividePatches(void *)
@@ -923,28 +825,6 @@ void InitLoopBar(QWidget *w)
 
     TwAddButton(bar,"AllProcess",AllProcess,0," label='All Process' ");
 
-
-
-//    TwAddSeparator(bar,NULL,NULL);
-//    TwAddButton(bar,"TestNarrowNarrow",TestNarrowNarrow,0," label='TestNarrowNarrow' ");
-//    TwAddButton(bar,"TestNarrowConcave",TestNarrowConcave,0," label='TestNarrowConcave' ");
-//    TwAddButton(bar,"TestNarrowFlat",TestNarrowFlat,0," label='TestNarrowFlat' ");
-////    TwAddButton(bar,"TestNarrowChosen",TestNarrowChosen,0," label='TestNarrowChosen' ");
-
-//    TwAddButton(bar,"TestConcaveConcave",TestConcaveConcave,0," label='TestConcaveConcave' ");
-//    TwAddButton(bar,"TestConcaveFlat",TestConcaveFlat,0," label='TestConcaveFlat' ");
-////    TwAddButton(bar,"TestConcaveChosen",TestConcaveChosen,0," label='TestConcaveChosen' ");
-
-//    TwAddButton(bar,"TestFlatFlat",TestFlatFlat,0," label='TestFlatFlat' ");
-////    TwAddButton(bar,"TestFlatChosen",TestFlatChosen,0," label='TestFlatChosen' ");
-
-////    TwAddButton(bar,"TestChosenChosen",TestChosenChosen,0," label='TestChosenChosen' ");
-//    TwAddButton(bar,"TestLoops",TestLoops,0," label='TestLoops' ");
-
-//    TwAddVarRW(bar,"testDrawEmitter",TW_TYPE_BOOLCPP,&testDrawEmitter,"label='testDrawEmitter'");
-//    TwAddVarRW(bar,"testdrawReceiver",TW_TYPE_BOOLCPP,&testdrawReceiver,"label='testdrawReceiver'");
-//    TwAddVarRW(bar,"testdrawDisables",TW_TYPE_BOOLCPP,&testdrawDisables,"label='testdrawDisables'");
-
 }
 
 void InitBar(QWidget *w)
@@ -1071,6 +951,7 @@ void GLWidget::paintGL ()
         if (drawPaths)
             GLGraph.GLDrawPaths(ChosenCandidates,ChosenIsLoop,mesh.bbox.Diag()*0.01,drawPathNodes);
 
+        //GLGraph.GLDrawPaths(DiscardedCandidates,DiscardedIsLoop,mesh.bbox.Diag()*0.01,true);
         GLGraph.GLDrawNodes(TraceableFlatNode,mesh.bbox.Diag()*0.002);
 
         //GLGraph.GLDrawSingNodes(mesh.bbox.Diag()*0.002);

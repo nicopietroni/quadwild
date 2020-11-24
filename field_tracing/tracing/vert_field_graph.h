@@ -468,7 +468,10 @@ private:
             {
                 size_t IndexV0=vcg::tri::Index(mesh,mesh.face[i].V0(j));
                 size_t IndexV1=vcg::tri::Index(mesh,mesh.face[i].V1(j));
-                if ((IsSingVert[IndexV0])||(IsSingVert[IndexV1]))continue;//no add connection with singularities
+                //add connection only with border singularities not the rest
+                bool InternalSing0=((IsSingVert[IndexV0])&&(!mesh.vert[IndexV0].IsB()));
+                bool InternalSing1=((IsSingVert[IndexV1])&&(!mesh.vert[IndexV1].IsB()));
+                if ((InternalSing0)||(InternalSing1))continue;//no add connection with singularities
                 VNeigh[IndexV0].push_back(IndexV1);
                 VNeigh[IndexV1].push_back(IndexV0);
             }
@@ -1014,7 +1017,7 @@ public:
         for (size_t i=0;i<mesh.vert.size();i++)
         {
             int Mmatch;
-            if(vcg::tri::CrossField<MeshType>::IsSingularByCross(mesh.vert[i],Mmatch))
+            if(vcg::tri::CrossField<MeshType>::IsSingularByCross(mesh.vert[i],Mmatch,true))
             {
                 IsSingVert[i]=true;
                 std::vector<size_t> CurrN;
@@ -1236,17 +1239,17 @@ public:
         return false;
     }
 
-    void DeactivateInternalSingularities()
-    {
-        for (size_t i=0;i<SingNodes.size();i++)
-            SetActive(SingNodes[i],false);
-    }
+//    void DeactivateInternalSingularities()
+//    {
+//        for (size_t i=0;i<SingNodes.size();i++)
+//            SetActive(SingNodes[i],false);
+//    }
 
-    void ActivateSingularities()
-    {
-        for (size_t i=0;i<SingNodes.size();i++)
-            SetActive(SingNodes[i],true);
-    }
+//    void ActivateSingularities()
+//    {
+//        for (size_t i=0;i<SingNodes.size();i++)
+//            SetActive(SingNodes[i],true);
+//    }
 
     void RemoveConnections(const size_t &IndexNode)
     {
@@ -1264,11 +1267,11 @@ public:
         }
     }
 
-    void RemoveSingularities()
-    {
-        for (size_t i=0;i<SingNodes.size();i++)
-            RemoveConnections(SingNodes[i]);
-    }
+//    void RemoveSingularities()
+//    {
+//        for (size_t i=0;i<SingNodes.size();i++)
+//            RemoveConnections(SingNodes[i]);
+//    }
 
     void SetActive(const size_t &IndexNode,bool ActiveVal)
     {
@@ -1399,7 +1402,7 @@ bool SplitAdjacentSingularities(MeshType &mesh)
     for (size_t i=0;i<mesh.vert.size();i++)
     {
         int Mmatch;
-        if(!vcg::tri::CrossField<MeshType>::IsSingularByCross(mesh.vert[i],Mmatch))continue;
+        if(!vcg::tri::CrossField<MeshType>::IsSingularByCross(mesh.vert[i],Mmatch,true))continue;
         mesh.vert[i].SetS();
     }
 
@@ -1488,7 +1491,7 @@ void PreProcessMesh(MeshType &mesh,bool DebugMsg=false)
     //then update attributes
     mesh.UpdateAttributes();
     //then reupdate the vert cross field
-    vcg::tri::CrossField<MeshType>::UpdateSingularByCross(mesh);
+    vcg::tri::CrossField<MeshType>::UpdateSingularByCross(mesh,true);
     vcg::tri::CrossField<MeshType>::SetVertCrossVectorFromFace(mesh);
 
     if (DebugMsg)
