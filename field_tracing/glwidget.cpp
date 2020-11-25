@@ -598,6 +598,8 @@ void LoadAll()
         std::cout<<"*** ERROR LOADING FEATURES ***"<<std::endl;
         exit(0);
     }
+    mesh.SolveGeometricIssues();
+    mesh.UpdateSharpFeaturesFromSelection();
 }
 
 void Reload()

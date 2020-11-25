@@ -323,9 +323,14 @@ void InitFieldBar(QWidget *w)
 void BatchProcess ()
 {
 //    vcg::tri::Hole<MyTriMesh>::EarCuttingFill<vcg::tri::TrivialEar<MyTriMesh> >(tri_mesh,6);
-
+    size_t numDup=tri_mesh.NumDuplicatedV();
+    if (numDup>0)std::cout<<"WARNING DUPLICATED VERTICES BEFORE AUTO REMESH!"<<std::endl;
     DoAutoRemesh();
 
+    tri_mesh.SolveGeometricIssues();
+//    numDup=tri_mesh.NumDuplicatedV();
+//    if (numDup>0)std::cout<<"WARNING DUPLICATED VERTICES AFTER AUTO REMESH!"<<std::endl;
+//    tri_mesh.RemoveDuplicatedV();
     {
 	std::string projM=pathM;
     	size_t indexExt=projM.find_last_of(".");
@@ -335,13 +340,14 @@ void BatchProcess ()
     	tri_mesh.SaveTriMesh(meshName.c_str());
     }
 
-    vcg::tri::Clean<MyTriMesh>::RemoveSmallConnectedComponentsSize(tri_mesh,10);
+    //vcg::tri::Clean<MyTriMesh>::RemoveSmallConnectedComponentsSize(tri_mesh,10);
     vcg::tri::Allocator<MyTriMesh>::CompactEveryVector(tri_mesh);
 
     InitSharp();
     tri_mesh.ErodeDilate(feature_erode_dilate);
-    tri_mesh.RefineIfNeeded();
 
+    tri_mesh.RefineIfNeeded();
+    tri_mesh.SolveGeometricIssues();
     //FIELD SMOOTH
     bool UseNPoly=tri_mesh.SufficientFeatures(SharpFactor);
     if (UseNPoly)
@@ -366,7 +372,10 @@ void BatchProcess ()
 
     std::cout << "[fieldComputation] Smooth Field Computation..." << std::endl;
     tri_mesh.SplitFolds();
+    //vcg::tri::io::ExporterPLY<MyTriMesh>::Save(tri_mesh,"test0.ply");
     tri_mesh.RemoveFolds();
+    tri_mesh.SolveGeometricIssues();
+
     tri_mesh.SmoothField(FieldParam);
 
     std::string fieldName=projM+std::string("_rem.rosy");

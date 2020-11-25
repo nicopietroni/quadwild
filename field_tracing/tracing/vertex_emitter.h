@@ -21,7 +21,12 @@ public:
                                             size_t &Emitter,
                                             size_t &Receiver)
     {
-        assert(VertOrthoDir[IndexV].size()==2);
+        //assert(VertOrthoDir[IndexV].size()==2);
+        if (VertOrthoDir[IndexV].size()!=2)
+        {
+           std::cout<<"WARNING ON BORDER There are "<<VertOrthoDir[IndexV].size()<<" Ortho dirs instead of 2"<<std::endl;
+           //assert(0);
+        }
         CoordType Ortho0=VertOrthoDir[IndexV][0];
         CoordType Ortho1=VertOrthoDir[IndexV][1];
         CoordType TargetD=Ortho0+Ortho1;
@@ -76,9 +81,18 @@ public:
             {
                 size_t EmitterN,ReceiverN;
                 ComputeNarrowEmitterReceivers(VFGraph,VertOrthoDir,VertFlatDir,IndexV,EmitterN,ReceiverN);
-                assert(EmitterN!=IndexNode0);
-                assert(EmitterN!=IndexNode1);
-                Emitter.push_back(EmitterN);
+                if ((EmitterN!=IndexNode0)&&(EmitterN!=IndexNode1))
+                    Emitter.push_back(EmitterN);
+                else
+                {
+                    std::cout<<"WARNING THIRD emitter problem"<<std::endl;
+//                    vcg::tri::UpdateFlags<MeshType>::VertexClear(VFGraph.Mesh());
+//                    VFGraph.Mesh().vert[IndexV].SetS();
+//                    vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"test1.ply",vcg::tri::io::Mask::IOM_FLAGS);
+//                    assert(0);
+//                    assert(EmitterN!=IndexNode0);
+//                    assert(EmitterN!=IndexNode1);
+                }
             }
         }
 

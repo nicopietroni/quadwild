@@ -256,6 +256,132 @@ public:
         SharpCoords.erase(last, SharpCoords.end());
     }
 
+    size_t NumDuplicatedV()
+    {
+        std::set<CoordType> Pos;
+        vcg::tri::UpdateSelection<MeshType>::VertexClear(*this);
+        size_t numDupl=0;
+        for (size_t i=0;i<vert.size();i++)
+        {
+            if (Pos.count(vert[i].P())>0)
+            {
+                vert[i].SetS();
+                numDupl++;
+            }
+            Pos.insert(vert[i].P());
+        }
+        return numDupl;
+    }
+
+    void Perturb(VertexType &v,ScalarType Magnitudo)
+    {
+        ScalarType eps=std::numeric_limits<ScalarType>::epsilon()*Magnitudo;
+        //take a random direction
+        size_t granularity=10000;
+        int IntX=(rand()%granularity)-granularity/2;
+        int IntY=(rand()%granularity)-granularity/2;
+        int IntZ=(rand()%granularity)-granularity/2;
+        CoordType Dir=CoordType(IntX,IntY,IntZ);
+        Dir.Normalize();
+        Dir*=eps;
+        //std::cout<<Dir.X()<<";"<<Dir.Y()<<";"<<Dir.Z()<<std::endl;
+        v.P()+=Dir;
+        v.RPos=v.P();
+    }
+
+    bool RepositionDuplicatedV()
+    {
+        size_t NumD=NumDuplicatedV();
+        if (NumD==0)return false;
+        //int dilate_step=0;
+        ScalarType Magnitudo=2;
+        do
+        {
+            std::cout<<"Repositioning "<<NumD<<" duplicated vertices"<<std::endl;
+
+
+//            dilate_step++;
+//            for (size_t i=0;i<dilate_step;i++)
+//            {
+//                vcg::tri::UpdateSelection<MeshType>::FaceFromVertexLoose(*this);
+//                vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(*this);
+//            }
+            for (size_t i=0;i<vert.size();i++)
+                if (vert[i].IsS())Perturb(vert[i],Magnitudo);
+
+            Magnitudo*=2;
+            //vcg::tri::Smooth<MeshType>::VertexCoordLaplacian(*this,1,true);
+            NumD=NumDuplicatedV();
+        }
+        while(NumD>0);
+        vcg::tri::UpdateBounding<MeshType>::Box(*this);
+        vcg::tri::UpdateNormal<MeshType>::PerVertexNormalizedPerFace(*this);
+        vcg::tri::UpdateNormal<MeshType>::PerFaceNormalized(*this);
+        return true;
+    }
+
+    bool RemoveZeroAreaF()
+    {
+//        int nonManifV=0;
+//        int degF=0;
+        int zeroAFace=0;
+        bool modified=false;
+        ScalarType Magnitudo=2;
+        do{
+            modified=false;
+            for (size_t i=0;i<face.size();i++)
+            {
+                if (vcg::DoubleArea(face[i])>0)continue;
+                Perturb(*face[i].V(0),Magnitudo);
+                Perturb(*face[i].V(1),Magnitudo);
+                Perturb(*face[i].V(2),Magnitudo);
+                modified=true;
+                zeroAFace++;
+            }
+            Magnitudo*=2;
+        }while (modified);
+        vcg::tri::Allocator<MeshType>::CompactEveryVector(*this);
+        std::cout<<"Adjusted "<<zeroAFace<<" zero area faces"<<std::endl;
+//        std::cout<<"Removed "<<degF<<" degenerate faces"<<std::endl;
+//        std::cout<<"Removed "<<zeroAFace<<" nonManifV "<<std::endl;
+        UpdateAttributes();
+        return modified;
+    }
+
+
+//    bool RemoveZeroAreaF()
+//    {
+//        int nonManifV=0;
+//        int degF=0;
+//        int zeroAFace=0;
+//        bool modified=false;
+//        do{
+//            zeroAFace=vcg::tri::Clean<MeshType>::RemoveZeroAreaFace(*this);
+//            degF=vcg::tri::Clean<MeshType>::RemoveDegenerateFace(*this);
+//            nonManifV=vcg::tri::Clean<MeshType>::RemoveNonManifoldVertex(*this);
+//            vcg::tri::Clean<MeshType>::RemoveUnreferencedVertex(*this);
+//            modified|=((zeroAFace!=0)&&(degF!=0)&&(nonManifV!=0));
+//        }while ((zeroAFace!=0)&&(degF!=0)&&(nonManifV!=0));
+//        vcg::tri::Allocator<MeshType>::CompactEveryVector(*this);
+//        std::cout<<"Removed "<<zeroAFace<<" zero area faces"<<std::endl;
+//        std::cout<<"Removed "<<degF<<" degenerate faces"<<std::endl;
+//        std::cout<<"Removed "<<zeroAFace<<" nonManifV "<<std::endl;
+//        UpdateAttributes();
+//        return modified;
+//    }
+
+    void SolveGeometricIssues()
+    {
+        srand(0);
+        bool HasRepositioned=false;
+        bool HasSolvedZeroF=false;
+        do{
+            HasRepositioned=RepositionDuplicatedV();
+            HasSolvedZeroF=RemoveZeroAreaF();
+        }while (HasRepositioned || HasSolvedZeroF);
+
+    }
+
     void UpdateSharpFeaturesFromSelection()
     {
         SharpFeatures.clear();
