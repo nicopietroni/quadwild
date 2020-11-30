@@ -28,9 +28,9 @@ class PolyVertex:public vcg::Vertex<	PUsedTypes,
         vcg::vertex::Coord3d,
         vcg::vertex::Normal3d//,
         /*vcg::vertex::Mark,
-                                                                                                                        vcg::vertex::BitFlags,
-                                                                                                                        vcg::vertex::Qualityd,
-                                                                                                                        vcg::vertex::TexCoord2d*/>{} ;
+                                                                                                                                vcg::vertex::BitFlags,
+                                                                                                                                vcg::vertex::Qualityd,
+                                                                                                                                vcg::vertex::TexCoord2d*/>{} ;
 
 class PolyFace:public vcg::Face<
         PUsedTypes
@@ -42,10 +42,10 @@ class PolyFace:public vcg::Face<
         ,vcg::face::BitFlags // bit flags
         ,vcg::face::Normal3d // normal
         /*,vcg::face::Color4b  // color
-                                                                                                                        ,vcg::face::Qualityd      // face quality.
-                                                                                                                        ,vcg::face::BitFlags
-                                                                                                                        ,vcg::face::Mark*/
-        ,vcg::face::CurvatureDird> {
+                                                                                                                                ,vcg::face::Qualityd      // face quality.
+                                                                                                                                ,vcg::face::BitFlags
+                                                                                                                                ,vcg::face::Mark*/
+        ,vcg::face::CurvatureDirf> {
 };
 
 class PMesh: public
@@ -502,13 +502,13 @@ public:
             FieldParam.curv_thr=0.1;
             FieldParam.align_borders=true;
         }
-
+        std::cout<<"..Smoothing.."<<std::endl;
         FieldSmootherType::SmoothDirections(*this,FieldParam);
-        //std::cout<<"A"<<std::endl;
+        std::cout<<"..Global Orientation.."<<std::endl;
         vcg::tri::CrossField<MeshType>::OrientDirectionFaceCoherently(*this);
-        //std::cout<<"B"<<std::endl;
+        std::cout<<"..Update Singularities.."<<std::endl;
         vcg::tri::CrossField<MeshType>::UpdateSingularByCross(*this);
-        //std::cout<<"C"<<std::endl;
+        std::cout<<"..Update Features.."<<std::endl;
         UpdateDataStructures();
         SetFeatureFromTable();
     }
@@ -522,7 +522,9 @@ public:
         {
             has_refined=false;
             has_refined|=RefineInternalFacesStepFromEdgeSel();
+            SolveGeometricIssues();
             has_refined|=SplitAdjacentEdgeSharpFromEdgeSel();
+            SolveGeometricIssues();
             //has_refined|=SplitAdjacentTerminalVertices();
             //has_refined|=SplitEdgeSharpSharingVerticesFromEdgeSel();
         }while (has_refined);
@@ -816,7 +818,7 @@ public:
 
                 if (face[i].FKind[j]==ETConcave)
                     vcg::glColor(vcg::Color4b(0,0,255,255));
-                                else
+                else
                     vcg::glColor(vcg::Color4b(255,0,0,255));
 
                 CoordType Pos0=face[i].P0(j);
@@ -1066,7 +1068,7 @@ public:
             for (size_t j=0;j<face[i].VN();j++)
             {
                 if (!vcg::face::IsBorder(face[i],j))continue;
-               face[i].SetFaceEdgeS(j);
+                face[i].SetFaceEdgeS(j);
             }
         //        ToSplit.clear();
         //        //int RemovedNum=0;
@@ -1122,6 +1124,109 @@ public:
         return(Ratio>SharpFactor);
     }
 
+    size_t NumDuplicatedV()
+    {
+        std::set<CoordType> Pos;
+        vcg::tri::UpdateSelection<MeshType>::VertexClear(*this);
+        size_t numDupl=0;
+        for (size_t i=0;i<vert.size();i++)
+        {
+            if (Pos.count(vert[i].P())>0)
+            {
+                vert[i].SetS();
+                numDupl++;
+            }
+            Pos.insert(vert[i].P());
+        }
+        return numDupl;
+    }
+
+    void Perturb(VertexType &v,ScalarType Magnitudo)
+    {
+        ScalarType eps=std::numeric_limits<ScalarType>::epsilon()*Magnitudo;
+        //take a random direction
+        size_t granularity=10000;
+        int IntX=(rand()%granularity)-granularity/2;
+        int IntY=(rand()%granularity)-granularity/2;
+        int IntZ=(rand()%granularity)-granularity/2;
+        CoordType Dir=CoordType(IntX,IntY,IntZ);
+        Dir.Normalize();
+        Dir*=eps;
+        //std::cout<<Dir.X()<<";"<<Dir.Y()<<";"<<Dir.Z()<<std::endl;
+        v.P()+=Dir;
+    }
+
+    bool RepositionDuplicatedV()
+    {
+        size_t NumD=NumDuplicatedV();
+        if (NumD==0)return false;
+        //int dilate_step=0;
+        ScalarType Magnitudo=2;
+        do
+        {
+            std::cout<<"Repositioning "<<NumD<<" duplicated vertices"<<std::endl;
+
+
+//            dilate_step++;
+//            for (size_t i=0;i<dilate_step;i++)
+//            {
+//                vcg::tri::UpdateSelection<MeshType>::FaceFromVertexLoose(*this);
+//                vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(*this);
+//            }
+            for (size_t i=0;i<vert.size();i++)
+                if (vert[i].IsS())Perturb(vert[i],Magnitudo);
+
+            Magnitudo*=2;
+            //vcg::tri::Smooth<MeshType>::VertexCoordLaplacian(*this,1,true);
+            NumD=NumDuplicatedV();
+        }
+        while(NumD>0);
+        vcg::tri::UpdateBounding<MeshType>::Box(*this);
+        vcg::tri::UpdateNormal<MeshType>::PerVertexNormalizedPerFace(*this);
+        vcg::tri::UpdateNormal<MeshType>::PerFaceNormalized(*this);
+        return true;
+    }
+
+    bool RemoveZeroAreaF()
+    {
+//        int nonManifV=0;
+//        int degF=0;
+        int zeroAFace=0;
+        bool modified=false;
+        ScalarType Magnitudo=2;
+        do{
+            modified=false;
+            for (size_t i=0;i<face.size();i++)
+            {
+                if (vcg::DoubleArea(face[i])>0)continue;
+                Perturb(*face[i].V(0),Magnitudo);
+                Perturb(*face[i].V(1),Magnitudo);
+                Perturb(*face[i].V(2),Magnitudo);
+                modified=true;
+                zeroAFace++;
+            }
+            Magnitudo*=2;
+        }while (modified);
+        vcg::tri::Allocator<MeshType>::CompactEveryVector(*this);
+        std::cout<<"Adjusted "<<zeroAFace<<" zero area faces"<<std::endl;
+//        std::cout<<"Removed "<<degF<<" degenerate faces"<<std::endl;
+//        std::cout<<"Removed "<<zeroAFace<<" nonManifV "<<std::endl;
+        UpdateDataStructures();
+        return modified;
+    }
+
+
+    void SolveGeometricIssues()
+    {
+        srand(0);
+        bool HasRepositioned=false;
+        bool HasSolvedZeroF=false;
+        do{
+            HasRepositioned=RepositionDuplicatedV();
+            HasSolvedZeroF=RemoveZeroAreaF();
+        }while (HasRepositioned || HasSolvedZeroF);
+
+    }
 
     void SetSharp(FaceType &f,int IndexE)
     {
