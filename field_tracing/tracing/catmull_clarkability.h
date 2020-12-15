@@ -341,7 +341,7 @@ ScalarType CatmullClarkability6(ScalarType L1,
 }
 
 template <class ScalarType>
-bool IsCatmullClarkable(const int NumF,
+bool IsCatmullClarkable(//const int NumF,
                         const std::vector<ScalarType> &EdgeL,
                         const ScalarType &SideThr,
                         bool SkipValence4,
@@ -388,14 +388,15 @@ bool IsCatmullClarkable(const int NumF,
 }
 
 template <class ScalarType>
-size_t AddedSingularities(const int NumF,
+size_t AddedSingularities(//const int NumF,
                           const std::vector<ScalarType> &EdgeL,
                           const ScalarType &SideThr,
                           bool SkipValence4,
                           bool print_debug=false)
 {
     assert(SideThr>0);
-    bool CC=IsCatmullClarkable(NumF,EdgeL,SideThr,SkipValence4,print_debug);
+    //bool CC=IsCatmullClarkable(NumF,EdgeL,SideThr,SkipValence4,print_debug);
+    bool CC=IsCatmullClarkable(EdgeL,SideThr,SkipValence4,print_debug);
     //std::cout<<"test CC "<<CC<<std::endl;
     if (CC)
         return 0;

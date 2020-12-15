@@ -78,7 +78,7 @@ bool drawUnsatisfied=false;
 bool drawCorners=false;
 bool drawChoosenEmitters=false;
 bool drawChoosenReceivers=false;
-
+bool drawMetaMesh=false;
 bool drawNarrowCandidates=false;
 
 //bool splitted=false;
@@ -87,6 +87,7 @@ bool batch_process=false;
 bool has_features=false;
 
 bool add_only_needed=false;
+bool meta_mesh_collapse=true;
 //bool interleave_removal=true;
 //bool interleave_smooth=false;
 bool final_removal=true;
@@ -533,7 +534,7 @@ void TW_CALL RecursiveProcess(void *)
 {
     InitStructures();
     //RecursiveProcess<CMesh>(PTr,Drift);
-    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal);//,interleave_smooth);
+    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal,true,meta_mesh_collapse);//,interleave_smooth);
     CurrPatchMode=CMPatchCol;
     drawField=false;
     drawSharpF=false;
@@ -684,6 +685,7 @@ void TW_CALL TestLoops(void *)
 void TW_CALL SplitSupPatches(void *)
 {
     PTr.SplitIntoSubPaths();
+    PTr.InitMetaMesh();
     PTr.GetCurrCandidates(CurrCandidates);
 
     ChosenCandidates.clear();
@@ -787,6 +789,9 @@ void InitLoopBar(QWidget *w)
 
     TwAddVarRW(bar,"DrawCorners",TW_TYPE_BOOLCPP,&drawCorners,"label='Draw Corners'");
 
+    TwAddVarRW(bar,"DrawMetamesh",TW_TYPE_BOOLCPP,&drawMetaMesh,"label='Draw MetaMesh'");
+
+
     TwAddSeparator(bar,NULL,NULL);
 
     TwAddVarRW(bar,"Drift",TW_TYPE_DOUBLE,&Drift,"label='Drift'");
@@ -813,6 +818,8 @@ void InitLoopBar(QWidget *w)
     //TwAddVarRW(bar,"MaxValence",TW_TYPE_INT32,&PTr.MaxVal,"label='Max Valence'");
     TwAddVarRW(bar,"MatchVal",TW_TYPE_BOOLCPP,&PTr.match_valence,"label='Match Valence'");
     TwAddVarRW(bar,"AddNeed",TW_TYPE_BOOLCPP,&add_only_needed,"label='Add Only need'");
+    TwAddVarRW(bar,"MetaMeshColl",TW_TYPE_BOOLCPP,&meta_mesh_collapse,"label='Meta Mesh Collapse'");
+
     //TwAddVarRW(bar,"InterRem",TW_TYPE_BOOLCPP,&interleave_removal,"label='Interleave removal'");
     //TwAddVarRW(bar,"InterSmth",TW_TYPE_BOOLCPP,&interleave_smooth,"label='Interleave smooth'");
     TwAddVarRW(bar,"FinalRem",TW_TYPE_BOOLCPP,&final_removal,"label='Final removal'");
@@ -954,8 +961,9 @@ void GLWidget::paintGL ()
             GLGraph.GLDrawPaths(ChosenCandidates,ChosenIsLoop,mesh.bbox.Diag()*0.01,drawPathNodes);
 
         //GLGraph.GLDrawPaths(DiscardedCandidates,DiscardedIsLoop,mesh.bbox.Diag()*0.01,true);
-        GLGraph.GLDrawNodes(TraceableFlatNode,mesh.bbox.Diag()*0.002);
-
+        //GLGraph.GLDrawNodes(TraceableFlatNode,mesh.bbox.Diag()*0.002);
+        if (drawMetaMesh)
+            PTr.GLDraweMetaMesh();
         //GLGraph.GLDrawSingNodes(mesh.bbox.Diag()*0.002);
     }
 

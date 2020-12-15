@@ -91,8 +91,8 @@ public:
     }
 
     void GLDrawSingNodes(const ScalarType &size,
-                        bool DrawDir=true,
-                        ScalarType GLSize=10)
+                         bool DrawDir=true,
+                         ScalarType GLSize=10)
     {
         GLDrawNodes(VFGraph.SingNodes,size,DrawDir);
     }

@@ -244,7 +244,8 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
                       bool onlyneeded,
                       //bool inteleaveremoval,
                       bool finalremoval,
-                      bool PreRemoveStep=true)
+                      bool PreRemoveStep=true,
+                      bool UseMetamesh=true)
                       //bool interleave_smooth=false)
 {
     typedef typename MeshType::ScalarType ScalarType;
@@ -327,7 +328,11 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     {
         //PTr.UpdatePartitionsFromChoosen(true);
         PTr.SetAllRemovable();
-        PTr.BatchRemoval(PreRemoveStep);
+        if (UseMetamesh)
+            PTr.BatchRemovalMetaMesh();
+        else
+            PTr.BatchRemoval(PreRemoveStep);
+
         std::cout<<"**** After Last Removal Step ****"<<std::endl;
         PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex,PatchTypes);
         WriteUnsolvedStats(PatchTypes);
@@ -345,10 +350,11 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     PTr.WriteInfo();
     int t1=clock();
     ScalarType ElpsedSec=(ScalarType)(t1-t0)/CLOCKS_PER_SEC;
-    std::cout<<"**** FINAL ELAPSED TIME "<<ElpsedSec<<" Unsolved Partitions ****"<<std::endl;
+    std::cout<<"**** FINAL ELAPSED TIME "<<ElpsedSec<<" Seconds ****"<<std::endl;
     ScalarType CopyMapSec=(ScalarType)timeCopyMap/CLOCKS_PER_SEC;
     std::cout<<"(Time copy Map) "<<CopyMapSec<<std::endl;
 
+    //PTr.InitMetaMesh();
 }
 
 

@@ -3,16 +3,18 @@
 
 #include "GL_vert_field_graph.h"
 #include "vertex_emitter.h"
+#include "patch_manager.h"
+#include "metamesh.h"
 
-#define MAX_SAMPLES 1000
-#define MIN_SAMPLES 50
-#define MAX_NARROW_CONST 0.05
-#define NARROW_NEED 1
-#define MAX_TWIN_DIKSTRA 1
-#define MIN_ADMITTIBLE 3
-#define MAX_ADMITTIBLE 6
-#define MAX_BORDER_SAMPLE 8
-#define MIN_BORDER_SAMPLE 1
+//#define MAX_SAMPLES 1000
+//#define MIN_SAMPLES 50
+//#define MAX_NARROW_CONST 0.05
+//#define NARROW_NEED 1
+//#define MAX_TWIN_DIKSTRA 1
+//#define MIN_ADMITTIBLE 3
+//#define MAX_ADMITTIBLE 6
+//#define MAX_BORDER_SAMPLE 8
+//#define MIN_BORDER_SAMPLE 1
 
 //namespace std {
 
@@ -461,29 +463,29 @@ void GetEdgeDirVertMap(const VertexFieldGraph<MeshType> &VFGraph,
             EdgeVert EdgeKey0(MinV,MaxV,IndexV0);
             EdgeVert EdgeKey1(MinV,MaxV,IndexV1);
 
-//            if (EdgeDirVert.count(EdgeKey0)>0)
-//            {
-//                std::cout<<"WARNING DOUBLE EDGE"<<std::endl;
-//                MeshType traceMesh;
-//                std::vector<bool> Selected(TraceSet.size(),false);
-//                Selected[i]=true;
-//                MeshTraces(VFGraph,TraceSet,Selected,traceMesh);
-//                vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_domain.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
-//                vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_error.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
-//                assert(0);
-//            }
+            //            if (EdgeDirVert.count(EdgeKey0)>0)
+            //            {
+            //                std::cout<<"WARNING DOUBLE EDGE"<<std::endl;
+            //                MeshType traceMesh;
+            //                std::vector<bool> Selected(TraceSet.size(),false);
+            //                Selected[i]=true;
+            //                MeshTraces(VFGraph,TraceSet,Selected,traceMesh);
+            //                vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_domain.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+            //                vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_error.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+            //                assert(0);
+            //            }
 
-//            if (EdgeDirVert.count(EdgeKey1)>0)
-//            {
-//                std::cout<<"WARNING DOUBLE EDGE"<<std::endl;
-//                MeshType traceMesh;
-//                std::vector<bool> Selected(TraceSet.size(),false);
-//                Selected[i]=true;
-//                MeshTraces(VFGraph,TraceSet,Selected,traceMesh);
-//                vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_domain.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
-//                vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_error.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
-//                assert(0);
-//            }
+            //            if (EdgeDirVert.count(EdgeKey1)>0)
+            //            {
+            //                std::cout<<"WARNING DOUBLE EDGE"<<std::endl;
+            //                MeshType traceMesh;
+            //                std::vector<bool> Selected(TraceSet.size(),false);
+            //                Selected[i]=true;
+            //                MeshTraces(VFGraph,TraceSet,Selected,traceMesh);
+            //                vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_domain.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+            //                vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_error.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
+            //                assert(0);
+            //            }
             assert(EdgeDirVert.count(EdgeKey0)==0);
             assert(EdgeDirVert.count(EdgeKey1)==0);
 
@@ -563,15 +565,15 @@ void FindPerVertDirs(const VertexFieldGraph<MeshType> &VFGraph,
                 size_t EdgeDir=EdgeDirVert[EdgeKey0];
                 DirVert[IndexV0].push_back(EdgeDir);
             }
-////            else
-////            {
-//                //check also on borders
-//                if (VFGraph.EdgeBorderDir.count(EdgeKey0)>0)
-//                {
-//                    size_t EdgeDir=EdgeDirVert[EdgeKey0];
-//                    DirVert[IndexV0].push_back(EdgeDir);
-//                }
-////            }
+            ////            else
+            ////            {
+            //                //check also on borders
+            //                if (VFGraph.EdgeBorderDir.count(EdgeKey0)>0)
+            //                {
+            //                    size_t EdgeDir=EdgeDirVert[EdgeKey0];
+            //                    DirVert[IndexV0].push_back(EdgeDir);
+            //                }
+            ////            }
 
             EdgeVert EdgeKey1(MinV,MaxV,IndexV1);
             if (EdgeDirVert.count(EdgeKey1)>0)//||(VFGraph.EdgeBorderDir.count(EdgeKey1)>0))
@@ -579,15 +581,15 @@ void FindPerVertDirs(const VertexFieldGraph<MeshType> &VFGraph,
                 size_t EdgeDir=EdgeDirVert[EdgeKey1];
                 DirVert[IndexV1].push_back(EdgeDir);
             }
-////            else
-////            {
-//                //check also on borders
-//                if (VFGraph.EdgeBorderDir.count(EdgeKey1)>0)
-//                {
-//                    size_t EdgeDir=EdgeDirVert[EdgeKey1];
-//                    DirVert[IndexV1].push_back(EdgeDir);
-//                }
-//            }
+            ////            else
+            ////            {
+            //                //check also on borders
+            //                if (VFGraph.EdgeBorderDir.count(EdgeKey1)>0)
+            //                {
+            //                    size_t EdgeDir=EdgeDirVert[EdgeKey1];
+            //                    DirVert[IndexV1].push_back(EdgeDir);
+            //                }
+            //            }
         }
     }
 }
@@ -986,14 +988,14 @@ void ColorMeshByExpValence(MeshType &mesh,
     for (size_t i=0;i<Partitions.size();i++)
     {
         bool OnCorner=false;
-        int ExpVal=ExpectedValence(mesh,Partitions[i],PartitionCorners[i],OnCorner);
+        int ExpVal=PatchManager<MeshType>::ExpectedValence(mesh,Partitions[i],PartitionCorners[i],OnCorner);
         vcg::Color4b CurrCol;
         if (ExpVal==-1)
             CurrCol=vcg::Color4b::Gray;
         else
         {
-//            if (PartitionCorners[i].size()==ExpVal)
-//                CurrCol=vcg::Color4b::Green;
+            //            if (PartitionCorners[i].size()==ExpVal)
+            //                CurrCol=vcg::Color4b::Green;
             if ((PartitionCorners[i].size()!=ExpVal)&&(!OnCorner))
                 CurrCol=vcg::Color4b::Red;
             else
@@ -1186,6 +1188,9 @@ public:
     std::vector<std::vector<size_t> > PartitionCorners;
 
     std::vector<PatchInfo<ScalarType> > PatchInfos;
+
+
+    MetaMesh<MeshType> MMesh;
 
 private:
 
@@ -2879,16 +2884,16 @@ public:
         //InitEdgeL();
         int t1=clock();
         //if the singularity have been used then ccability of valence 4 is not computed
-        GetPatchInfo(Mesh(),Partitions,PartitionCorners,VerticesNeeds,EdgeL,
-                     PatchInfos,avgEdge*CClarkability,match_valence);
+        PatchManager<MeshType>::GetPatchInfo(Mesh(),Partitions,PartitionCorners,VerticesNeeds,EdgeL,
+                                             PatchInfos,avgEdge*CClarkability,match_valence);
         int t2=clock();
         for (size_t i=0;i<Partitions.size();i++)
             UpdatePartitionType(i);
         int t3=clock();
 
-//                std::cout<<"Time Init Lenghts "<<t1-t0<<std::endl;
-//                std::cout<<"Time Get PInfo "<<t2-t1<<std::endl;
-//                std::cout<<"Time Update Type "<<t3-t2<<std::endl;
+        //                std::cout<<"Time Init Lenghts "<<t1-t0<<std::endl;
+        //                std::cout<<"Time Get PInfo "<<t2-t1<<std::endl;
+        //                std::cout<<"Time Update Type "<<t3-t2<<std::endl;
     }
 
 
@@ -2908,13 +2913,13 @@ public:
     {
         std::vector<std::vector<bool> > EdgeSel0,EdgeSel1;
         //get the old border nodes
-        SaveEdgeSel(Mesh(),EdgeSel0);
+        PatchManager<MeshType>::SaveEdgeSel(Mesh(),EdgeSel0);
         //select with the new ones
         //SelectMeshPatchBorders(Mesh(),ChoosenPaths);
         SelectMeshPatchBorders(VFGraph,ChoosenPaths);
         int t2=clock();
         //get the new ones
-        SaveEdgeSel(Mesh(),EdgeSel1);
+        PatchManager<MeshType>::SaveEdgeSel(Mesh(),EdgeSel1);
 
         //then get the difference in terms of faces
         std::vector<vcg::face::Pos<FaceType> > changedF;
@@ -2996,7 +3001,7 @@ public:
         PartitionCorners.insert(PartitionCorners.end(),PartitionCornersSwap.begin(),PartitionCornersSwap.end());
         PatchInfos.insert(PatchInfos.end(),PatchInfosSwap.begin(),PatchInfosSwap.end());
 
-        DerivePerFacePartition(Mesh(),Partitions,FacePartitions);
+        PatchManager<MeshType>::DerivePerFacePartition(Mesh(),Partitions,FacePartitions);
 
         //then update the ones that are missing of connectors because
         //they can be influenced by path that crosses a different partition
@@ -3131,7 +3136,7 @@ public:
             MeshType traceMesh;
             std::vector<bool> Selected(ChoosenPaths.size(),false);
             //Selected[i]=true;
-            MeshTraces(VFGraph,ChoosenPaths,Selected,traceMesh);
+            PatchManager<MeshType>::MeshTraces(VFGraph,ChoosenPaths,Selected,traceMesh);
             //vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"double_direction_domain.ply");
             vcg::tri::io::ExporterPLY<MeshType>::Save(traceMesh,"double_direction_error.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
         }
@@ -3142,7 +3147,7 @@ public:
 
         RetrievePatchesFromSelEdges(Mesh(),StartF,Partitions);
 
-        DerivePerFacePartition(Mesh(),Partitions,FacePartitions);
+        PatchManager<MeshType>::DerivePerFacePartition(Mesh(),Partitions,FacePartitions);
 
         //        int t1=clock();
 
@@ -3343,7 +3348,7 @@ private:
         //then retrieve partitions
         RetrievePatchesFromSelEdges(Mesh(),IdxFaces,Partitions);
 
-        DerivePerFacePartition(Mesh(),Partitions,FacePartitions);
+        PatchManager<MeshType>::DerivePerFacePartition(Mesh(),Partitions,FacePartitions);
         //find corners
         FindPartitionsCorners<MeshType>(VFGraph,VertType,ChoosenPaths,Partitions,PartitionCorners);
         //find type
@@ -3372,7 +3377,7 @@ private:
         int t2=clock();
         //UpdatePartitionsFromChoosen(true);
         std::vector<PatchInfo<ScalarType> > PatchInfos0=PatchInfos;
-        std::vector<std::vector<size_t> > FacePatches0=Partitions;
+        //std::vector<std::vector<size_t> > FacePatches0=Partitions;
 
         //test removal
         CandidateTrace OldTr=ChoosenPaths[IndexPath];
@@ -3393,7 +3398,7 @@ private:
         UpdatePatchAround(FacesPath);
         int t4=clock();
         std::vector<PatchInfo<ScalarType> > PatchInfos1=PatchInfos;
-        std::vector<std::vector<size_t> > FacePatches1=Partitions;
+        //std::vector<std::vector<size_t> > FacePatches1=Partitions;
 
         for (size_t i=0;i<PatchInfos1.size();i++)
         {
@@ -3410,10 +3415,9 @@ private:
         bool CanRemove=true;
         int t5=clock();
         //std::vector<typename MeshType::ScalarType> QThresold;
-        CanRemove=BetterConfiguaration(Mesh(),FacePatches0,FacePatches1,
-                                       PatchInfos0,PatchInfos1,MinVal,
-                                       MaxVal,CClarkability,avgEdge,
-                                       match_valence,debubg_msg);
+        CanRemove=PatchManager<MeshType>::BetterConfiguration(PatchInfos0,PatchInfos1,MinVal,
+                                                              MaxVal,CClarkability,avgEdge,
+                                                              match_valence,debubg_msg);
 
         int t6=clock();
         if (!CanRemove)
@@ -3424,14 +3428,14 @@ private:
             return false;
         }
 
-//        //END DEBUG CODE, NOT USEFUL
+        //        //END DEBUG CODE, NOT USEFUL
 
-//        std::cout<<"T0: "<<t1-t0<<std::endl;
-//        std::cout<<"T1: "<<t2-t1<<std::endl;
-//        std::cout<<"T2: "<<t3-t2<<std::endl;
-//        std::cout<<"T3: "<<t4-t3<<std::endl;
-//        std::cout<<"T4: "<<t5-t4<<std::endl;
-//        std::cout<<"T5: "<<t6-t5<<std::endl;
+        //        std::cout<<"T0: "<<t1-t0<<std::endl;
+        //        std::cout<<"T1: "<<t2-t1<<std::endl;
+        //        std::cout<<"T2: "<<t3-t2<<std::endl;
+        //        std::cout<<"T3: "<<t4-t3<<std::endl;
+        //        std::cout<<"T4: "<<t5-t4<<std::endl;
+        //        std::cout<<"T5: "<<t6-t5<<std::endl;
         return true;
     }
 
@@ -3496,7 +3500,8 @@ private:
             }
         }
         assert(StartI>=0);
-        assert(StartI<ToSplit.PathNodes.size());
+        //std::cout<<"Size "<<ToSplit.PathNodes.size()<<std::endl;
+        assert(StartI<(size_t)ToSplit.PathNodes.size());
         size_t numNodes=ToSplit.PathNodes.size();
         std::vector<std::vector<size_t> > SubPaths;
         SubPaths.resize(1);
@@ -3689,7 +3694,7 @@ public:
     //    }
     void SmoothPatches(size_t Steps=3,typename MeshType::ScalarType Damp=0.5)
     {
-        SmoothMeshPatches(Mesh(),FacePartitions,Steps,Damp);
+        PatchManager<MeshType>::SmoothMeshPatches(Mesh(),FacePartitions,Steps,Damp);
     }
 
     void SetAllRemovable()
@@ -3722,7 +3727,7 @@ public:
     void GetPatchMesh(const size_t &IndexPatch,
                       MeshType &PatchMesh)
     {
-        GetMeshFromPatch(Mesh(),IndexPatch,Partitions,PatchMesh);
+        PatchManager<MeshType>::GetMeshFromPatch(Mesh(),IndexPatch,Partitions,PatchMesh);
     }
 
     void GetVisualCornersPos(std::vector<CoordType> &PatchCornerPos)
@@ -3782,7 +3787,7 @@ public:
     }
 
     void InitTraceableBorders()//size_t minsuBSteps=MIN_BORDER_SAMPLE,
-                              //size_t maxsuBSteps=MAX_BORDER_SAMPLE)
+    //size_t maxsuBSteps=MAX_BORDER_SAMPLE)
     {
         std::vector<size_t> ConcaveV;
         GetVertexType(TVConcave,ConcaveV);
@@ -3798,7 +3803,7 @@ public:
         Corners.insert(Corners.end(),NarrowV.begin(),NarrowV.end());
 
         std::vector<std::vector<size_t> > BorderSequences;
-        GetBorderSequences<MeshType>(Mesh(),Corners,BorderSequences);
+        PatchManager<MeshType>::GetBorderSequences(Mesh(),Corners,BorderSequences);
 
 
         //set by defailt all Flat as non traceable
@@ -3830,7 +3835,7 @@ public:
         for (size_t i=0;i<BorderSequences.size();i++)
         {
             ScalarType angle,len;
-            GetSequencesLenghtAngle(Mesh(),BorderSequences[i],angle,len);
+            PatchManager<MeshType>::GetSequencesLenghtAngle(Mesh(),BorderSequences[i],angle,len);
             totLen+=len;
         }
         ScalarType lenInt=totLen/1000;
@@ -3838,8 +3843,8 @@ public:
         for (size_t i=0;i<BorderSequences.size();i++)
         {
             ScalarType angle,len;
-            GetSequencesLenghtAngle(Mesh(),BorderSequences[i],angle,len);
-//            std::cout<<"Size "<<BorderSequences[i].size()<<std::endl;
+            PatchManager<MeshType>::GetSequencesLenghtAngle(Mesh(),BorderSequences[i],angle,len);
+            //            std::cout<<"Size "<<BorderSequences[i].size()<<std::endl;
             ScalarType angleInt=((1.75*M_PI)/(MAX_BORDER_SAMPLE+1));
             //std::cout<<"Angle "<<angle<<std::endl;
             size_t DivisionAngle=floor(0.5+angle/angleInt);
@@ -4596,24 +4601,24 @@ public:
 
     void ColorByLenghtVariance()
     {
-        ColorByVarianceLenght(Mesh(),Partitions,PartitionCorners,EdgeL);
+        PatchManager<MeshType>::ColorByVarianceLenght(Mesh(),Partitions,PartitionCorners,EdgeL);
     }
 
     void ColorByLenghtDistortion()
     {
-        ColorByDistortionLenght(Mesh(),Partitions,PartitionCorners,EdgeL);
+        PatchManager<MeshType>::ColorByDistortionLenght(Mesh(),Partitions,PartitionCorners,EdgeL);
     }
 
     void ColorByArapDistortion()
     {
-        ColorByUVDistortionFaces(Mesh(),Partitions,PartitionCorners,Arap,false,false);
+        PatchManager<MeshType>::ColorByUVDistortionFaces(Mesh(),Partitions,PartitionCorners,Arap,false,false);
     }
 
     void ColorByCClarkability()
     {
         InitEdgeL();
-        ColorByCatmullClarkability(Mesh(),Partitions,PartitionCorners,
-                                   EdgeL,CClarkability,avgEdge,match_valence);
+        PatchManager<MeshType>::ColorByCatmullClarkability(Mesh(),Partitions,PartitionCorners,
+                                                           EdgeL,CClarkability,avgEdge,match_valence);
     }
 
     size_t UnsatisfiedNum()
@@ -4756,18 +4761,21 @@ public:
 
     size_t BatchRemoval(bool PreRemoveStep=true)//bool do_smooth=true)
     {
-        //        if (do_smooth)
-        //        {
-        //            UpdatePartitionsFromChoosen(false);
-        //            SmoothPatches(2);
-        //        }
+//        size_t Size0=ChoosenPaths.size();
+//        RemovePaths();
+//        size_t Size1=ChoosenPaths.size();
+//        return (Size0-Size1);
+
+
+        size_t Size0=ChoosenPaths.size();
         if (PreRemoveStep)
             RemovePaths();//false);
+        size_t Size1=ChoosenPaths.size();
 
         if (split_on_removal)
             SplitIntoSubPaths();
 
-        size_t Size0=ChoosenPaths.size();
+        size_t Size2=ChoosenPaths.size();
         RemovePaths();
 
         if (!PreRemoveStep)
@@ -4779,9 +4787,46 @@ public:
         if (DebugMsg)
             WriteInfo();
 
-        size_t Size1=ChoosenPaths.size();
+        size_t Size3=ChoosenPaths.size();
         assert(Size1<=Size0);
-        return (Size0-Size1);
+        assert(Size3<=Size2);
+        return ((Size0-Size1)+(Size2-Size3));
+    }
+
+    size_t BatchRemovalMetaMesh(bool PreRemoveStep=true)//bool do_smooth=true)
+    {
+
+        size_t Size0=ChoosenPaths.size();
+        if (PreRemoveStep)
+        {
+            //std::cout<<"**Pre Removal Step**"<<std::endl;
+            InitMetaMesh();
+            RemoveMetaMeshStep();
+        }
+        size_t Size1=ChoosenPaths.size();
+
+        if (split_on_removal)
+            SplitIntoSubPaths();
+
+        size_t Size2=ChoosenPaths.size();
+
+        InitMetaMesh();
+        RemoveMetaMeshStep();
+
+        if (!PreRemoveStep)
+        {
+            SplitIntoSubPaths();
+            InitMetaMesh();
+            RemoveMetaMeshStep();
+        }
+
+        if (DebugMsg)
+            WriteInfo();
+
+        size_t Size3=ChoosenPaths.size();
+        assert(Size1<=Size0);
+        assert(Size3<=Size2);
+        return ((Size0-Size1)+(Size2-Size3));
     }
 
     void FixCorners(size_t IndexPatch)
@@ -4890,9 +4935,8 @@ public:
         }while (removed<numRemoval);
     }
 
-    void FixValences()
+    size_t FixAmmittableValences()
     {
-
         size_t NeedFix=0;
         for (size_t i=0;i<PartitionCorners.size();i++)
             if ((PartitionCorners[i].size()<MIN_ADMITTIBLE)||
@@ -4901,6 +4945,14 @@ public:
                 NeedFix++;
                 FixCorners(i);
             }
+        return NeedFix;
+    }
+
+    void FixValences()
+    {
+
+        size_t NeedFix=FixAmmittableValences();
+
         if (match_valence)
         {
             vcg::tri::UpdateQuality<MeshType>::VertexConstant(Mesh(),0);
@@ -4915,7 +4967,7 @@ public:
             for (size_t i=0;i<PartitionCorners.size();i++)
             {
                 bool SingOnCorner=false;
-                int ExpVal=ExpectedValence(Mesh(),Partitions[i],PartitionCorners[i],SingOnCorner);
+                int ExpVal=PatchManager<MeshType>::ExpectedValence(Mesh(),Partitions[i],PartitionCorners[i],SingOnCorner);
                 if (ExpVal!=4)continue;
                 if (SingOnCorner)continue;
                 if (ExpVal>PartitionCorners[i].size())continue;
@@ -5325,7 +5377,7 @@ public:
     void ComputePatchesUV()
     {
         MeshType splittedUV;
-        ParametrizePatches(Mesh(),splittedUV,Partitions,PartitionCorners,Arap,false,true,true);
+        PatchManager<MeshType>::ParametrizePatches(Mesh(),splittedUV,Partitions,PartitionCorners,Arap,false,true,true);
     }
 
     void SubdivideIrrPatches()
@@ -5347,7 +5399,7 @@ public:
         Partitions=NewFacePaches;
         PartitionCorners=NewCorners;
 
-        DerivePerFacePartition(Mesh(),Partitions,FacePartitions);
+        PatchManager<MeshType>::DerivePerFacePartition(Mesh(),Partitions,FacePartitions);
 
         //SelectMeshPatchBorders(Mesh(),FacePartitions);
         Mesh().SelectSharpFeatures();
@@ -5382,6 +5434,49 @@ public:
         ChoosenPaths.clear();
         VerticesNeeds.clear();
         EdgeL.clear();
+    }
+
+    void GLDraweMetaMesh()
+    {
+        MMesh.GLDraw();
+    }
+
+    void InitMetaMesh()
+    {
+        FixAmmittableValences();
+
+        std::vector<std::vector<size_t> > CurrV,CurrDir;
+        std::vector<bool> IsLoop;
+        GetCurrVertDir(CurrV,CurrDir,IsLoop);
+
+        std::vector<size_t> NarrowV,ConcaveV,ConvexV;
+        GetVertexType(TVNarrow,NarrowV);
+        GetVertexType(TVConcave,ConcaveV);
+        GetVertexType(TVConvex,ConvexV);
+        std::vector<size_t> FixedV=NarrowV;
+        FixedV.insert(FixedV.end(),ConcaveV.begin(),ConcaveV.end());
+        FixedV.insert(FixedV.end(),ConvexV.begin(),ConvexV.end());
+
+        //std::vector<std::vector<ScalarType> >  SideLen;
+
+        MMesh.Init(&Mesh(),PartitionCorners,FacePartitions,CurrV,IsLoop,FixedV,EdgeL);
+    }
+
+    void RemoveMetaMeshStep()
+    {
+        MMesh.MergeLoop(avgEdge*CClarkability,MinVal,MaxVal,CClarkability,avgEdge,match_valence);
+        std::vector<size_t> RemPaths;
+        MMesh.GetRemainingPaths(RemPaths);
+        std::set<size_t> RemPathsSet(RemPaths.begin(),RemPaths.end());
+        for (size_t i=0;i<ChoosenPaths.size();i++)
+        {
+            if (RemPathsSet.count(i)>0)continue;
+            ChoosenPaths[i].PathNodes.clear();
+        }
+        RemoveEmptyPaths();
+        MergeContiguousPaths(ChoosenPaths);
+        RemoveEmptyPaths();
+        UpdatePartitionsFromChoosen(true);
     }
 
     PatchTracer(VertexFieldGraph<MeshType> &_VFGraph):VFGraph(_VFGraph)

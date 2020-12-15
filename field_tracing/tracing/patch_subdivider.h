@@ -137,7 +137,7 @@ class PatchSplitter
 
         if (Index<0)
         {
-            SetUVtoPos(mesh);
+            PatchManager<MeshType>::SetUVtoPos(mesh);
             vcg::tri::Allocator<MeshType>::AddVertex(mesh,CoordType(CenterUV.X(),CenterUV.Y(),0));
             vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"test0.ply",vcg::tri::io::Mask::IOM_FACECOLOR);
             assert(0);
@@ -624,7 +624,7 @@ public:
         for (size_t i=0;i<PatchFaces.size();i++)
         {
             ParamPatches.push_back(new MeshType());
-            ComputeParametrizedSubMesh(tri_mesh,*ParamPatches[i],
+            PatchManager<MeshType>::ComputeParametrizedSubMesh(tri_mesh,*ParamPatches[i],
                                        PatchFaces[i],CornersIDX[i],
                                        PatchCorners[i],
                                        Arap,true,true);
