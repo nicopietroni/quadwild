@@ -370,7 +370,7 @@ void SaveCSV(PatchTracer<MeshType> &PTr,
     pathCSVFinal=pathCSVFinal+"_p"+std::to_string(CurrNum)+".csv";
     FILE *f=fopen(pathCSVFinal.c_str(),"wt");
     assert(f!=NULL);
-    fprintf(f,"%s %d %d %d %d %d %d %d %d %d %d %d %d %d \n",pathProject.c_str(),
+    fprintf(f,"%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d \n",pathProject.c_str(),
             PInfo.NumPatchs,
             PInfo.HasEmit,
             PInfo.HighC,
