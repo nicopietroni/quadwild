@@ -270,9 +270,13 @@ public:
 
     static size_t openNonManifoldEdges(Mesh & m, const ScalarType moveThreshold)
     {
+
         vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
         vcg::tri::UpdateTopology<Mesh>::VertexFace(m);
         vcg::tri::UpdateFlags<Mesh>::VertexClearV(m);
+
+	std::cout << "Opening non-manifold edges...";
+	std::cout << "mesh starts with " << vcg::tri::Clean<Mesh>::CountNonManifoldEdgeFF(m) << std::endl;
 
         typedef typename vcg::face::Pos<FaceType> PosType;
 
@@ -371,10 +375,10 @@ public:
         int splitV = 0, openings = 0;
         do
         {
-            splitV = vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.00001);
-            openings = openNonManifoldEdges(m, 0.00001);
+	    vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
+            splitV = vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.0001);
+            openings = openNonManifoldEdges(m, 0.0001);
             std::cout << "Opened " << openings << " non manifold edges" << std::endl;
-            vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
         } while (splitV > 0 || openings > 0);
 
         vcg::tri::Clean<Mesh>::RemoveUnreferencedVertex(m);
@@ -387,8 +391,8 @@ public:
 
         vcg::tri::Append<Mesh, Mesh>::MeshCopy(*ret, m);
 	
-        vcg::tri::Clean<Mesh>::RemoveDuplicateFace(*ret);
-        vcg::tri::Clean<Mesh>::RemoveUnreferencedVertex(*ret);
+        std::cout << "Removed " << vcg::tri::Clean<Mesh>::RemoveDuplicateFace(*ret) << " duplicate faces..." << std::endl;
+        std::cout << "Removed " << vcg::tri::Clean<Mesh>::RemoveUnreferencedVertex(*ret) << " unreferenced vertices..." << std::endl;
         vcg::tri::Allocator<Mesh>::CompactEveryVector(*ret);
 
         vcg::tri::UpdateTopology<Mesh>::FaceFace(*ret);
@@ -396,7 +400,7 @@ public:
         std::cout << "[AutoRemeshCleaner] Removing colinear faces by flip..." << std::endl;
         removeColinearFaces(*ret);
 
-	vcg::tri::Clean<Mesh>::RemoveZeroAreaFace(*ret);
+	std::cout << "Removed " << vcg::tri::Clean<Mesh>::RemoveZeroAreaFace(*ret) << " zero area faces..." << std::endl;
 	vcg::tri::Clean<Mesh>::RemoveUnreferencedVertex(*ret);
         vcg::tri::Allocator<Mesh>::CompactEveryVector(*ret);
 
@@ -434,23 +438,33 @@ public:
         para.smoothFlag   = true;
         para.projectFlag  = true;
         para.selectedOnly = false;
-        para.adapt=false;
+        para.adapt=true;
 
         para.aspectRatioThr = 0.05;
         para.cleanFlag = false;
 
         para.maxSurfDist = m.bbox.Diag() / 2500.;
         para.surfDistCheck = m.FN() < 400000 ? par.surfDistCheck : false;
-        para.userSelectedCreases = par.userSelectedCreases;
+        para.userSelectedCreases = false;//par.userSelectedCreases;
 
         ScalarType prevFN = m.FN();
         ScalarType deltaFN = m.FN();
 
         ScalarType aspect = 0;
         ScalarType edgeLow  = 0;
-        ScalarType edgeL = std::sqrt(vcg::tri::Stat<Mesh>::ComputeMeshArea(m) * 2 / par.initialApproximateFN);
+        ScalarType edgeL = m.bbox.Diag() * 0.025;//std::sqrt(vcg::tri::Stat<Mesh>::ComputeMeshArea(m) * 2 / par.initialApproximateFN);
         ScalarType edgeHigh = edgeL * 2.;
 
+	para.SetTargetLen(edgeL);
+
+	vcg::tri::Append<Mesh, Mesh>::MeshCopy(*ret, m);
+
+	vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
+	std::cout << "Iter: "<<  0 << " faces: " << ret->FN() << " quality: " <<  computeAR(*ret) << std::endl;
+	para.SetTargetLen(edgeL);
+	vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
+        std::cout << "Iter: "<<  1 << " faces: " << ret->FN() << " quality: " <<  computeAR(*ret) << std::endl;
+/*
         bool forcedExit = false;
         int countIterations = 0;
         do {
@@ -473,7 +487,7 @@ public:
 	    if (aspect >= par.targetAspect && newFN >= 30000 && newFN <= 100000)
 		break;
 
-            if (aspect >= par.targetAspect /*&& ret->FN() > par.initialApproximateFN*/)
+            if (aspect >= par.targetAspect)
             {
                 edgeLow = edgeL;
             } else {
@@ -489,11 +503,6 @@ public:
                 break;
                 //vcg::tri::Append<Mesh, Mesh>::MeshCopy(m, *ret);
             }
-            /*if (countIterations > 7 && ret->FN() > 200000 && aspect < par.targetAspect * 0.5)
-                        {
-                                std::cerr << "[REMESH] Iterative search taking too much...Forcing exit... " << std::endl;
-                                break;
-                        }*/
 
 #ifdef DEBUG
             std::cout << "Delta FN " << deltaFN << std::endl;
@@ -502,7 +511,7 @@ public:
 #endif
         }
         while (aspect < par.targetAspect || deltaFN > par.targetDeltaFN);
-
+*/
         std::cerr << "[REMESH] RemeshedFaces:" << ret->FN() << std::endl;
         std::cerr << "[REMESH] RemeshedAspect:" << computeAR(*ret) << std::endl;
 
@@ -516,6 +525,14 @@ public:
             if (!f.IsD() && vcg::QualityRadii(f.cP(0), f.cP(1), f.cP(2)) <= 0.01)
                 f.SetS();
         });
+
+	int zeroArea = 0;
+	do 
+	{
+		zeroArea = vcg::tri::Clean<Mesh>::RemoveZeroAreaFace(*ret);
+		std::cout << "removed " << zeroArea << " zero area faces " << std::endl;
+	}
+	while(zeroArea != 0);
 
         vcg::tri::UpdateSelection<Mesh>::FaceDilate(*ret);
         //		vcg::tri::UpdateSelection<Mesh>::FaceDilate(*ret);
