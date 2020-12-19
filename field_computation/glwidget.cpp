@@ -178,6 +178,7 @@ void TW_CALL SmoothField(void *)
 {
     tri_mesh.SplitFolds();
     tri_mesh.RemoveFolds();
+    tri_mesh.RemoveSmallComponents();
     //vcg::tri::io::ExporterPLY<MyTriMesh>::Save(tri_mesh,"test0.ply");
     tri_mesh.SmoothField(FieldParam);
     //vcg::tri::io::ExporterPLY<MyTriMesh>::Save(tri_mesh,"test1.ply");
@@ -375,6 +376,7 @@ void BatchProcess ()
     //vcg::tri::io::ExporterPLY<MyTriMesh>::Save(tri_mesh,"test0.ply");
     tri_mesh.RemoveFolds();
     tri_mesh.SolveGeometricIssues();
+    tri_mesh.RemoveSmallComponents();
 
     tri_mesh.SmoothField(FieldParam);
 

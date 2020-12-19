@@ -1215,6 +1215,23 @@ public:
         return modified;
     }
 
+    void RemoveSmallComponents(size_t min_size=100)
+    {
+        std::vector< std::pair<int, typename MeshType::FacePointer> > CCV;
+        vcg::tri::Clean<MeshType>::ConnectedComponents((*this), CCV);
+        vcg::tri::ConnectedComponentIterator<MeshType> ci;
+        //vcg::tri::UpdateFlags<MeshType>::FaceClearS(*this);
+        for(unsigned int i=0;i<CCV.size();++i)
+        {
+            if (CCV[i].first>min_size)continue;
+            //std::vector<typename MeshType::FacePointer> FPV;
+            for(ci.start((*this),CCV[i].second);!ci.completed();++ci)
+                vcg::tri::Allocator<MeshType>::DeleteFace((*this),(*(*ci)));
+        }
+        vcg::tri::Clean<MeshType>::RemoveUnreferencedVertex(*this);
+        vcg::tri::Allocator<MeshType>::CompactEveryVector(*this);
+        UpdateDataStructures();
+    }
 
     void SolveGeometricIssues()
     {
