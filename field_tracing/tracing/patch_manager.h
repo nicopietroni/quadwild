@@ -12,6 +12,7 @@
 #include <vcg/complex/algorithms/create/platonic.h>
 #include <vcg/complex/algorithms/update/flag.h>
 
+#define MIN_SAMPLES_HARD 10
 #define MAX_SAMPLES 1000
 #define MIN_SAMPLES 50
 #define MAX_NARROW_CONST 0.05
@@ -302,6 +303,18 @@ public:
             }
     }
 
+    static void SelectFaces(MeshType &mesh,const std::vector<std::vector<size_t> > &FacesIDX)
+    {
+        vcg::tri::UpdateSelection<MeshType>::FaceClear(mesh);
+        for (size_t i=0;i<FacesIDX.size();i++)
+            for (size_t j=0;j<FacesIDX[i].size();j++)
+            {
+                size_t IndexF=FacesIDX[i][j];
+                assert(IndexF>=0);
+                assert(IndexF<mesh.face.size());
+                mesh.face[IndexF].SetS();
+            }
+    }
 
     static void GetIndexFromQ(MeshType &mesh,
                               const std::vector<size_t> &CornersIdxQ,

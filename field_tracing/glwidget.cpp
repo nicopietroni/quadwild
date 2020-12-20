@@ -50,8 +50,9 @@
 
 TwBar *bar;
 char * filename;/// filename of the mesh to load
-CMesh mesh;     /// the active mesh instance
+CMesh mesh,problematic_mesh;     /// the active mesh instance
 vcg::GlTrimesh<CMesh> glWrap;    /// the active mesh opengl wrapper
+vcg::GlTrimesh<CMesh> glWrapProblem;
 vcg::Trackball track;     /// the active manipulator
 GLW::DrawMode drawmode=GLW::DMFlatWire;     /// the current drawmode
 
@@ -91,7 +92,7 @@ bool meta_mesh_collapse=true;
 //bool interleave_removal=true;
 //bool interleave_smooth=false;
 bool final_removal=true;
-
+bool drawProblematicsOnly=false;
 int CurrNum=0;
 
 std::vector<size_t> ConcaveEmittersNode,ConcaveReceiversNode,
@@ -442,6 +443,8 @@ void UpdateVisualNodes()
     PTr.GetVisualCornersPos(PatchCornerPos);
 
     PTr.GetTraceableFlatNodes(TraceableFlatNode);
+
+    PTr.GetUnsolvedMesh(problematic_mesh);
 }
 
 void InitStructures()
@@ -561,7 +564,7 @@ void TW_CALL SubdividePatches(void *)
 void TW_CALL BatchRemoval(void *)
 {
     PTr.SetAllRemovable();
-    PTr.BatchRemoval();
+    PTr.BatchRemovalOnMesh();
     PTr.UpdatePartitionsFromChoosen(true);
     PTr.ColorByPartitions();
 
@@ -712,8 +715,8 @@ void  ProcessAllBatch()
     RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal);//,interleave_smooth);
     //RecursiveProcess<CMesh>(PTr,Drift,true,true,true);
     CurrPatchMode=CMPatchCol;
-    PTr.BatchRemoval();
-    PTr.FixValences();
+//    PTr.BatchRemoval();
+//    PTr.FixValences();
     CurrPatchMode=CMPatchCol;
     drawField=false;
     drawSharpF=false;
@@ -791,6 +794,7 @@ void InitLoopBar(QWidget *w)
 
     TwAddVarRW(bar,"DrawMetamesh",TW_TYPE_BOOLCPP,&drawMetaMesh,"label='Draw MetaMesh'");
 
+    TwAddVarRW(bar,"DrawProblematics",TW_TYPE_BOOLCPP,&drawProblematicsOnly,"label='Draw Problematic'");
 
     TwAddSeparator(bar,NULL,NULL);
 
@@ -904,6 +908,7 @@ void GLWidget::paintGL ()
     track.Apply();
     //glPushMatrix();
     glWrap.m = &mesh;
+    glWrapProblem.m=&problematic_mesh;
     if(mesh.vert.size()>0)
     {
         vcg::glScale(2.0f/mesh.bbox.Diag());
@@ -912,13 +917,29 @@ void GLWidget::paintGL ()
         vcg::glColor(vcg::Color4b(220,220,220,255));
         //glWrap.Draw(GLW::DrawMode(drawmode),GLW::CMNone,GLW::TMNone);
 
-        glWrap.Draw(GLW::DrawMode(drawmode),GLW::CMPerFace,GLW::TMNone);
+        if (!drawProblematicsOnly)
+            glWrap.Draw(GLW::DrawMode(drawmode),GLW::CMPerFace,GLW::TMNone);
+        else
+        {
+            glWrap.Draw(GLW::DMWire,GLW::CMNone,GLW::TMNone);
+            glWrapProblem.Draw(GLW::DrawMode(drawmode),GLW::CMPerFace,GLW::TMNone);
+        }
 
-        if (drawField)//&&(has_field))
-            vcg::GLField<CMesh>::GLDrawFaceField(mesh,false,false,0.005);
+        if (drawField)
+        {
+           if (!drawProblematicsOnly)
+                vcg::GLField<CMesh>::GLDrawFaceField(mesh,false,false,0.005);
+           else
+               vcg::GLField<CMesh>::GLDrawFaceField(problematic_mesh,false,false,0.005);
+        }
 
-        if (drawSing)//&&(has_field))
-            vcg::GLField<CMesh>::GLDrawSingularity(mesh);
+        if (drawSing)
+        {
+            if (!drawProblematicsOnly)
+                vcg::GLField<CMesh>::GLDrawSingularity(mesh);
+            else
+                vcg::GLField<CMesh>::GLDrawFaceField(problematic_mesh,false,false,0.005);
+        }
 
         if (drawTwins)
             GLGraph.GLDrawTwinsConnections();

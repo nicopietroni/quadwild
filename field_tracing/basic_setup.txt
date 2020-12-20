@@ -1,5 +1,5 @@
 Drift 100
-Srate 0.02
+Srate 0.005
 SplitOnRem 1
 MaxVal 5
 CCability 1

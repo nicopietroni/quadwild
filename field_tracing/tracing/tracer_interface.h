@@ -252,7 +252,7 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
 
     int t0=clock();
     //do a first step of tracing
-    PTr.Init(Drift,true);
+    //PTr.Init(Drift,true);
     PTr.BatchAddLoops(false,onlyneeded);
 
     //then do a first partitions update
@@ -282,7 +282,7 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
 
         std::cout<<"**** SUBPATCH STEP - THERE ARE "<<UnsolvedPartitionIndex.size()<<" Unsolved Partitions ****"<<std::endl;
         WriteUnsolvedStats(PatchTypes);
-
+        //PTr.WriteInfo();
         for(size_t i=0;i<UnsolvedPartitionIndex.size();i++)
         {
 
@@ -328,10 +328,10 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     {
         //PTr.UpdatePartitionsFromChoosen(true);
         PTr.SetAllRemovable();
-        if (UseMetamesh)
+        //if (UseMetamesh)
             PTr.BatchRemovalMetaMesh();
-        else
-            PTr.BatchRemoval(PreRemoveStep);
+//        else
+//            PTr.BatchRemoval(PreRemoveStep);
 
         std::cout<<"**** After Last Removal Step ****"<<std::endl;
         PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex,PatchTypes);

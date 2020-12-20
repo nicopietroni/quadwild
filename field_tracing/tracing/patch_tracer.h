@@ -17,6 +17,7 @@
 #include <vcg/complex/algorithms/symmetry.h>
 #include <wrap/io_trimesh/export_ply.h>
 #include <wrap/io_trimesh/export_obj.h>
+#include <vcg/complex/algorithms/update/selection.h>
 #include "vertex_emitter.h"
 #include "vertex_classifier.h"
 #include "candidate_path.h"
@@ -906,13 +907,59 @@ private:
 public:
 
 
+//    void SampleLoopEmitters()
+//    {
+//        //then add internal one for loops and other tracing
+//        std::vector<size_t> StartingNodes;
+//        size_t sampleNum=MIN_SAMPLES;
+//        if(sample_ratio<1)
+//        {
+//            if(sample_ratio>0)
+//                sampleNum=Mesh().vert.size()*sample_ratio;//floor(sqrt(Mesh().vert.size())+0.5)*10*sample_ratio;
+
+//            sampleNum=std::max(sampleNum,(size_t)MIN_SAMPLES);
+//            sampleNum=std::min(sampleNum,(size_t)MAX_SAMPLES);
+
+//            //SampleStartingNodes(false,sampleNum,StartingNodes);
+//            VertexFieldQuery<MeshType>::SamplePoissonNodes(VFGraph,sampleNum,StartingNodes);
+//        }
+//        if ((sample_ratio>1)||(StartingNodes.size()<MIN_SAMPLES_HARD))
+//        {
+//            //in this case select all vertices as starting points
+//            for (size_t i=0;i<Mesh().vert.size();i++)
+//            {
+//                std::vector<size_t> IndexN;
+//                VertexFieldGraph<MeshType>::IndexNodes(i,IndexN);
+//                if(VFGraph.IsActive(IndexN[0]))
+//                    StartingNodes.push_back(IndexN[0]);
+//                if(VFGraph.IsActive(IndexN[1]))
+//                    StartingNodes.push_back(IndexN[1]);
+//            }
+//        }
+//        std::vector<size_t> NodesSet;
+//        GetNodesType(TVInternal,NodesSet);
+//        //       std::cout<<" Before "<<NodesSet.size()<<" NODES "<<std::endl;
+//        //        std::cout<<" TARGET "<<sampleNum<<" NODES "<<std::endl;
+//        //        std::cout<<" SAMPLED INITIAL "<<StartingNodes.size()<<" NODES "<<std::endl;
+//        //        std::cout<<" SIZE VERT "<<Mesh().vert.size()<<std::endl;
+//        for (size_t i=0;i<StartingNodes.size();i++)
+//        {
+//            size_t IndexV=VertexFieldGraph<MeshType>::NodeVertI(StartingNodes[i]);
+//            //std::cout<<"Sampled V "<<IndexV<<std::endl;
+//            if (VertType[IndexV]!=TVInternal)continue;
+//            //assert(NodeEmitterTypes[StartingNodes[i]]==TVNone);
+//            NodeEmitterTypes[StartingNodes[i]]=TVInternal;
+//            //Emitter[IndexV].push_back(StartingNodes[i]);
+//        }
+//    }
+
     void SampleLoopEmitters()
     {
         //then add internal one for loops and other tracing
         std::vector<size_t> StartingNodes;
+        size_t sampleNum=MIN_SAMPLES;
         if(sample_ratio<1)
         {
-            size_t sampleNum=MIN_SAMPLES;
             if(sample_ratio>0)
                 sampleNum=Mesh().vert.size()*sample_ratio;//floor(sqrt(Mesh().vert.size())+0.5)*10*sample_ratio;
 
@@ -920,9 +967,9 @@ public:
             sampleNum=std::min(sampleNum,(size_t)MAX_SAMPLES);
 
             //SampleStartingNodes(false,sampleNum,StartingNodes);
-            VertexFieldQuery<MeshType>::SamplePoissonNodes(VFGraph,sampleNum,StartingNodes);
+            VertexFieldQuery<MeshType>::SamplePoissonNodes(VFGraph,sampleNum,StartingNodes,MIN_SAMPLES_HARD);
         }
-        else
+        if (sample_ratio>1)
         {
             //in this case select all vertices as starting points
             for (size_t i=0;i<Mesh().vert.size();i++)
@@ -935,7 +982,16 @@ public:
                     StartingNodes.push_back(IndexN[1]);
             }
         }
+        //then check each connected component has samples
+        //vcg::tri::Clean<MeshType>::ConnectedComponents(Mesh(),)
+
+//        std::vector<size_t> NodesSet;
+//        GetNodesType(TVInternal,NodesSet);
+        //       std::cout<<" Before "<<NodesSet.size()<<" NODES "<<std::endl;
+        std::cout<<" TARGET "<<sampleNum *2 <<" NODES "<<std::endl;
         std::cout<<" SAMPLED INITIAL "<<StartingNodes.size()<<" NODES "<<std::endl;
+        //exit(0);
+        //        std::cout<<" SIZE VERT "<<Mesh().vert.size()<<std::endl;
         for (size_t i=0;i<StartingNodes.size();i++)
         {
             size_t IndexV=VertexFieldGraph<MeshType>::NodeVertI(StartingNodes[i]);
@@ -946,6 +1002,7 @@ public:
             //Emitter[IndexV].push_back(StartingNodes[i]);
         }
     }
+
 private:
 
     //THIS INITIALIZE THE EMITTERS FOR EACH VERTEX
@@ -1517,6 +1574,13 @@ private:
         NodeEmitType.clear();
         for (size_t i=0;i<NodeEmitterTypes.size();i++)
             if (NodeEmitterTypes[i]==EmitType)
+                NodeEmitType.push_back(i);
+    }
+
+    void GetAllEmitter(std::vector<size_t> &NodeEmitType)
+    {
+        for (size_t i=0;i<NodeEmitterTypes.size();i++)
+            if (NodeEmitterTypes[i]!=TVNone)
                 NodeEmitType.push_back(i);
     }
 
@@ -3759,6 +3823,13 @@ public:
 
         if (DebugMsg)
             std::cout<<"**TRACING LOOPS ***"<<std::endl;
+        //ensure a minimal of loop to be traced, might happens when there is
+        //recoursive trace
+//        std::vector<size_t> NodesSet;
+//        GetEmitterType(TVInternal,NodesSet);
+//        GetE
+//        if (NodesSet.size()<MIN_SAMPLES_HARD)
+//            SampleLoopEmitters();
 
         InitCandidates(TVInternal,TVInternal,TraceLoop);
         size_t Size0=ChoosenPaths.size();
@@ -3773,12 +3844,12 @@ public:
         return (Size1-Size0);
     }
 
-    size_t BatchRemoval(bool PreRemoveStep=true)//bool do_smooth=true)
+    size_t BatchRemovalOnMesh(bool PreRemoveStep=true)//bool do_smooth=true)
     {
-//        size_t Size0=ChoosenPaths.size();
-//        RemovePaths();
-//        size_t Size1=ChoosenPaths.size();
-//        return (Size0-Size1);
+        //        size_t Size0=ChoosenPaths.size();
+        //        RemovePaths();
+        //        size_t Size1=ChoosenPaths.size();
+        //        return (Size0-Size1);
 
 
         size_t Size0=ChoosenPaths.size();
@@ -4000,6 +4071,18 @@ public:
     void BatchAddLoops(bool ForceReceivers,
                        bool AddOnlyNeeded)
     {
+        //might need to resample
+        //other disconnected components
+        std::vector<size_t> AllEmit;
+        GetAllEmitter(AllEmit);
+//        if (AllEmit.size()<MIN_SAMPLES_HARD)
+//        {
+////            size_t genus=vcg::tri::Clean<MeshType>::MeshGenus(Mesh());
+//            size_t numB=vcg::tri::Clean<MeshType>::CountHoles(Mesh());
+//            if (numB==0)
+//                SampleLoopEmitters();
+//        }
+
         if (AddOnlyNeeded)
             UpdatePartitionsFromChoosen(true);
 
@@ -4159,18 +4242,35 @@ public:
     }
 
     void GetUnsolvedPartitions(std::vector<std::vector<size_t> > &UnsolvedPartition,
-                               std::vector<PatchType> &UnsolvedType)
+                               std::vector<PatchType> &UnsolvedType,
+                               bool UpdatePart)
     {
         UnsolvedPartition.clear();
         UnsolvedType.clear();
 
-        UpdatePartitionsFromChoosen(true);
+        if (UpdatePart)
+            UpdatePartitionsFromChoosen(true);
+
         for (size_t i=0;i<Partitions.size();i++)
         {
             if (PartitionType[i]==IsOK)continue;
             UnsolvedPartition.push_back(Partitions[i]);
             UnsolvedType.push_back(PartitionType[i]);
         }
+    }
+
+    void GetUnsolvedMesh(MeshType &problem_mesh)
+    {
+        problem_mesh.Clear();
+        std::vector<std::vector<size_t> > UnsolvedPartition;
+        std::vector<PatchType> UnsolvedType;
+        GetUnsolvedPartitions(UnsolvedPartition,UnsolvedType,false);
+        PatchManager<MeshType>::SelectFaces(Mesh(),UnsolvedPartition);
+        vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(problem_mesh);
+
+        vcg::tri::Append<MeshType,MeshType>::Mesh(problem_mesh,Mesh(),true);
+        //vcg::tri::io::ExporterPLY<MeshType>::Save(problem_mesh,"test_problem.ply");
+        problem_mesh.UpdateAttributes();
     }
 
     void GetCurrChosenIsLoop(std::vector<bool> &ChosenIsLoop)

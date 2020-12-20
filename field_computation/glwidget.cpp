@@ -360,7 +360,7 @@ void BatchProcess ()
     {
         std::cout<<"Using Comiso"<<std::endl;
         FieldParam.SmoothM=SMMiq;
-        FieldParam.alpha_curv=0.2;
+        FieldParam.alpha_curv=0.3;
     }
 
     std::string projM=pathM;
