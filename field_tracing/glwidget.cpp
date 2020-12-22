@@ -344,17 +344,17 @@ void FindCurrentNum()
     std::string BasePath=pathProject;
     BasePath.resize(BasePath.find_last_of("/")+1);
     BasePath="./"+BasePath;
-    std::cout<<"basepath "<<BasePath.c_str()<<std::endl;
+    //std::cout<<"basepath "<<BasePath.c_str()<<std::endl;
     QDir directory(BasePath.c_str());
 
     QFile f(pathM.c_str());
     QFileInfo fileInfo(f.fileName());
     QString filename(fileInfo.fileName());
     std::string NameFile=filename.toStdString();
-    std::cout<<"namefile "<<NameFile.c_str()<<std::endl;
+    //std::cout<<"namefile "<<NameFile.c_str()<<std::endl;
     NameFile.resize(NameFile.find_last_of("."));
     std::string Filter=NameFile+"_p*.obj";
-    std::cout<<"filter "<<Filter.c_str()<<std::endl;
+    //std::cout<<"filter "<<Filter.c_str()<<std::endl;
 
 //    TestPath+="*.obj";
    QStringList projectFiles = directory.entryList(QStringList() <<Filter.c_str(),QDir::Files);
@@ -365,7 +365,7 @@ void FindCurrentNum()
         std::string TestScan=NameFile+"_p%d.obj";
         sscanf (filename.toStdString().c_str(),TestScan.c_str(),&Num);
         CurrNum=std::max(CurrNum,(Num+1));
-        std::cout<<"test "<<Num<<std::endl;
+//        std::cout<<"test "<<Num<<std::endl;
 //        std::cout<<"test "<<filename.toStdString().c_str()<<std::endl;
     //do whatever you need to do
     }
@@ -460,7 +460,7 @@ void InitStructures()
 
     PreProcessMesh(mesh);
 
-    VGraph.Init(true);//SingPos);
+    VGraph.Init(false);//SingPos);
 
     GLGraph.InitDisplacedPos();
 
@@ -564,7 +564,12 @@ void TW_CALL SubdividePatches(void *)
 void TW_CALL BatchRemoval(void *)
 {
     PTr.SetAllRemovable();
-    PTr.BatchRemovalOnMesh();
+
+    if (meta_mesh_collapse)
+        PTr.BatchRemovalMetaMesh();
+    else
+        PTr.BatchRemovalOnMesh();
+
     PTr.UpdatePartitionsFromChoosen(true);
     PTr.ColorByPartitions();
 
@@ -983,6 +988,7 @@ void GLWidget::paintGL ()
 
         //GLGraph.GLDrawPaths(DiscardedCandidates,DiscardedIsLoop,mesh.bbox.Diag()*0.01,true);
         //GLGraph.GLDrawNodes(TraceableFlatNode,mesh.bbox.Diag()*0.002);
+
         if (drawMetaMesh)
             PTr.GLDraweMetaMesh();
         //GLGraph.GLDrawSingNodes(mesh.bbox.Diag()*0.002);

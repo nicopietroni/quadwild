@@ -143,6 +143,23 @@ struct EdgeVert
     }
 };
 
+
+struct EdgeVertKeyHasher
+{
+  std::size_t operator()(const EdgeVert& k) const
+  {
+    //using std::size_t;
+    //using std::hash;
+    //using std::string;
+    const size_t _HASH_P0 = 73856093u;
+    const size_t _HASH_P1 = 19349663u;
+    const size_t _HASH_P2 = 83492791u;
+    return ((std::hash<size_t>()(k.EV0)*_HASH_P0)
+             ^ (std::hash<size_t>()(k.EV1) *_HASH_P1)
+             ^ (std::hash<size_t>()(k.CurrV) *_HASH_P2));
+  }
+};
+
 template <class MeshType>
 class VertexFieldGraph
 {
@@ -166,6 +183,7 @@ class VertexFieldGraph
 public:
 
     std::map<EdgeVert,size_t> EdgeBorderDir;
+    //std::unordered_map<EdgeVert,size_t,EdgeVertKeyHasher> EdgeBorderDir;
 
     struct NeighInfo
     {
@@ -699,6 +717,7 @@ private:
                 assert(EdgeBorderDir.count(EdgeKey1)==0);
                 EdgeBorderDir[EdgeKey1]= DirFlatV1;
             }
+
     }
 
     void InitConnections()

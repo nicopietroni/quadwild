@@ -1074,6 +1074,144 @@ public:
     //            std::cout<<"Sampled "<<PoissonNodes.size()<<" samples"<<std::endl;
     //    }
 
+    static void SamplePoints(MeshType &samplingMesh,
+                             MeshType &borderSample_mesh,
+                             std::vector<CoordType> &Sampled_pos,
+                             ScalarType &poisson_radius,
+                             const size_t &minSample_per_CC)
+    {
+        std::vector<CoordType> sampleVec;
+        vcg::tri::TrivialSampler<MeshType> mps(sampleVec);
+
+        //        //set the boorders as constraints
+        //        MeshType borderSample_mesh;
+        //        vcg::tri::SurfaceSampling<MeshType,vcg::tri::TrivialSampler<MeshType> >::VertexBorder(samplingMesh,mps);
+        //        vcg::tri::BuildMeshFromCoordVector(borderSample_mesh,sampleVec);
+
+        //then sample interior
+        MeshType MontecarloSamples;
+        sampleVec.clear();
+        for (size_t i=0;i<samplingMesh.vert.size();i++)
+            sampleVec.push_back(samplingMesh.vert[i].P());
+
+        //vcg::tri::SurfaceSampling<MeshType,vcg::tri::TrivialSampler<MeshType> >::Montecarlo(samplingMesh,mps,50000);
+        vcg::tri::BuildMeshFromCoordVector(MontecarloSamples,sampleVec);
+
+        // -- Prune the montecarlo sampling with poisson strategy using the precomputed vertexes on the border.
+        typename vcg::tri::SurfaceSampling<MeshType,vcg::tri::TrivialSampler<MeshType> >::PoissonDiskParam pp;
+        pp.preGenMesh = &borderSample_mesh;
+        pp.preGenFlag=true;
+        sampleVec.clear();
+        vcg::tri::SurfaceSampling<MeshType,vcg::tri::TrivialSampler<MeshType> >::PoissonDiskPruning(mps, MontecarloSamples, poisson_radius, pp);
+
+        //then return the positions
+        Sampled_pos=sampleVec;
+    }
+
+    static void SampleGraphPoints(VertexFieldGraph<MeshType> &VFGraph,
+                                  std::vector<CoordType> &Sampled_pos,
+                                  const size_t &sampleNum,
+                                  const size_t &minSample_per_CC)
+    {
+        typedef vcg::tri::TrivialSampler<MeshType> BaseSampler;
+        ScalarType radius = vcg::tri::SurfaceSampling<MeshType,BaseSampler>::ComputePoissonDiskRadius(VFGraph.Mesh(),sampleNum);
+
+        //get the filterign sampling
+        std::vector<CoordType> BorderPos;
+        for (size_t i=0;i<VFGraph.Mesh().vert.size();i++)
+        {
+            if (!VFGraph.Mesh().vert[i].IsB())continue;
+            BorderPos.push_back(VFGraph.Mesh().vert[i].P());
+        }
+        std::set<CoordType> BorderPosSet(BorderPos.begin(),BorderPos.end());
+        MeshType borderSample_mesh;
+        vcg::tri::BuildMeshFromCoordVector(borderSample_mesh,BorderPos);
+
+        //create a copy of the mesh to remove artificial borders
+        MeshType SamplingMesh;
+        vcg::tri::Append<MeshType,MeshType>::Mesh(SamplingMesh,VFGraph.Mesh());
+        vcg::tri::Clean<MeshType>::RemoveDuplicateVertex(SamplingMesh);
+        vcg::tri::Allocator<MeshType>::CompactEveryVector(SamplingMesh);
+        SamplingMesh.UpdateAttributes();
+
+        //then find connected components
+        std::vector< std::pair<int, typename MeshType::FacePointer> > CCV;
+        vcg::tri::Clean<MeshType>::ConnectedComponents(SamplingMesh, CCV);
+        vcg::tri::ConnectedComponentIterator<MeshType> ci;
+        //std::vector<MeshType*> ComponentMesh;
+        std::vector<CoordType> partition_sample;
+        for(unsigned int i=0;i<CCV.size();++i)
+        {
+            vcg::tri::UpdateSelection<MeshType>::FaceClear(SamplingMesh);
+            vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(SamplingMesh);
+
+            for(ci.start(SamplingMesh,CCV[i].second);!ci.completed();++ci)
+                (*ci)->SetS();
+
+            //copy the submesh
+            MeshType SubMesh;
+            vcg::tri::Append<MeshType,MeshType>::Mesh(SubMesh,SamplingMesh,true);
+            SubMesh.UpdateAttributes();
+
+            //sample the submesh
+            std::vector<CoordType> submesh_pos;
+            SamplePoints(SubMesh,borderSample_mesh,submesh_pos,radius,minSample_per_CC);
+            //SamplePoints(VFGraph.Mesh(),borderSample_mesh,partition_sample,radius,minSample_per_CC);
+
+            partition_sample.insert(partition_sample.end(),submesh_pos.begin(),submesh_pos.end());
+        }
+
+        //then put back all the vertices except border ones
+        for (size_t i=0;i<partition_sample.size();i++)
+        {
+            if (BorderPosSet.count(partition_sample[i])>0)continue;
+            Sampled_pos.push_back(partition_sample[i]);
+        }
+
+    }
+
+    static void SamplePoissonNodesBorderFiltering(VertexFieldGraph<MeshType> &VFGraph,
+                                   size_t sampleNum,
+                                   std::vector<size_t> &PoissonNodes,
+                                   int minSample_per_CC,
+                                   bool DebugMsg=false)
+    {
+        PoissonNodes.clear();
+
+        if (DebugMsg)
+            std::cout<<"Poisson Sampling "<<sampleNum<<" Target samples"<<std::endl;
+
+        std::vector<CoordType> Sampled_pos;
+        SampleGraphPoints(VFGraph,Sampled_pos,sampleNum,minSample_per_CC);
+//        MeshType PoissonMesh;
+//        vcg::tri::BuildMeshFromCoordVector(PoissonMesh,Sampled_pos);
+        //vcg::tri::io::ExporterPLY<MeshType>::Save(PoissonMesh,"PoissonMesh.ply");
+
+        std::set<CoordType> Sampled_posSet(Sampled_pos.begin(),Sampled_pos.end());
+        vcg::tri::UpdateFlags<MeshType>::VertexClearV(VFGraph.Mesh());
+        for (size_t i=0;i<VFGraph.Mesh().vert.size();i++)
+        {
+            CoordType test_pos=VFGraph.Mesh().vert[i].P();
+            if (Sampled_posSet.count(test_pos)==0)continue;
+            VFGraph.Mesh().vert[i].SetV();
+        }
+
+        for (size_t i=0;i<VFGraph.Mesh().vert.size();i++)
+        {
+            //size_t IndexV=vcg::tri::Index(VFGraph.Mesh(),seedVec[i]);
+            if (!VFGraph.Mesh().vert[i].IsV())continue;
+            std::vector<size_t> IndexN;
+            VertexFieldGraph<MeshType>::IndexNodes(i,IndexN);
+            if(VFGraph.IsActive(IndexN[0]))
+                PoissonNodes.push_back(IndexN[0]);
+            if(VFGraph.IsActive(IndexN[1]))
+                PoissonNodes.push_back(IndexN[1]);
+        }
+        if (DebugMsg)
+            std::cout<<"Sampled "<<PoissonNodes.size()<<" samples"<<std::endl;
+
+
+    }
 
     static void SamplePoissonNodes(VertexFieldGraph<MeshType> &VFGraph,
                                    size_t sampleNum,
@@ -1089,6 +1227,7 @@ public:
             std::cout<<"Poisson Sampling "<<sampleNum<<" Target samples"<<std::endl;
 
         vcg::tri::PoissonSampling<MeshType>(VFGraph.Mesh(),pointVec,sampleNum,radius,1,0.04f,276519752);
+
         std::vector<VertexType*> seedVec;
         vcg::tri::VoronoiProcessing<MeshType>::SeedToVertexConversion(VFGraph.Mesh(),pointVec,seedVec);
 
@@ -1147,19 +1286,17 @@ public:
         }
         if (DebugMsg)
             std::cout<<"Sampled "<<PoissonNodes.size()<<" samples"<<std::endl;
+
+
+        std::vector<CoordType> Sampled_pos;
+        SampleGraphPoints(VFGraph,Sampled_pos,sampleNum,minSample_per_CC);
+        MeshType PoissonMesh;
+        vcg::tri::BuildMeshFromCoordVector(PoissonMesh,Sampled_pos);
+        vcg::tri::io::ExporterPLY<MeshType>::Save(PoissonMesh,"PoissonMesh.ply");
+
     }
 
 
-    //    vcg::tri::Clean<MeshType>::ConnectedComponents((*this), CCV);
-    //    vcg::tri::ConnectedComponentIterator<MeshType> ci;
-    //    //vcg::tri::UpdateFlags<MeshType>::FaceClearS(*this);
-    //    for(unsigned int i=0;i<CCV.size();++i)
-    //    {
-    //        if (CCV[i].first>min_size)continue;
-    //        //std::vector<typename MeshType::FacePointer> FPV;
-    //        for(ci.start((*this),CCV[i].second);!ci.completed();++ci)
-    //            vcg::tri::Allocator<MeshType>::DeleteFace((*this),(*(*ci)));
-    //    }
 };
 
 #endif

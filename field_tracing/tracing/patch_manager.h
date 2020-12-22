@@ -12,7 +12,7 @@
 #include <vcg/complex/algorithms/create/platonic.h>
 #include <vcg/complex/algorithms/update/flag.h>
 
-#define MIN_SAMPLES_HARD 10
+#define MIN_SAMPLES_HARD 4
 #define MAX_SAMPLES 1000
 #define MIN_SAMPLES 50
 #define MAX_NARROW_CONST 0.05
@@ -1053,12 +1053,14 @@ public:
 
     static void SaveEdgeSel(MeshType &mesh,std::vector<std::vector<bool> > &EdgeSel)
     {
-        EdgeSel.resize(mesh.face.size(),std::vector<bool>(3,false));
+        assert(EdgeSel.size()==mesh.face.size());
         for (size_t i=0;i<mesh.face.size();i++)
             for (size_t j=0;j<3;j++)
             {
-                if (!mesh.face[i].IsFaceEdgeS(j))continue;
-                EdgeSel[i][j]=true;
+                if (!mesh.face[i].IsFaceEdgeS(j))
+                    EdgeSel[i][j]=false;
+                else
+                    EdgeSel[i][j]=true;
             }
     }
 
@@ -1084,6 +1086,7 @@ public:
     {
 
         std::vector<std::vector<bool> > EdgeSel;
+        EdgeSel.resize(mesh.face.size(),std::vector<bool>(3,false));
         SaveEdgeSel(mesh,EdgeSel);
 
         //select borders
@@ -1326,8 +1329,8 @@ public:
         for (size_t i=0;i<SideL.size();i++)
         {
             //bool CC=IsCatmullClarkable(PatchFaces[i].size(),SideL[i],Thr,SkipValence4);
-//            size_t addedS=AddedSingularities(PatchFaces[i].size(),SideL[i],
-//                                             CClarkability*avEdge,SkipValence4);
+            //            size_t addedS=AddedSingularities(PatchFaces[i].size(),SideL[i],
+            //                                             CClarkability*avEdge,SkipValence4);
 
             size_t addedS=AddedSingularities(SideL[i],CClarkability*avEdge,SkipValence4);
 
@@ -1710,8 +1713,8 @@ public:
     }
 
     static bool BetterConfiguration(//MeshType &mesh,
-//                                    const std::vector<std::vector<size_t> > &PatchFaces0,
-//                                    const std::vector<std::vector<size_t> > &PatchFaces1,
+                                    //                                    const std::vector<std::vector<size_t> > &PatchFaces0,
+                                    //                                    const std::vector<std::vector<size_t> > &PatchFaces1,
                                     const std::vector<PatchInfo<typename MeshType::ScalarType> > &PInf0,
                                     const std::vector<PatchInfo<typename MeshType::ScalarType> > &PInf1,
                                     size_t MinSides,size_t MaxSides,
@@ -1720,9 +1723,9 @@ public:
                                     bool match_sing_valence,
                                     bool print_debug=false)
     {
-//        std::cout<<"CClarkability"<<CClarkability<<std::endl;
-//        std::cout<<"AvgEdge"<<avgEdge<<std::endl;
-//        std::cout<<"Match Sing"<<match_sing_valence<<std::endl;
+        //        std::cout<<"CClarkability"<<CClarkability<<std::endl;
+        //        std::cout<<"AvgEdge"<<avgEdge<<std::endl;
+        //        std::cout<<"Match Sing"<<match_sing_valence<<std::endl;
         size_t NonOKGenus0=0;
         size_t NonOKGenus1=0;
         size_t NonOKEmitters0=0;
@@ -1789,9 +1792,9 @@ public:
             //if match singularity than no need to check CCability for valence 4
             if (CClarkability>0)
             {
-//                Sing1+=AddedSingularities(PatchFaces1[i].size(),PInf1[i].CurvedL,
-//                                          CClarkability*avgEdge,match_sing_valence,
-//                                          print_debug);
+                //                Sing1+=AddedSingularities(PatchFaces1[i].size(),PInf1[i].CurvedL,
+                //                                          CClarkability*avgEdge,match_sing_valence,
+                //                                          print_debug);
                 Sing1+=AddedSingularities(PInf1[i].CurvedL,CClarkability*avgEdge,
                                           match_sing_valence,print_debug);
             }

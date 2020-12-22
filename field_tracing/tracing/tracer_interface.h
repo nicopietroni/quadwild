@@ -138,7 +138,8 @@ bool TraceSubPatch(const size_t &IndexPatch,
                    std::vector<std::vector<size_t> > &VertDir,
                    std::vector<bool> &IsLoop,
                    bool onlyneeded,
-                   bool DebugMsg=false)
+                   bool resample_loops,
+                   bool DebugMsg)
 {
     //first copy the submesh
     for (size_t i=0;i<PTr.Mesh().vert.size();i++)
@@ -170,7 +171,6 @@ bool TraceSubPatch(const size_t &IndexPatch,
     //SubTr.InitBorderDirMap();
     //this put 100 sample by default
     //SubTr.sample_ratio=-1;
-    //SubTr.SampleLoopEmitters();
     size_t Added_paths=SubTr.CopyPathsFrom(PTr,VertMap);
     SubTr.InitEdgeL();
     if (Added_paths>0)
@@ -178,7 +178,12 @@ bool TraceSubPatch(const size_t &IndexPatch,
         std::cout<<"ADDED "<<Added_paths<<" EXTRA PATH IN SUBDIVISION"<<std::endl;
         for (size_t i=0;i<SubTr.ChoosenPaths.size();i++)
             SubTr.ChoosenPaths[i].Unremovable=true;
+
+        //SubTr.SampleLoopEmitters(false,MIN_SAMPLES_HARD);
     }
+    if (resample_loops)
+        SubTr.SampleLoopEmitters(false);
+    //SubTr.SampleLoopEmitters(false);
 
     //first update of the sub patch (fast and set needs)
     //SubTr.UpdatePartitionsFromChoosen(true);
@@ -239,25 +244,10 @@ void WriteUnsolvedStats(const std::vector<PatchType> &PatchTypes)
 }
 
 template <class MeshType>
-void RecursiveProcess(PatchTracer<MeshType> &PTr,
-                      const typename MeshType::ScalarType Drift,
-                      bool onlyneeded,
-                      //bool inteleaveremoval,
-                      bool finalremoval,
-                      bool PreRemoveStep=true,
-                      bool UseMetamesh=true)
-                      //bool interleave_smooth=false)
+void SolveSubPatches(PatchTracer<MeshType> &PTr,
+                     bool onlyneeded,
+                     bool only_non_disk)
 {
-    typedef typename MeshType::ScalarType ScalarType;
-
-    int t0=clock();
-    //do a first step of tracing
-    //PTr.Init(Drift,true);
-    PTr.BatchAddLoops(false,onlyneeded);
-
-    //then do a first partitions update
-    PTr.UpdatePartitionsFromChoosen(true);
-
     std::vector<std::vector<size_t> > TotVertIdx;
     std::vector<std::vector<size_t> > TotVertDir;
     std::vector<bool> TotIsLoop;
@@ -275,12 +265,16 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
         std::vector<bool> OLDIsLoop=TotIsLoop;
 
         PTr.LazyUpdatePartitions();
-        //PTr.UpdatePartitionsFromChoosen(true);
-        PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex,PatchTypes);
+        std::cout<<"**** RETRIEVING NON OK PATCHES ****"<<std::endl;
+        if (!only_non_disk)
+            PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex,PatchTypes);
+        else
+            PTr.GetTopologicallyOKPartitionsIndex(UnsolvedPartitionIndex);
+
         if (UnsolvedPartitionIndex.size()==0)
             solved=true;
 
-        std::cout<<"**** SUBPATCH STEP - THERE ARE "<<UnsolvedPartitionIndex.size()<<" Unsolved Partitions ****"<<std::endl;
+        std::cout<<"**** SUBPATCH TRACING - THERE ARE "<<UnsolvedPartitionIndex.size()<<" Unsolved Partitions ****"<<std::endl;
         WriteUnsolvedStats(PatchTypes);
         //PTr.WriteInfo();
         for(size_t i=0;i<UnsolvedPartitionIndex.size();i++)
@@ -292,7 +286,7 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
 
             bool traced=TraceSubPatch<MeshType>(UnsolvedPartitionIndex[i],PTr,
                                                 NewVertIdx,NewVertDir,
-                                                NewIsLoop,onlyneeded,false);
+                                                NewIsLoop,onlyneeded,only_non_disk,false);
 
             TotVertIdx.insert(TotVertIdx.end(),NewVertIdx.begin(),NewVertIdx.end());
             TotVertDir.insert(TotVertDir.end(),NewVertDir.begin(),NewVertDir.end());
@@ -311,27 +305,70 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
 
         //add a last step withmore tolerance in case
         //it cannot close the concave/narrow
-        if ((!added_trace)&&(PTr.HasIncompleteEmitter())&&(!augmented_max_narrow_dist))
+        if ((!only_non_disk)&&(!added_trace)&&
+            (PTr.HasIncompleteEmitter())&&
+            (!augmented_max_narrow_dist))
         {
             augmented_max_narrow_dist=true;
             PTr.MaxNarrowWeight*=100;
             added_trace=true;
         }
     }while(added_trace & (!solved));
+}
 
+template <class MeshType>
+void RecursiveProcess(PatchTracer<MeshType> &PTr,
+                      const typename MeshType::ScalarType Drift,
+                      bool onlyneeded,
+                      //bool inteleaveremoval,
+                      bool finalremoval,
+                      bool PreRemoveStep=true,
+                      bool UseMetamesh=true)
+                      //bool interleave_smooth=false)
+{
+    typedef typename MeshType::ScalarType ScalarType;
+
+    int t0=clock();
+    //do a first step of tracing
+    //PTr.Init(Drift,true);
+
+    std::cout<<"**** FIRST TRACING STEP ****"<<std::endl;
+    PTr.BatchAddLoops(false,onlyneeded);
+
+    //then do a first partitions update
+    std::cout<<"Updating Patches"<<std::endl;
+    PTr.UpdatePartitionsFromChoosen(true);
+    std::cout<<"Updated"<<std::endl;
+
+    //solve sub patches normally
+    std::cout<<"**** FIRST SUBTRACING STEP ****"<<std::endl;
+    SolveSubPatches(PTr,onlyneeded,false);
+//    assert(PTr.EdgeSel0.size()==PTr.Mesh().face.size());
+//    assert(PTr.EdgeSel1.size()==PTr.Mesh().face.size());
+
+    //then check if there is some non-disk-like patches
+    std::cout<<"**** CHECK NO DISK ONES ****"<<std::endl;
+    SolveSubPatches(PTr,onlyneeded,true);
+
+    std::vector<size_t> UnsolvedPartitionIndex;
+    std::vector<PatchType> PatchTypes;
     std::cout<<"**** After All Insertion Steps ****"<<std::endl;
+
+    std::cout<<"Updating Patches"<<std::endl;
     PTr.LazyUpdatePartitions();
     PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex,PatchTypes);
     WriteUnsolvedStats(PatchTypes);
+    std::cout<<"Updated"<<std::endl;
 
     if (finalremoval)
     {
+        std::cout<<"**** FINAL REMOVAL ****"<<std::endl;
         //PTr.UpdatePartitionsFromChoosen(true);
         PTr.SetAllRemovable();
-        //if (UseMetamesh)
-            PTr.BatchRemovalMetaMesh();
-//        else
-//            PTr.BatchRemoval(PreRemoveStep);
+        if (UseMetamesh)
+            PTr.BatchRemovalMetaMesh(PreRemoveStep);
+        else
+            PTr.BatchRemovalOnMesh(PreRemoveStep);
 
         std::cout<<"**** After Last Removal Step ****"<<std::endl;
         PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex,PatchTypes);
@@ -340,12 +377,20 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     else
         PTr.UpdatePartitionsFromChoosen(true);
 
+//    assert(PTr.EdgeSel0.size()==PTr.Mesh().face.size());
+//    assert(PTr.EdgeSel1.size()==PTr.Mesh().face.size());
+
+
    // PTr.LazyUpdatePartitions();
+    std::cout<<"Updating Patches"<<std::endl;
     PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex,PatchTypes);
     std::cout<<"**** FINAL THERE ARE "<<UnsolvedPartitionIndex.size()<<" Unsolved Partitions ****"<<std::endl;
     std::cout<<"**** TOTAL "<<PTr.Partitions.size()<<" Partitions ****"<<std::endl;
+    std::cout<<"Updated"<<std::endl;
 
+    std::cout<<"Smoothing"<<std::endl;
     PTr.SmoothPatches(10);
+    std::cout<<"Fix Valences"<<std::endl;
     PTr.FixValences();
     PTr.WriteInfo();
     int t1=clock();
