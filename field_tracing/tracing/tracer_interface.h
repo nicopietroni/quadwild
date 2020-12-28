@@ -3,6 +3,19 @@
 
 #include "patch_tracer.h"
 
+//class ComputationTimeStats
+//{
+//public:
+//    //static size_t Time_InitSubP;
+//    static size_t Time_InitSubPatches;
+//    static size_t Time_TraceSubPatches;
+//    static size_t Time_RetrieveSubPatches;
+////    static size_t Time_AddingEmitters;
+////    static size_t Time_AddingLoops;
+////    static size_t Time_AddingBorder;
+//};
+
+
 // Basic subdivision class
 template<class MESH_TYPE>
 struct SplitLev : public   std::unary_function<vcg::face::Pos<typename MESH_TYPE::FaceType> ,  typename MESH_TYPE::CoordType >
@@ -141,13 +154,17 @@ bool TraceSubPatch(const size_t &IndexPatch,
                    bool resample_loops,
                    bool DebugMsg)
 {
-    //first copy the submesh
-    for (size_t i=0;i<PTr.Mesh().vert.size();i++)
-        PTr.Mesh().vert[i].Q()=i;
+    size_t t0=clock();
+    
+//    //first copy the submesh
+//    for (size_t i=0;i<PTr.Mesh().vert.size();i++)
+//        PTr.Mesh().vert[i].Q()=i;
 
     MeshType SubMesh;
     PTr.GetPatchMesh(IndexPatch,SubMesh);
     SubMesh.UpdateAttributes();
+
+    size_t t1=clock();
 
     std::vector<size_t> VertMap;
     for (size_t i=0;i<SubMesh.vert.size();i++)
@@ -161,11 +178,23 @@ bool TraceSubPatch(const size_t &IndexPatch,
     VertexFieldGraph<MeshType> VFGraph(SubMesh);
     VFGraph.Init();
 
-    //initialize the tracer
-    PatchTracer<MeshType> SubTr(VFGraph);
 
+    //initialize the tracer
+    size_t t2=clock();
+    PatchTracer<MeshType> SubTr(VFGraph);
+//    size_t t_2_0=clock();
     SubTr.CopyParametersFrom(PTr);
+//    size_t t_2_1=clock();
     SubTr.CopyFrom(PTr,VertMap,IndexPatch);
+//    size_t t_2_2=clock();
+    SubTr.InitEdgeDirTable();
+    size_t t3=clock();
+
+//    Time_InitSubPatches2_0+=t_2_0-t2;
+//    Time_InitSubPatches2_1+=t_2_1-t_2_0;
+//    Time_InitSubPatches2_2+=t_2_2-t_2_1;
+//    Time_InitSubPatches2_3+=t3-t_2_2;
+
     //SubTr.InitTraceableBorders();
 
     //SubTr.InitBorderDirMap();
@@ -179,10 +208,18 @@ bool TraceSubPatch(const size_t &IndexPatch,
         for (size_t i=0;i<SubTr.ChoosenPaths.size();i++)
             SubTr.ChoosenPaths[i].Unremovable=true;
 
+        //added internal path, need to reupdate the table
+        SubTr.InitEdgeDirTable();
         //SubTr.SampleLoopEmitters(false,MIN_SAMPLES_HARD);
     }
     if (resample_loops)
         SubTr.SampleLoopEmitters(false);
+    
+    size_t t4=clock();
+    Time_InitSubPatches0+=t1-t0;
+    Time_InitSubPatches1+=t2-t1;
+    Time_InitSubPatches2+=t3-t2;
+    Time_InitSubPatches3+=t4-t3;
     //SubTr.SampleLoopEmitters(false);
 
     //first update of the sub patch (fast and set needs)
@@ -191,6 +228,7 @@ bool TraceSubPatch(const size_t &IndexPatch,
     //then trace in the subpatch
     SubTr.DebugMsg=DebugMsg;
     SubTr.BatchAddLoops(true,onlyneeded);//inteleaveremoval,finalremoval);//,interleave_smooth);
+
 
     //copy back paths to the original
     SubTr.GetCurrVertDir(VertIdx,VertDir,IsLoop);
@@ -207,6 +245,9 @@ bool TraceSubPatch(const size_t &IndexPatch,
     for (size_t i=0;i<VertIdx.size();i++)
         for (size_t j=0;j<VertIdx[i].size();j++)
             VertIdx[i][j]=VertMap[VertIdx[i][j]];
+
+    size_t t5=clock();
+    Time_TraceSubPatches+=t5-t4;
 
     return (VertIdx.size()>0);
 }
@@ -244,6 +285,32 @@ void WriteUnsolvedStats(const std::vector<PatchType> &PatchTypes)
 }
 
 template <class MeshType>
+bool FullTraced(PatchTracer<MeshType> &PTr,size_t &PartitionIndex)
+{
+    bool FullTraced=true;
+    for (size_t i=0;i<PTr.Partitions[PartitionIndex].size();i++)
+    {
+        size_t IndexF=PTr.Partitions[PartitionIndex][i];
+        FullTraced&=PTr.Mesh().face[IndexF].FullTraced;
+        if (!FullTraced)return false;
+    }
+    return true;
+}
+
+template <class MeshType>
+void FilterFullTracedPatches(PatchTracer<MeshType> &PTr,std::vector<size_t> &PartitionIndexes)
+{
+    std::vector<size_t> PartitionIndexesSwap;
+    for (size_t i=0;i<PartitionIndexes.size();i++)
+    {
+     if (FullTraced(PTr,PartitionIndexes[i]))continue;
+     PartitionIndexesSwap.push_back(PartitionIndexes[i]);
+    }
+     std::cout<<"Filtered out "<<PartitionIndexes.size()-PartitionIndexesSwap.size()<<" patches"<<std::endl;
+    PartitionIndexes=PartitionIndexesSwap;  
+}
+
+template <class MeshType>
 void SolveSubPatches(PatchTracer<MeshType> &PTr,
                      bool onlyneeded,
                      bool only_non_disk)
@@ -274,20 +341,35 @@ void SolveSubPatches(PatchTracer<MeshType> &PTr,
         if (UnsolvedPartitionIndex.size()==0)
             solved=true;
 
+        FilterFullTracedPatches(PTr,UnsolvedPartitionIndex);
+
         std::cout<<"**** SUBPATCH TRACING - THERE ARE "<<UnsolvedPartitionIndex.size()<<" Unsolved Partitions ****"<<std::endl;
         WriteUnsolvedStats(PatchTypes);
         //PTr.WriteInfo();
+
+        //first copy the submesh
+        for (size_t i=0;i<PTr.Mesh().vert.size();i++)
+            PTr.Mesh().vert[i].Q()=i;
+
         for(size_t i=0;i<UnsolvedPartitionIndex.size();i++)
         {
 
             std::vector<std::vector<size_t> > NewVertIdx;
             std::vector<std::vector<size_t> > NewVertDir;
             std::vector<bool> NewIsLoop;
-
-            bool traced=TraceSubPatch<MeshType>(UnsolvedPartitionIndex[i],PTr,
+            size_t currPartIndex=UnsolvedPartitionIndex[i];
+            bool traced=TraceSubPatch<MeshType>(currPartIndex,PTr,
                                                 NewVertIdx,NewVertDir,
                                                 NewIsLoop,onlyneeded,only_non_disk,false);
-
+            if (!traced)
+            {
+                for (size_t j=0;j<PTr.Partitions[currPartIndex].size();j++)
+                {
+                    size_t IndxF=PTr.Partitions[currPartIndex][j];
+                    assert(IndxF<PTr.Mesh().face.size());
+                    PTr.Mesh().face[j].FullTraced=true;
+                }
+            }
             TotVertIdx.insert(TotVertIdx.end(),NewVertIdx.begin(),NewVertIdx.end());
             TotVertDir.insert(TotVertDir.end(),NewVertDir.begin(),NewVertDir.end());
             TotIsLoop.insert(TotIsLoop.end(),NewIsLoop.begin(),NewIsLoop.end());
@@ -296,6 +378,7 @@ void SolveSubPatches(PatchTracer<MeshType> &PTr,
 
         std::cout<<"Updating Patches"<<std::endl;
         PTr.SetChoosenFromVertDir(TotVertIdx,TotVertDir,TotIsLoop);
+        PTr.InitEdgeDirTable();
         std::cout<<"Done Updating Patches"<<std::endl;
 
         added_trace=false;
@@ -320,13 +403,21 @@ template <class MeshType>
 void RecursiveProcess(PatchTracer<MeshType> &PTr,
                       const typename MeshType::ScalarType Drift,
                       bool onlyneeded,
-                      //bool inteleaveremoval,
                       bool finalremoval,
                       bool PreRemoveStep=true,
                       bool UseMetamesh=true)
-                      //bool interleave_smooth=false)
 {
     typedef typename MeshType::ScalarType ScalarType;
+
+    Time_FirstTrace=0;
+    Time_InitSubPatches0=0;
+    Time_InitSubPatches1=0;
+    Time_InitSubPatches2=0;
+    Time_InitSubPatches3=0;
+    Time_TraceSubPatches=0;
+    Time_UpdatePartitionsTotal=0;
+    Time_UpdatePartitionsLazy=0;
+    Time_Removal=0;
 
     int t0=clock();
     //do a first step of tracing
@@ -334,6 +425,8 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
 
     std::cout<<"**** FIRST TRACING STEP ****"<<std::endl;
     PTr.BatchAddLoops(false,onlyneeded);
+    int t1=clock();
+    Time_FirstTrace+=t1-t0;
 
     //then do a first partitions update
     std::cout<<"Updating Patches"<<std::endl;
@@ -343,8 +436,6 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     //solve sub patches normally
     std::cout<<"**** FIRST SUBTRACING STEP ****"<<std::endl;
     SolveSubPatches(PTr,onlyneeded,false);
-//    assert(PTr.EdgeSel0.size()==PTr.Mesh().face.size());
-//    assert(PTr.EdgeSel1.size()==PTr.Mesh().face.size());
 
     //then check if there is some non-disk-like patches
     std::cout<<"**** CHECK NO DISK ONES ****"<<std::endl;
@@ -360,6 +451,7 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     WriteUnsolvedStats(PatchTypes);
     std::cout<<"Updated"<<std::endl;
 
+    int t2=clock();
     if (finalremoval)
     {
         std::cout<<"**** FINAL REMOVAL ****"<<std::endl;
@@ -376,12 +468,9 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     }
     else
         PTr.UpdatePartitionsFromChoosen(true);
+    int t3=clock();
+    Time_Removal+=t3-t2;
 
-//    assert(PTr.EdgeSel0.size()==PTr.Mesh().face.size());
-//    assert(PTr.EdgeSel1.size()==PTr.Mesh().face.size());
-
-
-   // PTr.LazyUpdatePartitions();
     std::cout<<"Updating Patches"<<std::endl;
     PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex,PatchTypes);
     std::cout<<"**** FINAL THERE ARE "<<UnsolvedPartitionIndex.size()<<" Unsolved Partitions ****"<<std::endl;
@@ -393,13 +482,40 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     std::cout<<"Fix Valences"<<std::endl;
     PTr.FixValences();
     PTr.WriteInfo();
-    int t1=clock();
-    ScalarType ElpsedSec=(ScalarType)(t1-t0)/CLOCKS_PER_SEC;
+    int t4=clock();
+    ScalarType ElpsedSec=(ScalarType)(t4-t0)/CLOCKS_PER_SEC;
     std::cout<<"**** FINAL ELAPSED TIME "<<ElpsedSec<<" Seconds ****"<<std::endl;
-    ScalarType CopyMapSec=(ScalarType)timeCopyMap/CLOCKS_PER_SEC;
-    std::cout<<"(Time copy Map) "<<CopyMapSec<<std::endl;
 
-    //PTr.InitMetaMesh();
+//    std::cout<<"Time First Trace "<<(ScalarType)Time_FirstTrace/CLOCKS_PER_SEC<<std::endl;
+//    std::cout<<"Time Init SubPatches 0 "<<(ScalarType)Time_InitSubPatches0/CLOCKS_PER_SEC<<std::endl;
+////    std::cout<<"Time Init SubPatches 0 - 0 "<<(ScalarType)Time_InitSubPatches0_0/CLOCKS_PER_SEC<<std::endl;
+////    std::cout<<"Time Init SubPatches 0 - 1 "<<(ScalarType)Time_InitSubPatches0_1/CLOCKS_PER_SEC<<std::endl;
+
+//    std::cout<<"Time Init SubPatches 1 "<<(ScalarType)Time_InitSubPatches1/CLOCKS_PER_SEC<<std::endl;
+//    std::cout<<"Time Init SubPatches 2 "<<(ScalarType)Time_InitSubPatches2/CLOCKS_PER_SEC<<std::endl;
+
+////    std::cout<<"---time Init SubPatches 2 0 "<<(ScalarType)Time_InitSubPatches2_0/CLOCKS_PER_SEC<<std::endl;
+////    std::cout<<"---time Init SubPatches 2 1 "<<(ScalarType)Time_InitSubPatches2_1/CLOCKS_PER_SEC<<std::endl;
+////    std::cout<<"---time Init SubPatches 2 2 "<<(ScalarType)Time_InitSubPatches2_2/CLOCKS_PER_SEC<<std::endl;
+////    std::cout<<"---time Init SubPatches 2 3 "<<(ScalarType)Time_InitSubPatches2_3/CLOCKS_PER_SEC<<std::endl;
+////    std::cout<<"---time Init SubPatches 2 4 "<<(ScalarType)Time_InitSubPatches2_4/CLOCKS_PER_SEC<<std::endl;
+////    std::cout<<"---time Init SubPatches 2 5 "<<(ScalarType)Time_InitSubPatches2_5/CLOCKS_PER_SEC<<std::endl;
+////    std::cout<<"---time Init SubPatches 2 6 "<<(ScalarType)Time_InitSubPatches2_6/CLOCKS_PER_SEC<<std::endl;
+////    std::cout<<"---time Init SubPatches 2 7 "<<(ScalarType)Time_InitSubPatches2_7/CLOCKS_PER_SEC<<std::endl;
+
+//    std::cout<<"Time Init SubPatches 3 "<<(ScalarType)Time_InitSubPatches3/CLOCKS_PER_SEC<<std::endl;
+//    std::cout<<"Time Trace SubPatches "<<(ScalarType)Time_TraceSubPatches/CLOCKS_PER_SEC<<std::endl;
+
+//    std::cout<<"Time Update Partition Total "<<(ScalarType)Time_UpdatePartitionsTotal/CLOCKS_PER_SEC<<std::endl;
+//    std::cout<<"Time Update Partition Lazy "<<(ScalarType)Time_UpdatePartitionsLazy/CLOCKS_PER_SEC<<std::endl;
+//    std::cout<<"Time Removal "<<(ScalarType)Time_Removal/CLOCKS_PER_SEC<<std::endl;
+//    std::cout<<"Time Init MMesh "<<(ScalarType)Time_InitMetaMesh/CLOCKS_PER_SEC<<std::endl;
+//    std::cout<<"Time Collapse MMesh 0 "<<(ScalarType)Time_Collapse_Step0/CLOCKS_PER_SEC<<std::endl;
+//    std::cout<<"Time Collapse MMesh 1 "<<(ScalarType)Time_Collapse_Step1/CLOCKS_PER_SEC<<std::endl;
+//    std::cout<<"Time Collapse MMesh 2 "<<(ScalarType)Time_Collapse_Step2/CLOCKS_PER_SEC<<std::endl;
+//    std::cout<<"Time Collapse MMesh 3 "<<(ScalarType)Time_Collapse_Step3/CLOCKS_PER_SEC<<std::endl;
+//    std::cout<<"Time Collapse MMesh 4 "<<(ScalarType)Time_Collapse_Step4/CLOCKS_PER_SEC<<std::endl;
+//    //PTr.InitMetaMesh();
 }
 
 

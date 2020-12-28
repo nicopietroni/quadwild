@@ -81,17 +81,32 @@ class MetaMesh
         return Pos;
     }
 
+//    bool IsGenusOK(const size_t indexMetaFace)
+//    {
+//        vcg::tri::UnMarkAll(*mesh);
+//        for (size_t i=0;i<MFaces[indexMetaFace].V.size();i++)
+//        {
+//            int IndexV=MFaces[indexMetaFace].V[i];
+//            assert(IndexV>=0);
+//            assert(IndexV<(*mesh).vert.size());
+//            if (vcg::tri::IsMarked((*mesh),&(*mesh).vert[IndexV]))return false;
+//        }
+//        return true;
+//    }
     bool IsGenusOK(const size_t indexMetaFace)
     {
-        vcg::tri::UnMarkAll(*mesh);
+        std::set<CoordType> VertPos;
         for (size_t i=0;i<MFaces[indexMetaFace].V.size();i++)
         {
-            int IndexV=MFaces[indexMetaFace].V[i];
-            assert(IndexV>=0);
-            assert(IndexV<(*mesh).vert.size());
-            if (vcg::tri::IsMarked((*mesh),&(*mesh).vert[IndexV]))return false;
+            CoordType Pos=MetaVertPos(MFaces[indexMetaFace].V[i]);
+            VertPos.insert(Pos);
+            //int IndexV=MFaces[indexMetaFace].V[i];
+//            assert(IndexV>=0);
+//            assert(IndexV<(*mesh).vert.size());
+//            if (vcg::tri::IsMarked((*mesh),&(*mesh).vert[IndexV]))return false;
         }
-        return true;
+        return (VertPos.size()==MFaces[indexMetaFace].V.size());
+        //return true;
     }
 
     size_t SideStartingE(const size_t indexMetaFace,
@@ -419,19 +434,19 @@ class MetaMesh
                 }
             }
 
-//            if (MFaces[IndexF0].AdjF[IndexE0].first!=-1)
-//            {
-//                assert(MFaces[IndexF0].AdjF[IndexE0].first==(int)IndexF1);
-//                assert(MFaces[IndexF0].AdjF[IndexE0].second==(int)IndexE1);
-//            }
+            //            if (MFaces[IndexF0].AdjF[IndexE0].first!=-1)
+            //            {
+            //                assert(MFaces[IndexF0].AdjF[IndexE0].first==(int)IndexF1);
+            //                assert(MFaces[IndexF0].AdjF[IndexE0].second==(int)IndexE1);
+            //            }
             MFaces[IndexF0].AdjF[IndexE0].first=IndexF1;
             MFaces[IndexF0].AdjF[IndexE0].second=IndexE1;
 
-//            if (MFaces[IndexF1].AdjF[IndexE1].first!=-1)
-//            {
-//                assert(MFaces[IndexF1].AdjF[IndexE1].first==(int)IndexF0);
-//                assert(MFaces[IndexF1].AdjF[IndexE1].second==(int)IndexE0);
-//            }
+            //            if (MFaces[IndexF1].AdjF[IndexE1].first!=-1)
+            //            {
+            //                assert(MFaces[IndexF1].AdjF[IndexE1].first==(int)IndexF0);
+            //                assert(MFaces[IndexF1].AdjF[IndexE1].second==(int)IndexE0);
+            //            }
 
             MFaces[IndexF1].AdjF[IndexE1].first=IndexF0;
             MFaces[IndexF1].AdjF[IndexE1].second=IndexE0;
@@ -459,8 +474,8 @@ class MetaMesh
         PInfo.NumEmitters=UnsolvedEmitters(indexMetaFace);
         PInfo.NumCorners=NumSides(indexMetaFace);
         PInfo.Genus=IsGenusOK(indexMetaFace)?1:-1;
-//        std::vector<ScalarType> SideL;
-//        SideLenghts(indexMetaFace,SideL);
+        //        std::vector<ScalarType> SideL;
+        //        SideLenghts(indexMetaFace,SideL);
 
         SideLenghts(indexMetaFace,PInfo.CurvedL);
         PInfo.ExpectedValence=MFaces[indexMetaFace].ExpectedVal;
@@ -698,7 +713,7 @@ class MetaMesh
     }
 
     bool IsRemovableSideVisual(const size_t IndexMetaF,
-                         const size_t IndexSide)const
+                               const size_t IndexSide)const
     {
         //std::cout<<"0"<<std::endl;
         std::vector<size_t> MetaEdgeI;
@@ -742,7 +757,7 @@ class MetaMesh
     }
 
     bool IsRemovableEdgeVisual(const size_t IndexMetaF,
-                         const size_t IndexEdge)const
+                               const size_t IndexEdge)const
     {
         assert(IndexEdge<NumVerts(IndexMetaF));
         size_t IndexSide=WhichSide(IndexMetaF,IndexEdge);
@@ -1464,17 +1479,19 @@ public:
                    ScalarType CClarkability,ScalarType avgEdge,
                    bool match_valence)
     {
-        size_t t0=clock();
+        //size_t t0=clock();
         size_t num_removed=0;
         size_t curr_removed=0;
+        size_t step_rem=0;
         do{
             curr_removed=MergeLoopRun(Thr,MinVal,MaxVal,CClarkability,avgEdge,match_valence);
             num_removed+=curr_removed;
+            step_rem++;
         }while (curr_removed>0);
-        size_t t1=clock();
-
+        //        size_t t1=clock();
+        std::cout<<"Performed "<<step_rem<<" removal loops"<<std::endl;
         std::cout<<"Removed "<<num_removed<<" paths"<<std::endl;
-        std::cout<<"Time "<<((ScalarType)(t1-t0))/CLOCKS_PER_SEC<<" secs"<<std::endl;
+        //        std::cout<<"Time "<<((ScalarType)(t1-t0))/CLOCKS_PER_SEC<<" secs"<<std::endl;
     }
 
     void GLDraw(const CEdgeMode EMode=CMRemovable,

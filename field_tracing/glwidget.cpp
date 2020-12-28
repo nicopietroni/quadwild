@@ -457,7 +457,6 @@ void InitStructures()
     NarrowReceiversNode.clear();
     UnsatisfiedNodes.clear();
 
-
     PreProcessMesh(mesh);
 
     VGraph.Init(false);//SingPos);
@@ -465,6 +464,7 @@ void InitStructures()
     GLGraph.InitDisplacedPos();
 
     PTr.Init(Drift);
+
     //std::cout<<"Here"<<std::endl;
     UpdateVisualNodes();
 }
@@ -520,6 +520,7 @@ void TW_CALL SmoothPathes(void *)
 void TW_CALL BatchProcess(void *)
 {
     InitStructures();
+
     //PTr.BatchProcess();
     PTr.BatchAddLoops(false,false);//,false,true);//,false);
     PTr.UpdatePartitionsFromChoosen();
@@ -716,7 +717,11 @@ void TW_CALL SaveData(void *)
 
 void  ProcessAllBatch()
 {
+    std::cout<<"TEST BATCH"<<std::endl;
+
     InitStructures();
+    //std::cout<<"DE BOIA 4:"<<PTr.EDirTable.ConvexV.size()<<std::endl;
+
     RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal);//,interleave_smooth);
     //RecursiveProcess<CMesh>(PTr,Drift,true,true,true);
     CurrPatchMode=CMPatchCol;

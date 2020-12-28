@@ -1518,6 +1518,8 @@ void PreProcessMesh(MeshType &mesh,bool DebugMsg=false)
 
     for (size_t i=0;i<mesh.vert.size();i++)
         mesh.vert[i].RPos=mesh.vert[i].P();
+    for (size_t i=0;i<mesh.face.size();i++)
+        mesh.face[i].FullTraced=false;
 
     if (DebugMsg)
         std::cout<<"done"<<std::endl;

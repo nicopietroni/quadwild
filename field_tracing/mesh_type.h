@@ -115,7 +115,8 @@ class CFace   : public vcg::Face<  MyUsedTypes,
         vcg::face::CurvatureDird,
         vcg::face::WedgeTexCoord2d>
 {
-
+public:
+    bool FullTraced;
 };
 
 class CMesh   : public vcg::tri::TriMesh< std::vector<CVertex>,std::vector<CFace> >
