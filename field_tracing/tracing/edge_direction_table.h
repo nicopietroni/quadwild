@@ -90,34 +90,35 @@
 //  it = std::unique (PartitionCorners[i].begin(),PartitionCorners[i].end());
 //  PartitionCorners[i].resize( std::distance(PartitionCorners[i].begin(),it) );
 
+bool HasOrthogonalCross(const std::vector<size_t> &Directions)
+{
+    if (Directions.size()<2)return false;
+    for (size_t i=0;i<Directions.size()-1;i++)
+        for (size_t j=(i+1);j<Directions.size();j++)
+        {
+            size_t Dir0=Directions[i];
+            size_t Dir1=Directions[j];
+            if ((Dir0 % 2)!=(Dir1 % 2))return true;
+        }
+    return false;
+}
+
+bool HasNarrowCross(const std::vector<size_t> &Directions)
+{
+    if (Directions.size()<2)return false;
+    for (size_t i=0;i<Directions.size()-1;i++)
+        for (size_t j=(i+1);j<Directions.size();j++)
+        {
+            size_t Dir0=Directions[i];
+            size_t Dir1=Directions[j];
+            if (Dir0 == Dir1)return true;
+        }
+    return false;
+}
+
 class EdgeDirectionTable
 {
 
-    bool HasOrthogonalCross(const std::vector<size_t> &Directions)const
-    {
-        if (Directions.size()<2)return false;
-        for (size_t i=0;i<Directions.size()-1;i++)
-            for (size_t j=(i+1);j<Directions.size();j++)
-            {
-                size_t Dir0=Directions[i];
-                size_t Dir1=Directions[j];
-                if ((Dir0 % 2)!=(Dir1 % 2))return true;
-            }
-        return false;
-    }
-
-    bool HasNarrowCross(const std::vector<size_t> &Directions)const
-    {
-        if (Directions.size()<2)return false;
-        for (size_t i=0;i<Directions.size()-1;i++)
-            for (size_t j=(i+1);j<Directions.size();j++)
-            {
-                size_t Dir0=Directions[i];
-                size_t Dir1=Directions[j];
-                if (Dir0 == Dir1)return true;
-            }
-        return false;
-    }
 
     bool PossibleCross(const std::vector<size_t> &Directions)const
     {
@@ -220,6 +221,17 @@ public:
     }
 
 public:
+
+    bool HasEdgeDir(const EdgeVert &EV)const
+    {
+        return (EdgeMapDir.count(EV)>0);
+    }
+
+    size_t GetEdgeDir(const EdgeVert &EV)const
+    {
+        assert(EdgeMapDir.count(EV)>0);
+        return(EdgeMapDir.at(EV));
+    }
 
     void AddEdgeDir(const EdgeVert &EV,const size_t Dir)
     {
@@ -334,6 +346,12 @@ public:
         if (filtered)
             PartitionCorners=PartitionCornersSwap;
 
+    }
+
+    void Clear()
+    {
+        VertType.clear();
+        EdgeMapDir.clear();
     }
 
     void Init(std::vector<TypeVert> &_VertType)

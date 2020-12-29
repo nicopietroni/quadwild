@@ -1288,11 +1288,11 @@ public:
             std::cout<<"Sampled "<<PoissonNodes.size()<<" samples"<<std::endl;
 
 
-        std::vector<CoordType> Sampled_pos;
-        SampleGraphPoints(VFGraph,Sampled_pos,sampleNum,minSample_per_CC);
-        MeshType PoissonMesh;
-        vcg::tri::BuildMeshFromCoordVector(PoissonMesh,Sampled_pos);
-        vcg::tri::io::ExporterPLY<MeshType>::Save(PoissonMesh,"PoissonMesh.ply");
+//        std::vector<CoordType> Sampled_pos;
+//        SampleGraphPoints(VFGraph,Sampled_pos,sampleNum,minSample_per_CC);
+//        MeshType PoissonMesh;
+//        vcg::tri::BuildMeshFromCoordVector(PoissonMesh,Sampled_pos);
+        //vcg::tri::io::ExporterPLY<MeshType>::Save(PoissonMesh,"PoissonMesh.ply");
 
     }
 

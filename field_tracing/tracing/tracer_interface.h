@@ -486,6 +486,10 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     ScalarType ElpsedSec=(ScalarType)(t4-t0)/CLOCKS_PER_SEC;
     std::cout<<"**** FINAL ELAPSED TIME "<<ElpsedSec<<" Seconds ****"<<std::endl;
 
+    //check if metamesh has not been initialized already
+    if (!(finalremoval&&UseMetamesh))
+        PTr.InitMetaMesh();
+
 //    std::cout<<"Time First Trace "<<(ScalarType)Time_FirstTrace/CLOCKS_PER_SEC<<std::endl;
 //    std::cout<<"Time Init SubPatches 0 "<<(ScalarType)Time_InitSubPatches0/CLOCKS_PER_SEC<<std::endl;
 ////    std::cout<<"Time Init SubPatches 0 - 0 "<<(ScalarType)Time_InitSubPatches0_0/CLOCKS_PER_SEC<<std::endl;

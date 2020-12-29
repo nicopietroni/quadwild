@@ -449,31 +449,31 @@ void FindPerVertDirs(const VertexFieldGraph<MeshType> &VFGraph,
     }
 }
 
-bool HasOrthogonalCross(const std::vector<size_t> &Directions)
-{
-    if (Directions.size()<2)return false;
-    for (size_t i=0;i<Directions.size()-1;i++)
-        for (size_t j=(i+1);j<Directions.size();j++)
-        {
-            size_t Dir0=Directions[i];
-            size_t Dir1=Directions[j];
-            if ((Dir0 % 2)!=(Dir1 % 2))return true;
-        }
-    return false;
-}
+//bool HasOrthogonalCross(const std::vector<size_t> &Directions)
+//{
+//    if (Directions.size()<2)return false;
+//    for (size_t i=0;i<Directions.size()-1;i++)
+//        for (size_t j=(i+1);j<Directions.size();j++)
+//        {
+//            size_t Dir0=Directions[i];
+//            size_t Dir1=Directions[j];
+//            if ((Dir0 % 2)!=(Dir1 % 2))return true;
+//        }
+//    return false;
+//}
 
-bool HasNarrowCross(const std::vector<size_t> &Directions)
-{
-    if (Directions.size()<2)return false;
-    for (size_t i=0;i<Directions.size()-1;i++)
-        for (size_t j=(i+1);j<Directions.size();j++)
-        {
-            size_t Dir0=Directions[i];
-            size_t Dir1=Directions[j];
-            if (Dir0 == Dir1)return true;
-        }
-    return false;
-}
+//bool HasNarrowCross(const std::vector<size_t> &Directions)
+//{
+//    if (Directions.size()<2)return false;
+//    for (size_t i=0;i<Directions.size()-1;i++)
+//        for (size_t j=(i+1);j<Directions.size();j++)
+//        {
+//            size_t Dir0=Directions[i];
+//            size_t Dir1=Directions[j];
+//            if (Dir0 == Dir1)return true;
+//        }
+//    return false;
+//}
 
 //template <class MeshType>
 //void FindPartitionsCorners(const VertexFieldGraph<MeshType> &VFGraph,
@@ -1373,7 +1373,7 @@ private:
             }
         }
 
-        SampleLoopEmitters(true);
+        SampleLoopEmitters(false);
     }
 
     //remove the connection with singularities that are not concave
@@ -5021,7 +5021,7 @@ public:
 
         //std::vector<std::vector<ScalarType> >  SideLen;
 
-        MMesh.Init(&Mesh(),PartitionCorners,FacePartitions,CurrV,IsLoop,FixedV,EdgeL);
+        MMesh.Init(&Mesh(),PartitionCorners,FacePartitions,CurrV,IsLoop,FixedV,EdgeL,EDirTable);
     }
 
     void RemoveMetaMeshStep()
