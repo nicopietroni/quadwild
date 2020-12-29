@@ -160,7 +160,7 @@ int removeDegenerateFaces(PolyMeshType& mesh, bool onlySelected, bool alwaysDele
 
         if (numRemainingVertices < fi->VN()) {
             if(alwaysDelete || numRemainingVertices < 3) {
-                Allocator<PolyMeshType>::DeleteFace(mesh,*fi);
+                vcg::tri::Allocator<PolyMeshType>::DeleteFace(mesh,*fi);
             }
             else {
                 std::vector<VertexPointer> vp(numRemainingVertices);
@@ -248,7 +248,7 @@ int removeDuplicateVertices(PolyMeshType& mesh, const bool onlySelected)
 
             for(size_t j = 0; j < cluster.size(); j++) {
                 if (j != kept && (!onlySelected || cluster[j]->IsS())) {
-                    Allocator<PolyMeshType>::DeleteVertex(mesh, *cluster[j]);
+                    vcg::tri::Allocator<PolyMeshType>::DeleteVertex(mesh, *cluster[j]);
                     deleted++;
 
                     vertexMap[cluster[j]] = cluster[kept];
