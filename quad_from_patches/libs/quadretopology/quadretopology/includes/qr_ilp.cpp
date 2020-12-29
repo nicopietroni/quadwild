@@ -77,6 +77,7 @@ inline std::vector<int> solveILP(
     bool allRespectConstraints = false;
     int it = 0;
     do {
+        std::cout << std::endl << std::endl << " --- OPTIMIZATION: iteration " << it << " ----" << std::endl;
         try {
             result.clear();
             result.resize(chartData.subsides.size(), -1);
@@ -747,7 +748,7 @@ inline std::vector<int> solveILP(
 
         it++;
     }
-    while (it < repeatLosingConstraintsIterations + 1 && !allRespectConstraints);
+    while (status == ILPStatus::SOLUTIONFOUND && it < repeatLosingConstraintsIterations + 1 && !allRespectConstraints);
 
     return result;
 }
@@ -912,16 +913,16 @@ inline void GurobiCallBack::callback() {
                 const double currentGap = std::fabs(objbnd - objbst) / std::fabs(objbst);
 
                 if (currentGap < gaps[index - 1]) {
-                    std::cout << "Stop early - Gap: " << currentGap << " < " << gaps[index - 1] << " gap achieved after " << times[index - 1] << " seconds" << endl;
+                    std::cout << "Stop early - Gap: " << currentGap << " < " << gaps[index - 1] << " gap achieved after " << times[index - 1] << " seconds" << std::endl;
                     abort();
                 }
             }
         }
     } catch (GRBException e) {
-        cout << "Error number: " << e.getErrorCode() << endl;
-        cout << e.getMessage() << endl;
+        std::cout << "Error number: " << e.getErrorCode() << std::endl;
+        std::cout << e.getMessage() << std::endl;
     } catch (...) {
-        cout << "Error during callback" << endl;
+        std::cout << "Error during callback" << std::endl;
     }
 }
 

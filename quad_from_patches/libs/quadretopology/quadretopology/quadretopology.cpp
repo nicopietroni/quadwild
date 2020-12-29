@@ -629,154 +629,67 @@ inline std::vector<int> findSubdivisions(
     if (status == ILPStatus::SOLUTIONFOUND && gap < minimumGap) {
         std::cout << "Solution found! Gap: " << gap << std::endl;
     }
-    else {
-        if (status == ILPStatus::INFEASIBLE) {
-            if (method == ILPMethod::LEASTSQUARES) {
-                std::cout << "Model was infeasible or time limit exceeded. Trying with ABS to reduce time." << gap << std::endl;
+    else if (status == ILPStatus::SOLUTIONWRONG && !hardParityConstraint) {
+        std::cout << std::endl << " >>>>>> Solution wrong! Trying with hard constraints for parity. It should not happen..." << std::endl << std::endl;
 
-                return findSubdivisions(
-                    chartData,
-                    fixedSubsides,
-                    chartEdgeLength,
-                    ILPMethod::ABS,
-                    alpha,
-                    isometry,
-                    regularityQuadrilaterals,
-                    regularityNonQuadrilaterals,
-                    regularityNonQuadrilateralsWeight,
-                    alignSingularities,
-                    alignSingularitiesWeight,
-                    repeatLosingConstraintsIterations,
-                    repeatLosingConstraintsQuads,
-                    repeatLosingConstraintsNonQuads,
-                    repeatLosingConstraintsAlign,
-                    feasibilityFix,
-                    hardParityConstraint,
-                    timeLimit,
-                    gapLimit,
-                    callbackTimeLimit,
-                    callbackGapLimit,
-                    minimumGap,
-                    gap);
-            }
-            else {
-                std::cout << "Error! Model was infeasible or time limit exceeded!" << std::endl;
-            }
-        }
-        else if (status == ILPStatus::SOLUTIONWRONG && !hardParityConstraint) {
-            std::cout << "Solution wrong! It have been used soft constraints for parity, so trying with hard constraints." << std::endl;
+        return findSubdivisions(
+            chartData,
+            fixedSubsides,
+            chartEdgeLength,
+            method,
+            alpha,
+            isometry,
+            regularityQuadrilaterals,
+            regularityNonQuadrilaterals,
+            regularityNonQuadrilateralsWeight,
+            alignSingularities,
+            alignSingularitiesWeight,
+            repeatLosingConstraintsIterations,
+            repeatLosingConstraintsQuads,
+            repeatLosingConstraintsNonQuads,
+            repeatLosingConstraintsAlign,
+            feasibilityFix,
+            true,
+            timeLimit,
+            gapLimit,
+            callbackTimeLimit,
+            callbackGapLimit,
+            minimumGap,
+            gap);
+    }
+    else if (method != ILPMethod::ABS ||
+             alignSingularities ||
+             repeatLosingConstraintsIterations > 0 ||
+             repeatLosingConstraintsQuads ||
+             repeatLosingConstraintsNonQuads ||
+             repeatLosingConstraintsAlign)
+    {
+        std::cout << std::endl << " >>>>>> Minimum gap has been not reached. Trying with ABS (linear optimization method), singularity align disabled, minimum gap 1.0 and timeLimit x10. Gap was: " << gap << std::endl << std::endl;
 
-            return findSubdivisions(
-                chartData,
-                fixedSubsides,
-                chartEdgeLength,
-                method,
-                alpha,
-                isometry,
-                regularityQuadrilaterals,
-                regularityNonQuadrilaterals,
-                regularityNonQuadrilateralsWeight,
-                alignSingularities,
-                alignSingularitiesWeight,
-                repeatLosingConstraintsIterations,
-                repeatLosingConstraintsQuads,
-                repeatLosingConstraintsNonQuads,
-                repeatLosingConstraintsAlign,
-                feasibilityFix,
-                true,
-                timeLimit,
-                gapLimit,
-                callbackTimeLimit,
-                callbackGapLimit,
-                minimumGap,
-                gap);
-        }
-        else {
-            if (method == ILPMethod::LEASTSQUARES) {
-                std::cout << "Minimum gap has been not reached. Trying with ABS (linear optimization method)." << gap << std::endl;
-
-                return findSubdivisions(
-                    chartData,
-                    fixedSubsides,
-                    chartEdgeLength,
-                    ILPMethod::ABS,
-                    alpha,
-                    isometry,
-                    regularityQuadrilaterals,
-                    regularityNonQuadrilaterals,
-                    regularityNonQuadrilateralsWeight,
-                    alignSingularities,
-                    alignSingularitiesWeight,
-                    repeatLosingConstraintsIterations,
-                    repeatLosingConstraintsQuads,
-                    repeatLosingConstraintsNonQuads,
-                    repeatLosingConstraintsAlign,
-                    feasibilityFix,
-                    true,
-                    timeLimit,
-                    gapLimit,
-                    callbackTimeLimit,
-                    callbackGapLimit,
-                    minimumGap,
-                    gap);
-            }
-            else if (regularityNonQuadrilaterals) {
-                std::cout << "Minimum gap has been not reached. Trying without regularity for non-quadrilaterals." << gap << std::endl;
-
-                return findSubdivisions(
-                    chartData,
-                    fixedSubsides,
-                    chartEdgeLength,
-                    method,
-                    alpha,
-                    isometry,
-                    regularityQuadrilaterals,
-                    false,
-                    regularityNonQuadrilateralsWeight,
-                    false,
-                    alignSingularitiesWeight,                            
-                    repeatLosingConstraintsIterations,
-                    repeatLosingConstraintsQuads,
-                    repeatLosingConstraintsNonQuads,
-                    repeatLosingConstraintsAlign,
-                    feasibilityFix,
-                    true,
-                    timeLimit,
-                    gapLimit,                            
-                    callbackTimeLimit,
-                    callbackGapLimit,
-                    minimumGap,
-                    gap);
-            }
-            else if (regularityQuadrilaterals) {
-                std::cout << "Minimum gap has been not reached. Trying without any regularity terms." << gap << std::endl;
-
-                return findSubdivisions(
-                    chartData,
-                    fixedSubsides,
-                    chartEdgeLength,
-                    method,
-                    alpha,
-                    true,
-                    false,
-                    false,
-                    regularityNonQuadrilateralsWeight,
-                    false,
-                    alignSingularitiesWeight,                    
-                    repeatLosingConstraintsIterations,
-                    repeatLosingConstraintsQuads,
-                    repeatLosingConstraintsNonQuads,
-                    repeatLosingConstraintsAlign,
-                    feasibilityFix,
-                    true,
-                    timeLimit,
-                    gapLimit,
-                    callbackTimeLimit,
-                    callbackGapLimit,
-                    minimumGap,
-                    gap);
-            }
-        }
+        return findSubdivisions(
+            chartData,
+            fixedSubsides,
+            chartEdgeLength,
+            ILPMethod::ABS,
+            alpha,
+            isometry,
+            regularityQuadrilaterals,
+            regularityNonQuadrilaterals,
+            regularityNonQuadrilateralsWeight,
+            false,
+            alignSingularitiesWeight,
+            0,
+            false,
+            false,
+            false,
+            feasibilityFix,
+            hardParityConstraint,
+            timeLimit*10,
+            gapLimit,
+            callbackTimeLimit,
+            callbackGapLimit,
+            1.0,
+            gap);
     }
 
     return ilpResult;
