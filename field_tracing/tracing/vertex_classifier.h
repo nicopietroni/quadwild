@@ -1,7 +1,11 @@
 #ifndef VERTEX_CLASSIFIER
 #define VERTEX_CLASSIFIER
 
+
+enum TypeVert{TVNarrow,TVConcave,TVConvex,TVFlat,TVInternal,TVChoosen,TVNone};
+
 #include "vert_field_graph.h"
+#include "edge_direction_table.h"
 
 #define CONVEX_THR 5.0
 #define CONCAVE_THR 5.0
@@ -9,8 +13,6 @@
 
 #define MAX_SAMPLES 1000
 #define MAX_NARROW_CONST 0.05
-
-enum TypeVert{TVNarrow,TVConcave,TVConvex,TVFlat,TVInternal,TVChoosen,TVNone};
 
 template <class MeshType>
 class VertexClassifier
@@ -20,37 +22,106 @@ class VertexClassifier
     typedef typename MeshType::FaceType FaceType;
     typedef typename MeshType::VertexType VertexType;
 
+    static void GetVertexAngle(MeshType &mesh,std::vector<ScalarType> &VertA)
+    {
+        VertA.clear();
+        VertA.resize(mesh.vert.size(),0);
+        for (size_t i=0;i<mesh.face.size();i++)
+        {
+            for (size_t j=0;j<mesh.face[i].VN();j++)
+            {
+                size_t IndexV=vcg::tri::Index(mesh,mesh.face[i].cV(j));
+                ScalarType CurrAngle=vcg::face::WedgeAngleRad(mesh.face[i],j);
+                VertA[IndexV]+=CurrAngle;
+            }
+        }
+    }
+
+    static void FindPossibleCorners(VertexFieldGraph<MeshType> &VFGraph,
+                                    std::vector<size_t> &PossibleCorners)
+    {
+        PossibleCorners.clear();
+        std::vector<TypeVert> VertType;
+
+        EdgeDirectionTable EDTable;
+        EDTable.Init(VertType);
+        AddBorder(VFGraph,EDTable);
+
+        EDTable.FindPossibleCorners(PossibleCorners);
+    }
+
 public:
 
     static void FindConvexV(VertexFieldGraph<MeshType> &VFGraph,
                             std::vector<size_t> &ConvexV)
     {
-        //find the convex on the original border
+        std::vector<size_t> PossibleCorners;
+        FindPossibleCorners(VFGraph,PossibleCorners);
+
+        std::vector<ScalarType> VertA;
+        GetVertexAngle(VFGraph.Mesh(),VertA);
+
         ConvexV.clear();
-        vcg::tri::UpdateSelection<MeshType>::VertexCornerBorder(VFGraph.Mesh(),
-                                                                M_PI-M_PI/CONVEX_THR);
-        for (size_t i=0;i<VFGraph.Mesh().vert.size();i++)
+        for (size_t i=0;i<PossibleCorners.size();i++)
         {
-            if (!VFGraph.Mesh().vert[i].IsS())continue;
-            ConvexV.push_back(i);
+            size_t IndexV=PossibleCorners[i];
+            if (!VFGraph.Mesh().vert[IndexV].IsB())continue;
+            if (VertA[IndexV]<M_PI)
+                ConvexV.push_back(IndexV);
         }
+//         //find the convex on the original border
+//        ConvexV.clear();
+//        vcg::tri::UpdateSelection<MeshType>::VertexCornerBorder(VFGraph.Mesh(),
+//                                                                M_PI-M_PI/CONVEX_THR);
+//        for (size_t i=0;i<VFGraph.Mesh().vert.size();i++)
+//        {
+//            if (!VFGraph.Mesh().vert[i].IsS())continue;
+//            ConvexV.push_back(i);
+//        }
+
+//        std::vector<std::pair<size_t> BorderVertDir;
+//        for (size_t i=0;i<VFGraph.Mesh().vert.size();i++)
+//        {
+//            if (!VFGraph.Mesh().vert[i].IsB())continue;
+//            VFGraph.GetNodeNeigh();
+//            //ConvexV.push_back(i);
+//        }
     }
 
     static void FindConcaveV(VertexFieldGraph<MeshType> &VFGraph,
                              std::vector<size_t> &ConcaveV)
     {
-        //then find the concaves
-        vcg::tri::UpdateSelection<MeshType>::VertexCornerBorder(VFGraph.Mesh(),M_PI+M_PI/CONCAVE_THR);
-        for (size_t i=0;i<VFGraph.Mesh().vert.size();i++)
+        std::vector<size_t> PossibleCorners;
+        FindPossibleCorners(VFGraph,PossibleCorners);
+
+        std::vector<ScalarType> VertA;
+        GetVertexAngle(VFGraph.Mesh(),VertA);
+
+        ConcaveV.clear();
+        for (size_t i=0;i<PossibleCorners.size();i++)
         {
-            if (!VFGraph.Mesh().vert[i].IsB())continue;
-            if (VFGraph.Mesh().vert[i].IsS())continue;
-            ConcaveV.push_back(i);
+            size_t IndexV=PossibleCorners[i];
+            if (!VFGraph.Mesh().vert[IndexV].IsB())continue;
+            if (VertA[IndexV]>M_PI)
+                ConcaveV.push_back(IndexV);
         }
-        std::sort(ConcaveV.begin(),ConcaveV.end());
-        auto last=std::unique(ConcaveV.begin(),ConcaveV.end());
-        ConcaveV.erase(last, ConcaveV.end());
     }
+
+//    static void FindConcaveV(VertexFieldGraph<MeshType> &VFGraph,
+//                             std::vector<size_t> &ConcaveV)
+//    {
+//        //then find the concaves
+//        vcg::tri::UpdateSelection<MeshType>::VertexCornerBorder(VFGraph.Mesh(),M_PI+M_PI/CONCAVE_THR);
+//        for (size_t i=0;i<VFGraph.Mesh().vert.size();i++)
+//        {
+//            if (!VFGraph.Mesh().vert[i].IsB())continue;
+//            if (VFGraph.Mesh().vert[i].IsS())continue;
+//            ConcaveV.push_back(i);
+//        }
+//        std::sort(ConcaveV.begin(),ConcaveV.end());
+//        auto last=std::unique(ConcaveV.begin(),ConcaveV.end());
+//        ConcaveV.erase(last, ConcaveV.end());
+//    }
 
     static void FindNarrowV(VertexFieldGraph<MeshType> &VFGraph,
                             std::vector<size_t> &NarrowV)

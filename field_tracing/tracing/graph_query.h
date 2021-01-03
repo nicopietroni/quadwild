@@ -1005,6 +1005,97 @@ public:
         return true;
     }
 
+    static bool SameFace(const VertexFieldGraph<MeshType> &VFGraph,
+                         const size_t &IndexN0,const size_t &IndexN1,
+                         const size_t &IndexN2)
+    {
+        //std::cout<<"A"<<std::endl;
+        vcg::face::Pos<FaceType> Pos0=VFGraph.GetNodesPos(IndexN0,IndexN1);
+        //std::cout<<"B"<<std::endl;
+        vcg::face::Pos<FaceType> Pos1=VFGraph.GetNodesPos(IndexN1,IndexN2);
+        //std::cout<<"C"<<std::endl;
+
+        FaceType *F_00=Pos0.F();
+        FaceType *F_01=F_00;
+        if (!Pos0.IsBorder())
+            F_01=Pos0.FFlip();
+
+        FaceType *F_10=Pos1.F();
+        FaceType *F_11=F_10;
+        if (!Pos1.IsBorder())
+            F_11=Pos1.FFlip();
+
+        if ((F_00==F_10)||(F_00==F_11))return true;
+        if ((F_01==F_10)||(F_01==F_11))return true;
+
+        return false;
+    }
+
+//    static bool CutEarPathStep(VertexFieldGraph<MeshType> &VFGraph,
+//                               std::vector<size_t > &Path,bool IsLoop)
+//    {
+//        if (Path.size()<=3)return false;
+//        int limit=Path.size()-1;
+//        size_t sizePath=Path.size();
+//        if (IsLoop)limit++;
+////        std::cout<<"SizePath "<<sizePath<<std::endl;
+
+//        for (int i=0;i<limit;i++)
+//        {
+//            int index0=i;
+//            int index1=(i+1)%sizePath;
+//            int index2=(i+2)%sizePath;
+
+//            size_t node0=Path[index0];
+//            size_t node1=Path[index1];
+//            size_t node2=Path[index2];
+
+//            //check if there are twins node
+//            if (VFGraph.AreTwin(node0,node1))continue;
+//            if (VFGraph.AreTwin(node1,node2))continue;
+
+//            //check if belong to the same face
+//            bool SameF=SameFace(VFGraph,node0,node1,node2);
+//            if (!SameF)continue;
+
+//            //the edge is already selected then cannot cut
+//            vcg::face::Pos<FaceType> NewPos=VFGraph.GetNodesPos(node0,node2);
+//            if (NewPos.IsEdgeS())continue;
+
+//            //update selection
+//            vcg::face::Pos<FaceType> OldPos0=VFGraph.GetNodesPos(node0,node1);
+//            assert(!OldPos0.IsBorder());
+//            assert(OldPos0.IsEdgeS());
+//            OldPos0.F()->ClearFaceEdgeS(OldPos0.E());
+//            OldPos0.FlipF();
+//            OldPos0.F()->ClearFaceEdgeS(OldPos0.E());
+
+//            vcg::face::Pos<FaceType> OldPos1=VFGraph.GetNodesPos(node1,node2);
+//            assert(!OldPos1.IsBorder());
+//            assert(OldPos1.IsEdgeS());
+//            OldPos1.F()->ClearFaceEdgeS(OldPos1.E());
+//            OldPos1.FlipF();
+//            OldPos1.F()->ClearFaceEdgeS(OldPos1.E());
+
+//            assert(!NewPos.IsBorder());
+//            assert(!NewPos.IsEdgeS());
+//            NewPos.F()->SetFaceEdgeS(NewPos.E());
+//            NewPos.FlipF();
+//            NewPos.F()->SetFaceEdgeS(NewPos.E());
+
+//            Path.erase(Path.begin()+index1);
+//            return true;
+
+//        }
+//        return false;
+//    }
+
+//    static void CutEarPath(VertexFieldGraph<MeshType> &VFGraph,
+//                           std::vector<size_t > &Path,bool IsLoop)
+//    {
+//        while (CutEarPathStep(VFGraph,Path,IsLoop)){}
+//    }
+
     //used to expand a path
     static bool ExpandPath(VertexFieldGraph<MeshType> &VFGraph,
                            std::vector<size_t > &Path,

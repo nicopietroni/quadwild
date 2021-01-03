@@ -47,6 +47,7 @@
 #include "tracing/GL_vert_field_graph.h"
 #include "tracing/patch_tracer.h"
 #include "tracing/tracer_interface.h"
+//#include <vcg/complex/algorithms/parametrization/local_para_smooth.h>
 
 TwBar *bar;
 char * filename;/// filename of the mesh to load
@@ -92,8 +93,10 @@ bool meta_mesh_collapse=true;
 //bool interleave_removal=true;
 //bool interleave_smooth=false;
 bool final_removal=true;
+bool force_split=false;
 bool drawProblematicsOnly=false;
 int CurrNum=0;
+bool subdivide_when_save=false;
 
 std::vector<size_t> ConcaveEmittersNode,ConcaveReceiversNode,
 FlatEmittersNode,FlatReceiversNode,
@@ -240,7 +243,10 @@ void SaveSetupFile(const std::string pathProject,
         fprintf(f,"FinalRem 1\n");
     else
         fprintf(f,"FinalRem 0\n");
-
+    if (subdivide_when_save)
+        fprintf(f,"Subd 1\n");
+    else
+        fprintf(f,"Subd 0\n");
 //    if (PTr.avoid_increase_valence)
 //        fprintf(f,"IncreaseValRem 1\n");
 //    else
@@ -325,6 +331,13 @@ void LoadSetupFile(std::string path)
         final_removal=false;
     else
         final_removal=true;
+
+    fscanf(f,"Subd %d\n",&IntVar);
+    std::cout<<"SUBDIVIDE WHEN SAVE "<<IntVar<<std::endl;
+    if (IntVar==0)
+        subdivide_when_save=false;
+    else
+        subdivide_when_save=true;
 
 //    if ((batch_process)&&(BatchSample>0))
 //        PTr.sample_ratio=BatchSample;
@@ -459,18 +472,24 @@ void InitStructures()
 
     PreProcessMesh(mesh);
 
-    VGraph.Init(false);//SingPos);
+    VGraph.InitGraph(false);//SingPos);
 
     GLGraph.InitDisplacedPos();
 
-    PTr.Init(Drift);
+    PTr.InitTracer(Drift,false);
 
     //std::cout<<"Here"<<std::endl;
     UpdateVisualNodes();
 }
 
+//void TW_CALL SmoothParam(void *)
+//{
+//    vcg::tri::Local_Param_Smooth<CMesh>::Smooth(mesh);
+//}
+
 void TW_CALL InitGraph(void *)
 {
+//    vcg::tri::Local_Param_Smooth<CMesh>::SmoothStep(mesh,0.5);
     InitStructures();
 
     drawField=false;
@@ -538,7 +557,7 @@ void TW_CALL RecursiveProcess(void *)
 {
     InitStructures();
     //RecursiveProcess<CMesh>(PTr,Drift);
-    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal,true,meta_mesh_collapse);//,interleave_smooth);
+    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal,true,meta_mesh_collapse,force_split);//,interleave_smooth);
     CurrPatchMode=CMPatchCol;
     drawField=false;
     drawSharpF=false;
@@ -711,7 +730,7 @@ void TW_CALL SplitSupPatches(void *)
 
 void TW_CALL SaveData(void *)
 {
-    SaveAllData(PTr,pathProject,CurrNum);
+    SaveAllData(PTr,pathProject,CurrNum,subdivide_when_save);
     SaveCSV(PTr,pathProject,CurrNum);
 }
 
@@ -722,7 +741,8 @@ void  ProcessAllBatch()
     InitStructures();
     //std::cout<<"DE BOIA 4:"<<PTr.EDirTable.ConvexV.size()<<std::endl;
 
-    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal);//,interleave_smooth);
+    //RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal,);//,interleave_smooth);
+    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal,true,meta_mesh_collapse,force_split);
     //RecursiveProcess<CMesh>(PTr,Drift,true,true,true);
     CurrPatchMode=CMPatchCol;
 //    PTr.BatchRemoval();
@@ -733,7 +753,7 @@ void  ProcessAllBatch()
     drawSing=false;
     UpdateVisualNodes();
     PTr.SmoothPatches();
-    SaveAllData(PTr,pathProject,CurrNum);
+    SaveAllData(PTr,pathProject,CurrNum,subdivide_when_save);
     SaveCSV(PTr,pathProject,CurrNum);
     SaveSetupFile(pathProject,CurrNum);
 }
@@ -818,6 +838,8 @@ void InitLoopBar(QWidget *w)
     TwAddButton(bar,"Split",SplitSupPatches,0," label='Split sub' ");
     TwAddButton(bar,"BatchRemoval",BatchRemoval,0," label='Batch Removal' ");
     TwAddButton(bar,"SmoothPaths",SmoothPathes,0," label='Smooth Paths' ");
+    //TwAddButton(bar,"SmoothParam",SmoothParam,0," label='Smooth Param' ");
+
 
     TwAddSeparator(bar,NULL,NULL);
 
@@ -837,10 +859,12 @@ void InitLoopBar(QWidget *w)
     //TwAddVarRW(bar,"InterRem",TW_TYPE_BOOLCPP,&interleave_removal,"label='Interleave removal'");
     //TwAddVarRW(bar,"InterSmth",TW_TYPE_BOOLCPP,&interleave_smooth,"label='Interleave smooth'");
     TwAddVarRW(bar,"FinalRem",TW_TYPE_BOOLCPP,&final_removal,"label='Final removal'");
+    TwAddVarRW(bar,"ForceSplit",TW_TYPE_BOOLCPP,&force_split,"label='Force split'");
     TwAddButton(bar,"RecursiveProcess",RecursiveProcess,0," label='Recursive Process' ");
     TwAddButton(bar,"Subdivide",SubdividePatches,0," label='Subdivide Patches' ");
     TwAddButton(bar,"ParametrizePatches",ParametrizePatches,0," label='Parametrize Patches' ");
 
+    TwAddVarRW(bar,"SubdSave",TW_TYPE_BOOLCPP,&subdivide_when_save,"label='Subdivide When Save'");
     TwAddButton(bar,"SaveData",SaveData,0," label='Save Data' ");
 
 

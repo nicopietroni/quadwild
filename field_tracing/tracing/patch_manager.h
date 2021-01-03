@@ -1373,8 +1373,8 @@ public:
             }
         }
         vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
-        //    if (MinQ>0)
-        //        SolveFolds(mesh,MinQ);
+            if (MinQ>0)
+                SolveFolds(mesh,MinQ);
 
         RestoreEdgeSel(mesh,EdgeSel);
     }
@@ -2072,7 +2072,7 @@ public:
             CoordType P1=VFGraph.NodePos(N1);
             //      std::cout<<"got position"<<std::endl;
             MeshType TempMesh;
-            vcg::tri::OrientedCylinder(TempMesh,P0,P1,Width,true);
+            vcg::tri::OrientedCylinder(TempMesh,P0,P1,Width,true,8,1);
             vcg::tri::Append<MeshType,MeshType>::Mesh(outMesh,TempMesh);
         }
     }

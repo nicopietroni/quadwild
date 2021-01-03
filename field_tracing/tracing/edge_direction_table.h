@@ -132,8 +132,8 @@ class EdgeDirectionTable
 
 public:
 
-//    std::set<size_t> ConvexV;
-//    std::set<size_t> ConcaveV;
+    //    std::set<size_t> ConvexV;
+    //    std::set<size_t> ConcaveV;
 
     //std::vector<std::vector<size_t> > EdgeDirVert;
 
@@ -202,16 +202,16 @@ public:
             EdgeVert EV0(IndexV0,IndexV1,IndexV0);
             EdgeVert EV1(IndexV0,IndexV1,IndexV1);
 
-//            if (PossibleCross(VertDirections[IndexV0]))
-//            {
-//                if (EdgeMapDir.count(EV0)>0)
-//                     DirVert[IndexV0].push_back(EdgeMapDir.at(EV0));
-//            }
-//            if (PossibleCross(VertDirections[IndexV1]))
-//            {
-//                if (EdgeMapDir.count(EV1)>0)
-//                     DirVert[IndexV1].push_back(EdgeMapDir.at(EV1));
-//            }
+            //            if (PossibleCross(VertDirections[IndexV0]))
+            //            {
+            //                if (EdgeMapDir.count(EV0)>0)
+            //                     DirVert[IndexV0].push_back(EdgeMapDir.at(EV0));
+            //            }
+            //            if (PossibleCross(VertDirections[IndexV1]))
+            //            {
+            //                if (EdgeMapDir.count(EV1)>0)
+            //                     DirVert[IndexV1].push_back(EdgeMapDir.at(EV1));
+            //            }
             if (!EdgeMapDir.count(EV0))continue;
             assert(EdgeMapDir.count(EV1)>0);
 
@@ -242,44 +242,44 @@ public:
 
     void RemoveEdgeDir(const EdgeVert &EV)
     {
-//        size_t Dir=EdgeMapDir[EV];
+        //        size_t Dir=EdgeMapDir[EV];
         EdgeMapDir.erase(EV);
-//        size_t IndexV=EV.CurrV;
-//        for (size_t i=0;i<VertDirections[IndexV].size();i++)
-//            if (VertDirections[IndexV][i]==Dir)
-//            {
-//                VertDirections[IndexV].erase(VertDirections[IndexV].begin()+i);
-//                return;
-//            }
+        //        size_t IndexV=EV.CurrV;
+        //        for (size_t i=0;i<VertDirections[IndexV].size();i++)
+        //            if (VertDirections[IndexV][i]==Dir)
+        //            {
+        //                VertDirections[IndexV].erase(VertDirections[IndexV].begin()+i);
+        //                return;
+        //            }
         //should have been found
-//        assert(0);
+        //        assert(0);
     }
     //    void RemoveNodeVert()
     //    {
 
     //    }
 
-//    void PrintDifferences(const EdgeDirectionTable &ED1)const
-//    {
-//        std::cout<<"**TESTING DIFFERENCE**"<<std::endl;
-//        if (ConvexV!=ED1.ConvexV)
-//        {
-//            std::cout<<"Different ConvexV"<<std::endl;
-//            std::cout<<"size 0:"<<ConvexV.size()<<std::endl;
-//            std::cout<<"size 1:"<<ED1.ConvexV.size()<<std::endl;
-//            assert(0);
-//        }
-//        if (ConcaveV!=ED1.ConcaveV)
-//        {
-//            std::cout<<"Different ConcaveV"<<std::endl;
-//            assert(0);
-//        }
-//        if (EdgeMapDir!=ED1.EdgeMapDir)
-//        {
-//            std::cout<<"Different EdgeDirMap"<<std::endl;
-//            assert(0);
-//        }
-//    }
+    //    void PrintDifferences(const EdgeDirectionTable &ED1)const
+    //    {
+    //        std::cout<<"**TESTING DIFFERENCE**"<<std::endl;
+    //        if (ConvexV!=ED1.ConvexV)
+    //        {
+    //            std::cout<<"Different ConvexV"<<std::endl;
+    //            std::cout<<"size 0:"<<ConvexV.size()<<std::endl;
+    //            std::cout<<"size 1:"<<ED1.ConvexV.size()<<std::endl;
+    //            assert(0);
+    //        }
+    //        if (ConcaveV!=ED1.ConcaveV)
+    //        {
+    //            std::cout<<"Different ConcaveV"<<std::endl;
+    //            assert(0);
+    //        }
+    //        if (EdgeMapDir!=ED1.EdgeMapDir)
+    //        {
+    //            std::cout<<"Different EdgeDirMap"<<std::endl;
+    //            assert(0);
+    //        }
+    //    }
 
     void FindCorners(const std::vector<std::pair<size_t,size_t> > &BorderEdges,
                      std::vector<size_t> &PartitionCorners)const
@@ -287,14 +287,17 @@ public:
         PartitionCorners.clear();
 
         //first check if there is a corner
-        for (size_t i=0;i<BorderEdges.size();i++)
+        if (VertType.size()>0)
         {
-            size_t IndexV0=BorderEdges[i].first;
-            size_t IndexV1=BorderEdges[i].second;
-            if (VertType[IndexV0]==TVConvex)
-                PartitionCorners.push_back(IndexV0);
-            if (VertType[IndexV1]==TVConvex)
-                PartitionCorners.push_back(IndexV1);
+            for (size_t i=0;i<BorderEdges.size();i++)
+            {
+                size_t IndexV0=BorderEdges[i].first;
+                size_t IndexV1=BorderEdges[i].second;
+                if (VertType[IndexV0]==TVConvex)
+                    PartitionCorners.push_back(IndexV0);
+                if (VertType[IndexV1]==TVConvex)
+                    PartitionCorners.push_back(IndexV1);
+            }
         }
 
         //cumulate per vertex direction
@@ -328,14 +331,14 @@ public:
         for (size_t i=0;i<PartitionCorners.size();i++)
         {
             size_t IndexV=PartitionCorners[i];
-//            if (VertType[IndexV]==TVNarrow)
-//            {
-//                filtered=true;
-//                continue;
-//            }
+            //            if (VertType[IndexV]==TVNarrow)
+            //            {
+            //                filtered=true;
+            //                continue;
+            //            }
             if (((VertType[IndexV]==TVConcave)||
-                (VertType[IndexV]==TVNarrow))&&
-                (AngleBorders.at(IndexV)>(M_PI)))
+                 (VertType[IndexV]==TVNarrow))&&
+                    (AngleBorders.at(IndexV)>(M_PI)))
             {
                 filtered=true;
                 continue;
@@ -348,6 +351,57 @@ public:
 
     }
 
+//    template <class ScalarType>
+//    void FindCorners(const std::vector<std::pair<size_t,size_t> > &BorderEdges,
+//                     const std::map<size_t,ScalarType> &AngleBorders,
+//                     std::vector<size_t> &PartitionCorners)const
+//    {
+//        FindCorners(BorderEdges,PartitionCorners);
+//        std::vector<size_t> PartitionCornersSwap;
+//        bool filtered=false;
+//        for (size_t i=0;i<PartitionCorners.size();i++)
+//        {
+//            size_t IndexV=PartitionCorners[i];
+//            //            if (VertType[IndexV]==TVNarrow)
+//            //            {
+//            //                filtered=true;
+//            //                continue;
+//            //            }
+//            if (((VertType[IndexV]==TVConcave)||
+//                 (VertType[IndexV]==TVNarrow))&&
+//                    (AngleBorders.at(IndexV)>(M_PI)))
+//            {
+//                filtered=true;
+//                continue;
+//            }
+
+//            PartitionCornersSwap.push_back(IndexV);
+//        }
+//        if (filtered)
+//            PartitionCorners=PartitionCornersSwap;
+
+//    }
+
+    void FindPossibleCorners(std::vector<size_t> &PartitionCorners)
+    {
+        PartitionCorners.clear();
+        std::map<EdgeVert,int>::iterator IteMap;
+        //store all possible borders
+        std::vector<std::pair<size_t,size_t> > BorderEdges;
+        for (IteMap=EdgeMapDir.begin();IteMap!=EdgeMapDir.end();IteMap++)
+        {
+            size_t IndexV0=(*IteMap).first.EV0;
+            size_t IndexV1=(*IteMap).first.EV1;
+            std::pair<size_t,size_t> Key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
+            BorderEdges.push_back(Key);
+        }
+        std::sort(BorderEdges.begin(),BorderEdges.end());
+        std::vector<std::pair<size_t,size_t> >::iterator it;
+        it = std::unique (BorderEdges.begin(),BorderEdges.end());
+        BorderEdges.resize( std::distance(BorderEdges.begin(),it) );
+        FindCorners(BorderEdges,PartitionCorners);
+    }
+
     void Clear()
     {
         VertType.clear();
@@ -357,10 +411,10 @@ public:
     void Init(std::vector<TypeVert> &_VertType)
     {
         VertType=_VertType;
-//        VertDirections.clear();
-//        VertDirections.resize(VertType.size());
-//        ConvexV=std::set<size_t>(ConvexIdx.begin(),ConvexIdx.end());
-//        ConcaveV=std::set<size_t>(ConcaveIdx.begin(),ConcaveIdx.end());
+        //        VertDirections.clear();
+        //        VertDirections.resize(VertType.size());
+        //        ConvexV=std::set<size_t>(ConvexIdx.begin(),ConvexIdx.end());
+        //        ConcaveV=std::set<size_t>(ConcaveIdx.begin(),ConcaveIdx.end());
         //std::cout<<"There are "<<ConvexV.size()<<" convex vert"<<std::endl;
         EdgeMapDir.clear();
     }
@@ -453,11 +507,11 @@ void FindPartitionEdges(MeshType &mesh,
                 size_t IndexV0=vcg::tri::Index(mesh,mesh.face[IndexF].cV0(j));
                 size_t IndexV1=vcg::tri::Index(mesh,mesh.face[IndexF].cV1(j));
 
-//                CoordType Pos0=mesh.vert[IndexV0].P();
-//                CoordType Pos1=mesh.vert[IndexV1].P();
-//                std::pair<CoordType,CoordType> KeyE(std::min(Pos0,Pos1),std::max(Pos0,Pos1));
-//                if (AddedEdges.count(KeyE)>0)continue;
-//                AddedEdges.insert(KeyE);
+                //                CoordType Pos0=mesh.vert[IndexV0].P();
+                //                CoordType Pos1=mesh.vert[IndexV1].P();
+                //                std::pair<CoordType,CoordType> KeyE(std::min(Pos0,Pos1),std::max(Pos0,Pos1));
+                //                if (AddedEdges.count(KeyE)>0)continue;
+                //                AddedEdges.insert(KeyE);
 
 
                 std::pair<size_t,size_t> pairV(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
@@ -468,9 +522,9 @@ void FindPartitionEdges(MeshType &mesh,
             }
         }
     }
-//    std::sort(BorderEdges.begin(),BorderEdges.end());
-//    std::vector<std::pair<size_t,size_t> >::iterator it;
-//    it = std::unique (BorderEdges.begin(),BorderEdges.end());
+    //    std::sort(BorderEdges.begin(),BorderEdges.end());
+    //    std::vector<std::pair<size_t,size_t> >::iterator it;
+    //    it = std::unique (BorderEdges.begin(),BorderEdges.end());
 }
 
 template <class MeshType>
@@ -546,11 +600,11 @@ void AddEdgeNodes(const std::vector<size_t> &Nodes,
 
         EDirTable.AddEdgeDir(EdgeKey0,DirV0);
         EDirTable.AddEdgeDir(EdgeKey1,(DirV1+2)%4);
-//        assert(EDirTable.EdgeMapDir.count(EdgeKey0)==0);
-//        assert(EDirTable.EdgeMapDir.count(EdgeKey1)==0);
+        //        assert(EDirTable.EdgeMapDir.count(EdgeKey0)==0);
+        //        assert(EDirTable.EdgeMapDir.count(EdgeKey1)==0);
 
-//        EDirTable.EdgeMapDir[EdgeKey0]=DirV0;
-//        EDirTable.EdgeMapDir[EdgeKey1]=((DirV1+2)%4);//put the inverse cause look internally the interval
+        //        EDirTable.EdgeMapDir[EdgeKey0]=DirV0;
+        //        EDirTable.EdgeMapDir[EdgeKey1]=((DirV1+2)%4);//put the inverse cause look internally the interval
 
     }
 }
@@ -627,10 +681,6 @@ void AddBorder(const VertexFieldGraph<MeshType> &VFGraph,
             EdgeVert EdgeKey0(MinV,MaxV,IndexV0);
             EdgeVert EdgeKey1(MinV,MaxV,IndexV1);
 
-//            assert(EDirTable.EdgeMapDir.count(EdgeKey0)==0);
-//            EDirTable.EdgeMapDir[EdgeKey0]=DirFlatV0;
-//            assert(EDirTable.EdgeMapDir.count(EdgeKey1)==0);
-//            EDirTable.EdgeMapDir[EdgeKey1]= DirFlatV1;
 
             EDirTable.AddEdgeDir(EdgeKey0,DirFlatV0);
             EDirTable.AddEdgeDir(EdgeKey1,DirFlatV1);

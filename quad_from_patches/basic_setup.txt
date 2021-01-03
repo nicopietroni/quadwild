@@ -16,4 +16,4 @@ repeatLosingConstraintsQuads 0
 repeatLosingConstraintsNonQuads 0
 repeatLosingConstraintsAlign 1
 hardParityConstraint 1
-scaleFact 2
+scaleFact 1

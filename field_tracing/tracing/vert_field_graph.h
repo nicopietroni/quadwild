@@ -1022,7 +1022,7 @@ public:
         VertPos.clear();
     }
 
-    void Init(bool _DebugMsg=false)//std::vector<CoordType> &_Sing)
+    void InitGraph(bool _DebugMsg=false)//std::vector<CoordType> &_Sing)
     {
 
         DebugMsg=_DebugMsg;
@@ -1279,6 +1279,25 @@ public:
             for (size_t j=0;j<Nodes[i].Neigh.size();j++)
             {
                 if (Nodes[i].Neigh[j].Node==IndexNode)continue;
+                SwapNeigh.push_back(Nodes[i].Neigh[j]);
+            }
+            if (SwapNeigh.size()==Nodes[i].Neigh.size())continue;
+            Nodes[i].Neigh=SwapNeigh;
+        }
+    }
+
+    void RemoveConnections(const std::set<size_t> &IndexNodes)
+    {
+        std::set<size_t>::iterator IteSet;
+        for (IteSet=IndexNodes.begin();IteSet!=IndexNodes.end();IteSet++)
+            Nodes[(*IteSet)].Neigh.clear();
+
+        for (size_t i=0;i<Nodes.size();i++)
+        {
+            std::vector<NeighInfo> SwapNeigh;
+            for (size_t j=0;j<Nodes[i].Neigh.size();j++)
+            {
+                if (IndexNodes.count(Nodes[i].Neigh[j].Node>0))continue;
                 SwapNeigh.push_back(Nodes[i].Neigh[j]);
             }
             if (SwapNeigh.size()==Nodes[i].Neigh.size())continue;
