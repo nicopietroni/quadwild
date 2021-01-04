@@ -409,7 +409,8 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
                       bool finalremoval,
                       bool PreRemoveStep=true,
                       bool UseMetamesh=true,
-                      bool ForceMultiSplit=true)
+                      bool ForceMultiSplit=false,
+                      bool CheckSurfaceFolds=true)
 {
     typedef typename MeshType::ScalarType ScalarType;
 
@@ -430,11 +431,12 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     std::cout<<"**** FIRST TRACING STEP ****"<<std::endl;
     int NumE0=PTr.NumEmitterType(TVNarrow);
     int NumE1=PTr.NumEmitterType(TVConcave);
+
     //in this case need to trace loops
     if ((NumE0==0)||(NumE1==0))
         PTr.BatchAddLoops(false,onlyneeded,false);
-
-    PTr.BatchAddLoops(false,onlyneeded,ForceMultiSplit);
+    else
+        PTr.BatchAddLoops(false,onlyneeded,ForceMultiSplit);
 
     //if no patch has been created than trace loops
     if ((ForceMultiSplit==true)&&(PTr.Partitions.size()==0))
@@ -479,7 +481,7 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
 
         std::cout<<"**** After Last Removal Step ****"<<std::endl;
 
-//        PTr.CutEarPath();
+        //        PTr.CutEarPath();
 
         PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex,PatchTypes);
         WriteUnsolvedStats(PatchTypes);
@@ -502,18 +504,18 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     std::cout<<"**** TOTAL "<<PTr.Partitions.size()<<" Partitions ****"<<std::endl;
     std::cout<<"Updated"<<std::endl;
 
-//    std::cout<<"Smoothing"<<std::endl;
-    PTr.SmoothPatches(10);
-//    std::cout<<"Fix Valences"<<std::endl;
+    //    std::cout<<"Smoothing"<<std::endl;
+    PTr.SmoothPatches(10,0.5,CheckSurfaceFolds);
+    //    std::cout<<"Fix Valences"<<std::endl;
     PTr.FixValences();
     PTr.WriteInfo();
     int t4=clock();
     ScalarType ElpsedSec=(ScalarType)(t4-t0)/CLOCKS_PER_SEC;
     std::cout<<"**** FINAL ELAPSED TIME "<<ElpsedSec<<" Seconds ****"<<std::endl;
 
-    //check if metamesh has not been initialized already
-    if (!(finalremoval&&UseMetamesh))
-        PTr.InitMetaMesh();
+//    //check if metamesh has not been initialized already
+//    if (!(finalremoval && UseMetamesh))
+//        PTr.InitMetaMesh();
 
     //    std::cout<<"Time First Trace "<<(ScalarType)Time_FirstTrace/CLOCKS_PER_SEC<<std::endl;
     //    std::cout<<"Time Init SubPatches 0 "<<(ScalarType)Time_InitSubPatches0/CLOCKS_PER_SEC<<std::endl;
@@ -582,7 +584,8 @@ template <class MeshType>
 void SaveAllData(PatchTracer<MeshType> &PTr,
                  const std::string &pathProject,
                  const size_t CurrNum,
-                 bool subdivide_when_save)
+                 bool subdivide_when_save,
+                 bool save_origFace)
 {
     typedef typename MeshType::CoordType CoordType;
 
@@ -686,6 +689,13 @@ void SaveAllData(PatchTracer<MeshType> &PTr,
     std::string featureCorners=pathProject;
     featureCorners=featureCorners+"_p"+std::to_string(CurrNum)+".c_feature";
     SaveM.SaveSharpCorners(featureCorners);
+
+    if (save_origFace)
+    {
+        std::string origfaceP=pathProject;
+        origfaceP=featureCorners+"_p"+std::to_string(CurrNum)+"_origf.txt";
+        SaveM.SaveOrigFace(origfaceP);
+    }
 }
 
 

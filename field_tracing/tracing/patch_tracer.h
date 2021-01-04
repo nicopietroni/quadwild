@@ -1382,21 +1382,21 @@ private:
         SampleLoopEmitters(false);
     }
 
-    //    //remove the connection with singularities that are not concave
-    //    //or narrow and we should not trace from them
-    //    void InvalidateNonConcaveSing()
-    //    {
-    //        for (size_t i=0;i<VertType.size();i++)
-    //        {
-    //            if (VertType[i]!=TVFlat)continue;
-    //            if (!VFGraph.IsSingVert[i])continue;
-    //            //get all nodes associated
-    //            std::vector<size_t> Nodes;
-    //            VertexFieldGraph<MeshType>::IndexNodes(i,Nodes);
-    //            for (size_t i=0;i<Nodes.size();i++)
-    //                VFGraph.RemoveConnections(Nodes[i]);
-    //        }
-    //    }
+//        //remove the connection with singularities that are not concave
+//        //or narrow and we should not trace from them
+//        void InvalidateNonConcaveSing()
+//        {
+//            for (size_t i=0;i<VertType.size();i++)
+//            {
+//                if (VertType[i]!=TVFlat)continue;
+//                if (!VFGraph.IsSingVert[i])continue;
+//                //get all nodes associated
+//                std::vector<size_t> Nodes;
+//                VertexFieldGraph<MeshType>::IndexNodes(i,Nodes);
+//                for (size_t i=0;i<Nodes.size();i++)
+//                    VFGraph.RemoveConnections(Nodes[i]);
+//            }
+//        }
 
     //remove the connection with singularities that are not concave
     //or narrow and we should not trace from them
@@ -3516,9 +3516,12 @@ public:
     //    {
 
     //    }
-    void SmoothPatches(size_t Steps=3,typename MeshType::ScalarType Damp=0.5)
+    void SmoothPatches(size_t Steps=3,typename MeshType::ScalarType Damp=0.5,bool CheckSurfaceFolds=true)
     {
-        PatchManager<MeshType>::SmoothMeshPatches(Mesh(),FacePartitions,Steps,Damp);
+        if (CheckSurfaceFolds)
+            PatchManager<MeshType>::SmoothMeshPatches(Mesh(),FacePartitions,Steps,Damp);
+        else
+            PatchManager<MeshType>::SmoothMeshPatches(Mesh(),FacePartitions,Steps,Damp,-1);
     }
 
     void SetAllRemovable()
@@ -3987,6 +3990,7 @@ public:
                 }
         }
 
+        InvalidateNonConcaveSing();
     }
 
     void GetPatchNodes(const size_t &IndexPatch,
@@ -4915,6 +4919,7 @@ public:
 //    void CutEarPath()
 //    {
 //        PatchManager<MeshType>::SelectMeshPatchBorders(Mesh(),FacePartitions);
+//        //NEED TO SELECT PATCH END POINTS !!!
 //        for (size_t i=0;i<ChoosenPaths.size();i++)
 //        {
 //            VertexFieldQuery<MeshType>::CutEarPath(VFGraph,ChoosenPaths[i].PathNodes,ChoosenPaths[i].IsLoop);

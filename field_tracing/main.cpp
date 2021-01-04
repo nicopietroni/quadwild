@@ -49,9 +49,11 @@ extern CMesh mesh;
 extern std::string pathM;
 extern std::string pathF;
 extern std::string pathS;
+extern std::string pathOF;
 extern std::string pathProject;
 
 extern bool has_features;
+extern bool has_original_faces;
 extern bool batch_process;
 
 //extern float BatchSample;
@@ -151,6 +153,24 @@ int main(int argc, char *argv[])
             std::cout<<"*** BATCH PROCESSING ***"<<std::endl;
             std::cout<<"* DATASET "<<pathM.c_str()<<" *"<<std::endl;
         }
+    }
+
+
+    pathOF=pathProject;
+    pathOF.append("_origf.txt");
+
+    QString pathOFQ=QString(pathOF.c_str());
+    QFileInfo f_infoOF(pathOFQ);
+    if (!f_infoOF.exists())
+    {
+        has_original_faces=false;
+        printf("NO Original faces\n");
+        fflush(stdout);
+    }
+    else
+    {
+        has_original_faces=true;
+        std::cout<<"Original faces correct"<<std::endl;
     }
 
 //    if ((batch_process)&&(argc>=4))

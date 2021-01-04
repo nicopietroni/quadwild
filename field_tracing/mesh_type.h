@@ -116,7 +116,27 @@ class CFace   : public vcg::Face<  MyUsedTypes,
         vcg::face::WedgeTexCoord2d>
 {
 public:
-    bool FullTraced;
+    bool FullTraced;  
+    size_t IndexOriginal;
+
+    void ImportData(const CFace  & left )
+    {
+        vcg::Face<  MyUsedTypes,
+                vcg::face::VertexRef,
+                vcg::face::Normal3d,
+                vcg::face::BitFlags,
+                vcg::face::CurvatureDird,
+                vcg::face::FFAdj,
+                vcg::face::VFAdj,
+                vcg::face::Qualityd,
+                vcg::face::Color4b,
+                vcg::face::Mark,
+                vcg::face::CurvatureDird,
+                vcg::face::WedgeTexCoord2d>::ImportData(left);
+
+        FullTraced=left.FullTraced;
+        IndexOriginal=left.IndexOriginal;
+    }
 };
 
 class CMesh   : public vcg::tri::TriMesh< std::vector<CVertex>,std::vector<CFace> >
@@ -678,6 +698,40 @@ public:
         glEnd();
         glPopMatrix();
         glPopAttrib();
+    }
+
+
+    bool SaveOrigFace(const std::string &filename)
+    {
+        if(filename.empty()) return false;
+        ofstream myfile;
+        myfile.open (filename.c_str());
+
+        for (size_t i=0;i<face.size();i++)
+        {
+            myfile <<face[i].IndexOriginal <<std::endl;
+        }
+
+        myfile.close();
+        return true;
+    }
+
+
+    bool LoadOrigFaces(std::string &filename)
+    {
+        FILE *f=NULL;
+        f=fopen(filename.c_str(),"rt");
+        if(f==NULL) return false;
+        for (size_t i=0;i<face.size();i++)
+        {
+            int FIndex;
+            fscanf(f,"%d\n",&FIndex);
+            assert(i>=0);
+            assert(i<(int)face.size());
+            face[i].IndexOriginal=(size_t)FIndex;
+        }
+        fclose(f);
+        return true;
     }
 };
 

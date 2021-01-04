@@ -59,6 +59,7 @@ extern bool do_batch;
 extern bool has_features;
 extern std::string pathM,pathS;
 
+extern bool do_remesh;
 extern int remesher_iterations;
 extern double remesher_aspect_ratio;
 extern int remesher_termination_delta;
@@ -147,6 +148,11 @@ bool loadConfigFile(const std::string & filename)
 
     std::cout<<"READ CONFIG FILE"<<std::endl;
 
+    int IntVar;
+    fscanf(f,"do_remesh %d\n",&IntVar);
+    if (IntVar==0)
+        do_remesh=false;
+    std::cout<<"do_remesh "<<do_remesh<<std::endl;
 
     fscanf(f,"remesh_iterations %d\n",&remesher_iterations);
     std::cout<<"remesh_iterations "<<remesher_iterations<<std::endl;

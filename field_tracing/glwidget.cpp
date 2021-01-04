@@ -57,7 +57,7 @@ vcg::GlTrimesh<CMesh> glWrapProblem;
 vcg::Trackball track;     /// the active manipulator
 GLW::DrawMode drawmode=GLW::DMFlatWire;     /// the current drawmode
 
-std::string pathM,pathF,pathS,pathProject;
+std::string pathM,pathF,pathS,pathOF,pathProject;
 
 //bool to_pick=false;
 //int xMouse,yMouse;
@@ -87,7 +87,7 @@ bool drawNarrowCandidates=false;
 
 bool batch_process=false;
 bool has_features=false;
-
+bool has_original_faces=false;
 bool add_only_needed=false;
 bool meta_mesh_collapse=true;
 //bool interleave_removal=true;
@@ -142,37 +142,37 @@ void SaveSetupFile(const std::string pathProject,
     FILE *f=fopen(pathSetupFinal.c_str(),"wt");
     assert(f!=NULL);
 
-//    fprintf(f,"Srate %f\n",PTr.sample_ratio);
-//    fprintf(f,"Drift %f\n",Drift);
+    //    fprintf(f,"Srate %f\n",PTr.sample_ratio);
+    //    fprintf(f,"Drift %f\n",Drift);
 
-//    if (PTr.split_on_removal)
-//        fprintf(f,"Split 1\n");
-//    else
-//        fprintf(f,"Split 0\n");
+    //    if (PTr.split_on_removal)
+    //        fprintf(f,"Split 1\n");
+    //    else
+    //        fprintf(f,"Split 0\n");
 
 
-//    FILE *f=fopen(path.c_str(),"rt");
-//    assert(f!=NULL);
+    //    FILE *f=fopen(path.c_str(),"rt");
+    //    assert(f!=NULL);
 
-//    float Driftf;
-//    fscanf(f,"Drift %f\n",&Driftf);
-//    Drift=(CMesh::ScalarType)Driftf;
-//    std::cout<<"DRIFT "<<Drift<<std::endl;
+    //    float Driftf;
+    //    fscanf(f,"Drift %f\n",&Driftf);
+    //    Drift=(CMesh::ScalarType)Driftf;
+    //    std::cout<<"DRIFT "<<Drift<<std::endl;
     fprintf(f,"Drift %f\n",Drift);
 
-//    float SRatef;
-//    fscanf(f,"Srate %f\n",&SRatef);
-//    PTr.sample_ratio=(CMesh::ScalarType)SRatef;
-//    std::cout<<"SAMPLE RATE "<<PTr.sample_ratio<<std::endl;
+    //    float SRatef;
+    //    fscanf(f,"Srate %f\n",&SRatef);
+    //    PTr.sample_ratio=(CMesh::ScalarType)SRatef;
+    //    std::cout<<"SAMPLE RATE "<<PTr.sample_ratio<<std::endl;
     fprintf(f,"Srate %f\n",PTr.sample_ratio);
 
-//    int IntVar=0;
-//    fscanf(f,"SplitOnRem %d\n",&IntVar);
-//    std::cout<<"SPLIT "<<IntVar<<std::endl;
-//    if (IntVar==0)
-//        PTr.split_on_removal=false;
-//    else
-//        PTr.split_on_removal=true;
+    //    int IntVar=0;
+    //    fscanf(f,"SplitOnRem %d\n",&IntVar);
+    //    std::cout<<"SPLIT "<<IntVar<<std::endl;
+    //    if (IntVar==0)
+    //        PTr.split_on_removal=false;
+    //    else
+    //        PTr.split_on_removal=true;
 
     if (PTr.split_on_removal)
         fprintf(f,"SplitOnRem 1\n");
@@ -183,62 +183,62 @@ void SaveSetupFile(const std::string pathProject,
     fprintf(f,"MaxVal %d\n",PTr.MaxVal);
     //std::cout<<"INCREASE VAL "<<PTr.MaxVal<<std::endl;
 
-//    float CCbility;
-//    fscanf(f,"CCability %f\n",&CCbility);
-//    PTr.CClarkability=(CMesh::ScalarType)CCbility;
-//    std::cout<<"CCABILITY "<<PTr.CClarkability<<std::endl;
+    //    float CCbility;
+    //    fscanf(f,"CCability %f\n",&CCbility);
+    //    PTr.CClarkability=(CMesh::ScalarType)CCbility;
+    //    std::cout<<"CCABILITY "<<PTr.CClarkability<<std::endl;
     fprintf(f,"CCability %f\n",PTr.CClarkability);
 
-//    fscanf(f,"MatchVal %d\n",&IntVar);
-//    std::cout<<"MATCH VAL "<<IntVar<<std::endl;
-//    if (IntVar==0)
-//        PTr.match_valence=false;
-//    else
-//        PTr.match_valence=true;
+    //    fscanf(f,"MatchVal %d\n",&IntVar);
+    //    std::cout<<"MATCH VAL "<<IntVar<<std::endl;
+    //    if (IntVar==0)
+    //        PTr.match_valence=false;
+    //    else
+    //        PTr.match_valence=true;
     if (PTr.match_valence)
         fprintf(f,"MatchVal 1\n");
     else
         fprintf(f,"MatchVal 0\n");
 
-//    fscanf(f,"AddNeed %d\n",&IntVar);
-//    std::cout<<"ADD NEED "<<IntVar<<std::endl;
-//    if (IntVar==0)
-//        add_only_needed=false;
-//    else
-//        add_only_needed=true;
+    //    fscanf(f,"AddNeed %d\n",&IntVar);
+    //    std::cout<<"ADD NEED "<<IntVar<<std::endl;
+    //    if (IntVar==0)
+    //        add_only_needed=false;
+    //    else
+    //        add_only_needed=true;
     if (add_only_needed)
         fprintf(f,"AddNeed 1\n");
     else
         fprintf(f,"AddNeed 0\n");
 
-//    fscanf(f,"InterleaveRem %d\n",&IntVar);
-//    std::cout<<"INTERLEAVE REMOVE "<<IntVar<<std::endl;
-//    if (IntVar==0)
-//        interleave_removal=false;
-//    else
-//        interleave_removal=true;
-//    if (interleave_removal)
-//        fprintf(f,"InterleaveRem 1\n");
-//    else
-//        fprintf(f,"InterleaveRem 0\n");
+    //    fscanf(f,"InterleaveRem %d\n",&IntVar);
+    //    std::cout<<"INTERLEAVE REMOVE "<<IntVar<<std::endl;
+    //    if (IntVar==0)
+    //        interleave_removal=false;
+    //    else
+    //        interleave_removal=true;
+    //    if (interleave_removal)
+    //        fprintf(f,"InterleaveRem 1\n");
+    //    else
+    //        fprintf(f,"InterleaveRem 0\n");
 
-//    fscanf(f,"InterleaveSmooth %d\n",&IntVar);
-//    std::cout<<"INTERLEAVE SMOOTH "<<IntVar<<std::endl;
-//    if (IntVar==0)
-//        interleave_smooth=false;
-//    else
-//        interleave_smooth=true;
-//    if (interleave_smooth)
-//        fprintf(f,"InterleaveSmooth 1\n");
-//    else
-//        fprintf(f,"InterleaveSmooth 0\n");
+    //    fscanf(f,"InterleaveSmooth %d\n",&IntVar);
+    //    std::cout<<"INTERLEAVE SMOOTH "<<IntVar<<std::endl;
+    //    if (IntVar==0)
+    //        interleave_smooth=false;
+    //    else
+    //        interleave_smooth=true;
+    //    if (interleave_smooth)
+    //        fprintf(f,"InterleaveSmooth 1\n");
+    //    else
+    //        fprintf(f,"InterleaveSmooth 0\n");
 
-//    fscanf(f,"FinalRem %d\n",&IntVar);
-//    std::cout<<"FINAL REMOVE "<<IntVar<<std::endl;
-//    if (IntVar==0)
-//        final_removal=false;
-//    else
-//        final_removal=true;
+    //    fscanf(f,"FinalRem %d\n",&IntVar);
+    //    std::cout<<"FINAL REMOVE "<<IntVar<<std::endl;
+    //    if (IntVar==0)
+    //        final_removal=false;
+    //    else
+    //        final_removal=true;
     if (final_removal)
         fprintf(f,"FinalRem 1\n");
     else
@@ -247,15 +247,15 @@ void SaveSetupFile(const std::string pathProject,
         fprintf(f,"Subd 1\n");
     else
         fprintf(f,"Subd 0\n");
-//    if (PTr.avoid_increase_valence)
-//        fprintf(f,"IncreaseValRem 1\n");
-//    else
-//        fprintf(f,"IncreaseValRem 0\n");
+    //    if (PTr.avoid_increase_valence)
+    //        fprintf(f,"IncreaseValRem 1\n");
+    //    else
+    //        fprintf(f,"IncreaseValRem 0\n");
 
-//    if (PTr.avoid_collapse_irregular)
-//        fprintf(f,"IrregularRem 1\n");
-//    else
-//        fprintf(f,"IrregularRem 0\n");
+    //    if (PTr.avoid_collapse_irregular)
+    //        fprintf(f,"IrregularRem 1\n");
+    //    else
+    //        fprintf(f,"IrregularRem 0\n");
 
     //fprintf(f,"DistortionL %f\n",PTr.max_lenght_distortion);
 
@@ -279,7 +279,7 @@ void LoadSetupFile(std::string path)
     float SRatef;
     fscanf(f,"Srate %f\n",&SRatef);
     PTr.sample_ratio=(CMesh::ScalarType)SRatef;
-    std::cout<<"SAMPLE RATE "<<PTr.sample_ratio<<std::endl;   
+    std::cout<<"SAMPLE RATE "<<PTr.sample_ratio<<std::endl;
 
     int IntVar=0;
     fscanf(f,"SplitOnRem %d\n",&IntVar);
@@ -311,19 +311,19 @@ void LoadSetupFile(std::string path)
     else
         add_only_needed=true;
 
-//    fscanf(f,"InterleaveRem %d\n",&IntVar);
-//    std::cout<<"INTERLEAVE REMOVE "<<IntVar<<std::endl;
-//    if (IntVar==0)
-//        interleave_removal=false;
-//    else
-//        interleave_removal=true;
+    //    fscanf(f,"InterleaveRem %d\n",&IntVar);
+    //    std::cout<<"INTERLEAVE REMOVE "<<IntVar<<std::endl;
+    //    if (IntVar==0)
+    //        interleave_removal=false;
+    //    else
+    //        interleave_removal=true;
 
-//    fscanf(f,"InterleaveSmooth %d\n",&IntVar);
-//    std::cout<<"INTERLEAVE SMOOTH "<<IntVar<<std::endl;
-//    if (IntVar==0)
-//        interleave_smooth=false;
-//    else
-//        interleave_smooth=true;
+    //    fscanf(f,"InterleaveSmooth %d\n",&IntVar);
+    //    std::cout<<"INTERLEAVE SMOOTH "<<IntVar<<std::endl;
+    //    if (IntVar==0)
+    //        interleave_smooth=false;
+    //    else
+    //        interleave_smooth=true;
 
     fscanf(f,"FinalRem %d\n",&IntVar);
     std::cout<<"FINAL REMOVE "<<IntVar<<std::endl;
@@ -332,6 +332,14 @@ void LoadSetupFile(std::string path)
     else
         final_removal=true;
 
+
+    fscanf(f,"ForceSplit %d\n",&IntVar);
+    std::cout<<"FORCE SPLIT "<<IntVar<<std::endl;
+    if (IntVar==0)
+        force_split=false;
+    else
+        force_split=true;
+
     fscanf(f,"Subd %d\n",&IntVar);
     std::cout<<"SUBDIVIDE WHEN SAVE "<<IntVar<<std::endl;
     if (IntVar==0)
@@ -339,17 +347,17 @@ void LoadSetupFile(std::string path)
     else
         subdivide_when_save=true;
 
-//    if ((batch_process)&&(BatchSample>0))
-//        PTr.sample_ratio=BatchSample;
+    //    if ((batch_process)&&(BatchSample>0))
+    //        PTr.sample_ratio=BatchSample;
 
-//    if ((batch_process)&&(BatchDrift>0))
-//        Drift=BatchDrift;
+    //    if ((batch_process)&&(BatchDrift>0))
+    //        Drift=BatchDrift;
 
-//    if ((batch_process)&&(BatchSplit==0))
-//        PTr.split_on_removal=false;
+    //    if ((batch_process)&&(BatchSplit==0))
+    //        PTr.split_on_removal=false;
 
-//    if ((batch_process)&&(BatchSplit==1))
-//        PTr.split_on_removal=true;
+    //    if ((batch_process)&&(BatchSplit==1))
+    //        PTr.split_on_removal=true;
 }
 
 void FindCurrentNum()
@@ -369,8 +377,8 @@ void FindCurrentNum()
     std::string Filter=NameFile+"_p*.obj";
     //std::cout<<"filter "<<Filter.c_str()<<std::endl;
 
-//    TestPath+="*.obj";
-   QStringList projectFiles = directory.entryList(QStringList() <<Filter.c_str(),QDir::Files);
+    //    TestPath+="*.obj";
+    QStringList projectFiles = directory.entryList(QStringList() <<Filter.c_str(),QDir::Files);
     CurrNum=0;
 
     foreach(QString filename, projectFiles) {
@@ -378,34 +386,34 @@ void FindCurrentNum()
         std::string TestScan=NameFile+"_p%d.obj";
         sscanf (filename.toStdString().c_str(),TestScan.c_str(),&Num);
         CurrNum=std::max(CurrNum,(Num+1));
-//        std::cout<<"test "<<Num<<std::endl;
-//        std::cout<<"test "<<filename.toStdString().c_str()<<std::endl;
-    //do whatever you need to do
+        //        std::cout<<"test "<<Num<<std::endl;
+        //        std::cout<<"test "<<filename.toStdString().c_str()<<std::endl;
+        //do whatever you need to do
     }
 }
 
 
 void UpdatePatchColor()
 {
- if (CurrPatchMode==CMPatchNone)
-     vcg::tri::UpdateColor<CMesh>::PerFaceConstant(mesh);
- if (CurrPatchMode==CMPatchCol)
-     PTr.ColorByPartitions();
-     //PTr.ColorByPatchQuality();
- if (CurrPatchMode==CMPatchValence)
-     PTr.ColorByValence();
- if (CurrPatchMode==CMPatchTopo)
-     PTr.ColorByTopology();
- if (CurrPatchMode==CMPatchLenghtVar)
-     PTr.ColorByLenghtVariance();
- if (CurrPatchMode==CMPatchLengthDist)
-     PTr.ColorByLenghtDistortion();
- if (CurrPatchMode==CMArapDistortion)
-     PTr.ColorByArapDistortion();
- if (CurrPatchMode==CMCClarkability)
-     PTr.ColorByCClarkability();
- if (CurrPatchMode==CMExpValence)
-     PTr.ColorByExpValence();
+    if (CurrPatchMode==CMPatchNone)
+        vcg::tri::UpdateColor<CMesh>::PerFaceConstant(mesh);
+    if (CurrPatchMode==CMPatchCol)
+        PTr.ColorByPartitions();
+    //PTr.ColorByPatchQuality();
+    if (CurrPatchMode==CMPatchValence)
+        PTr.ColorByValence();
+    if (CurrPatchMode==CMPatchTopo)
+        PTr.ColorByTopology();
+    if (CurrPatchMode==CMPatchLenghtVar)
+        PTr.ColorByLenghtVariance();
+    if (CurrPatchMode==CMPatchLengthDist)
+        PTr.ColorByLenghtDistortion();
+    if (CurrPatchMode==CMArapDistortion)
+        PTr.ColorByArapDistortion();
+    if (CurrPatchMode==CMCClarkability)
+        PTr.ColorByCClarkability();
+    if (CurrPatchMode==CMExpValence)
+        PTr.ColorByExpValence();
 }
 
 void UpdateVisualNodes()
@@ -470,8 +478,12 @@ void InitStructures()
     NarrowReceiversNode.clear();
     UnsatisfiedNodes.clear();
 
+    //    std::string origfaceP=pathProject;
+    //    origfaceP=featureCorners+"_p"+std::to_string(CurrNum)+"_origf.txt";
+    //    mesh.SaveOrigFace("test0face.txt");
     PreProcessMesh(mesh);
-
+    //    mesh.SaveOrigFace("test1face.txt");
+    //    exit(0);
     VGraph.InitGraph(false);//SingPos);
 
     GLGraph.InitDisplacedPos();
@@ -489,7 +501,7 @@ void InitStructures()
 
 void TW_CALL InitGraph(void *)
 {
-//    vcg::tri::Local_Param_Smooth<CMesh>::SmoothStep(mesh,0.5);
+    //    vcg::tri::Local_Param_Smooth<CMesh>::SmoothStep(mesh,0.5);
     InitStructures();
 
     drawField=false;
@@ -620,13 +632,24 @@ void LoadAll()
         exit(0);
     }
 
-    if (!has_features)return;
+    if (has_original_faces)
+    {
+        bool loadedOrigF=mesh.LoadOrigFaces(pathOF);
 
-    bool loadedFeatures=mesh.LoadSharpFeatures(pathS);
-    if (!loadedFeatures){
-        std::cout<<"*** ERROR LOADING FEATURES ***"<<std::endl;
-        exit(0);
+        if (!loadedOrigF){
+            std::cout<<"*** ERROR LOADING ORIGINAL FACES ***"<<std::endl;
+            exit(0);
+        }
     }
+
+    if (has_features){
+        bool loadedFeatures=mesh.LoadSharpFeatures(pathS);
+        if (!loadedFeatures){
+            std::cout<<"*** ERROR LOADING FEATURES ***"<<std::endl;
+            exit(0);
+        }
+    }
+
     mesh.SolveGeometricIssues();
     mesh.UpdateSharpFeaturesFromSelection();
 }
@@ -730,7 +753,7 @@ void TW_CALL SplitSupPatches(void *)
 
 void TW_CALL SaveData(void *)
 {
-    SaveAllData(PTr,pathProject,CurrNum,subdivide_when_save);
+    SaveAllData(PTr,pathProject,CurrNum,subdivide_when_save,has_original_faces);
     SaveCSV(PTr,pathProject,CurrNum);
 }
 
@@ -745,22 +768,22 @@ void  ProcessAllBatch()
     RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal,true,meta_mesh_collapse,force_split);
     //RecursiveProcess<CMesh>(PTr,Drift,true,true,true);
     CurrPatchMode=CMPatchCol;
-//    PTr.BatchRemoval();
-//    PTr.FixValences();
+    //    PTr.BatchRemoval();
+    //    PTr.FixValences();
     CurrPatchMode=CMPatchCol;
     drawField=false;
     drawSharpF=false;
     drawSing=false;
     UpdateVisualNodes();
     PTr.SmoothPatches();
-    SaveAllData(PTr,pathProject,CurrNum,subdivide_when_save);
+    SaveAllData(PTr,pathProject,CurrNum,subdivide_when_save,has_original_faces);
     SaveCSV(PTr,pathProject,CurrNum);
     SaveSetupFile(pathProject,CurrNum);
 }
 
 void TW_CALL AllProcess(void *)
 {
-   ProcessAllBatch();
+    ProcessAllBatch();
 }
 
 void InitLoopBar(QWidget *w)
@@ -961,10 +984,10 @@ void GLWidget::paintGL ()
 
         if (drawField)
         {
-           if (!drawProblematicsOnly)
+            if (!drawProblematicsOnly)
                 vcg::GLField<CMesh>::GLDrawFaceField(mesh,false,false,0.005);
-           else
-               vcg::GLField<CMesh>::GLDrawFaceField(problematic_mesh,false,false,0.005);
+            else
+                vcg::GLField<CMesh>::GLDrawFaceField(problematic_mesh,false,false,0.005);
         }
 
         if (drawSing)

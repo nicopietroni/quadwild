@@ -43,8 +43,7 @@ class PolyFace:public vcg::Face<
         ,vcg::face::Normal3d // normal
         /*,vcg::face::Color4b  // color
                                                                                                                                 ,vcg::face::Qualityd      // face quality.
-                                                                                                                                ,vcg::face::BitFlags
-                                                                                                                                ,vcg::face::Mark*/
+                                                                                                                                ,vcg::face::BitFlags                                                                                                                             ,vcg::face::Mark*/
         ,vcg::face::CurvatureDirf> {
 };
 
@@ -111,6 +110,7 @@ class MyTriVertex:public vcg::Vertex<TriUsedTypes,
         vcg::vertex::Qualityd,
         vcg::vertex::Mark>
 {
+
 };
 
 class MyTriEdge : public vcg::Edge<
@@ -130,7 +130,27 @@ class MyTriFace:public vcg::Face<TriUsedTypes,
         vcg::face::WedgeTexCoord2d,
         vcg::face::Mark>
 {
+
 public:
+
+    size_t IndexOriginal;
+
+    void ImportData(const MyTriFace  & left )
+    {
+        vcg::Face<TriUsedTypes,
+                vcg::face::VertexRef,
+                vcg::face::VFAdj,
+                vcg::face::FFAdj,
+                vcg::face::BitFlags,
+                vcg::face::Normal3d,
+                vcg::face::CurvatureDird,
+                vcg::face::Qualityd,
+                vcg::face::WedgeTexCoord2d,
+                vcg::face::Mark>ImportData(left);
+
+        IndexOriginal=left.IndexOriginal;
+    }
+
     FeatureKind FKind[3];
 };
 
@@ -744,6 +764,19 @@ public:
             return true;
         }
         return false;
+    }
+
+    bool SaveOrigFace(const std::string &filename)
+    {
+        if(filename.empty()) return false;
+        ofstream myfile;
+        myfile.open (filename.c_str());
+
+        for (size_t i=0;i<face.size();i++)
+            myfile <<face[i].IndexOriginal <<std::endl;
+
+        myfile.close();
+        return true;
     }
 
     bool SaveField(const std::string &filename)

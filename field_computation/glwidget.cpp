@@ -96,6 +96,7 @@ bool do_batch=false;
 bool has_features=false;
 //size_t ErodeDilateSteps=4;
 
+bool do_remesh=true;
 int remesher_iterations=15;
 ScalarType remesher_aspect_ratio=0.3;
 int remesher_termination_delta=10000;
@@ -326,7 +327,11 @@ void BatchProcess ()
 //    vcg::tri::Hole<MyTriMesh>::EarCuttingFill<vcg::tri::TrivialEar<MyTriMesh> >(tri_mesh,6);
     size_t numDup=tri_mesh.NumDuplicatedV();
     if (numDup>0)std::cout<<"WARNING DUPLICATED VERTICES BEFORE AUTO REMESH!"<<std::endl;
-    DoAutoRemesh();
+    if (do_remesh)
+        DoAutoRemesh();
+
+    for (size_t i=0;i<tri_mesh.face.size();i++)
+        tri_mesh.face[i].IndexOriginal=i;
 
     tri_mesh.SolveGeometricIssues();
 //    numDup=tri_mesh.NumDuplicatedV();
@@ -386,6 +391,10 @@ void BatchProcess ()
     tri_mesh.SaveTriMesh(meshName.c_str());
     tri_mesh.SaveSharpFeatures(sharpName.c_str());
     tri_mesh.SaveField(fieldName.c_str());
+
+    std::string orFaceName=projM+std::string("_rem_origf.txt");
+    std::cout<<"Saving Field TO:"<<orFaceName.c_str()<<std::endl;
+    tri_mesh.SaveOrigFace(orFaceName.c_str());
 
     //SAVE
     //SaveAllData();

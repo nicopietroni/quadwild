@@ -1,3 +1,4 @@
+do_remesh 0
 remesh_iterations 15
 remesh_target_aspect_ratio 0.35
 remesh_termination_delta 10000
