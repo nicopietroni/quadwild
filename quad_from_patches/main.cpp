@@ -16,8 +16,8 @@
 #include "quad_mesh_tracer.h"
 
 typename TriangleMesh::ScalarType avgEdge(const TriangleMesh& trimesh);
-void loadSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor);
-void SaveSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor);
+void loadSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor, float& fixToIsometryRatio);
+void SaveSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor, float& fixToIsometryRatio);
 //int FindCurrentNum(std::string &pathProject);
 
 int main(int argc, char *argv[])
@@ -55,7 +55,8 @@ int main(int argc, char *argv[])
 
     QuadRetopology::Parameters parameters;
     float scaleFactor;
-    loadSetupFile(std::string("basic_setup.txt"), parameters, scaleFactor);
+    float fixToIsometryRatio;
+    loadSetupFile(std::string("basic_setup.txt"), parameters, scaleFactor, fixToIsometryRatio);
 
     parameters.chartSmoothingIterations = 0; //Chart smoothing
     parameters.quadrangulationFixedSmoothingIterations = 0; //Smoothing with fixed borders of the patches
@@ -122,7 +123,7 @@ int main(int argc, char *argv[])
     double EdgeSize=avgEdge(trimesh)*scaleFactor;
     std::cout<<"Edge Size "<<EdgeSize<<std::endl;
     const std::vector<double> edgeFactor(trimeshPartitions.size(), EdgeSize);
-    qfp::quadrangulationFromPatches(trimesh, trimeshPartitions, trimeshCorners, edgeFactor, parameters, quadmesh, quadmeshPartitions, quadmeshCorners, ilpResult);
+    qfp::quadrangulationFromPatches(trimesh, trimeshPartitions, trimeshCorners, edgeFactor, parameters, fixToIsometryRatio, quadmesh, quadmeshPartitions, quadmeshCorners, ilpResult);
 
     //COLOR AND SAVE QUADRANGULATION
     vcg::tri::UpdateColor<PolyMesh>::PerFaceConstant(quadmesh);
@@ -202,7 +203,7 @@ int main(int argc, char *argv[])
    //setupFilename.append("_quadrangulation_setup.txt");
    setupFilename+=std::string("_")+std::to_string(CurrNum)+std::string("_quadrangulation_setup")+std::string(".txt");
 
-   SaveSetupFile(setupFilename, parameters, scaleFactor);
+   SaveSetupFile(setupFilename, parameters, scaleFactor, fixToIsometryRatio);
 }
 
 
@@ -220,7 +221,7 @@ typename TriangleMesh::ScalarType avgEdge(const TriangleMesh& trimesh)
     return (AvgVal/Num);
 }
 
-void loadSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor)
+void loadSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor, float& fixToIsometryRatio)
 {
     FILE *f=fopen(path.c_str(),"rt");
     assert(f!=NULL);
@@ -334,11 +335,13 @@ void loadSetupFile(const std::string& path, QuadRetopology::Parameters& paramete
         parameters.hardParityConstraint=true;
 
     fscanf(f,"scaleFact %f\n",&scaleFactor);
+    
+    fscanf(f,"fixToIsometryRatio %f\n",&fixToIsometryRatio);
 
     fclose(f);
 }
 
-void SaveSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor)
+void SaveSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor, float& fixToIsometryRatio)
 {
     FILE *f=fopen(path.c_str(),"wt");
     assert(f!=NULL);
@@ -415,7 +418,9 @@ void SaveSetupFile(const std::string& path, QuadRetopology::Parameters& paramete
     else
         fprintf(f,"hardParityConstraint 0\n");
 
-    fprintf(f,"scaleFact %f\n", static_cast<double>(scaleFactor));
+    fprintf(f,"scaleFact %f\n", static_cast<float>(scaleFactor));
+
+    fprintf(f,"fixToIsometryRatio %f\n", static_cast<float>(fixToIsometryRatio));
 
     fclose(f);
 }

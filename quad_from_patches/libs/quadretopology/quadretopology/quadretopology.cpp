@@ -448,12 +448,12 @@ ChartData computeChartData(
 
 inline std::vector<double> computeChartEdgeLength(
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubsides,
+        const std::vector<size_t> fixedSubdivisionSubsides,
         const size_t& iterations,
         const double& weight)
 {
     vector<bool> isFixed(chartData.subsides.size(), false);
-    for (int sId : fixedSubsides) {
+    for (int sId : fixedSubdivisionSubsides) {
         isFixed[sId] = true;
     }
 
@@ -539,14 +539,14 @@ inline std::vector<double> computeChartEdgeLength(
 
 inline std::vector<int> findSubdivisions(
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubsides,
+        const std::vector<size_t> fixedSubdivisionSubsides,
         const std::vector<double>& chartEdgeLength,
         const Parameters& parameters,
         double& gap)
 {
     return findSubdivisions(
         chartData,
-        fixedSubsides,
+        fixedSubdivisionSubsides,
         chartEdgeLength,
         parameters.ilpMethod,
         parameters.alpha,
@@ -572,7 +572,7 @@ inline std::vector<int> findSubdivisions(
 
 inline std::vector<int> findSubdivisions(
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubsides,
+        const std::vector<size_t> fixedSubdivisionSubsides,
         const std::vector<double>& chartEdgeLength,
         const ILPMethod& method,
         const double alpha,
@@ -603,7 +603,7 @@ inline std::vector<int> findSubdivisions(
     //Solve ILP to find the best patches
     std::vector<int> ilpResult = internal::solveILP(
         chartData,
-        fixedSubsides,
+        fixedSubdivisionSubsides,
         chartEdgeLength,
         method,
         alpha,
@@ -634,7 +634,7 @@ inline std::vector<int> findSubdivisions(
 
         return findSubdivisions(
             chartData,
-            fixedSubsides,
+            fixedSubdivisionSubsides,
             chartEdgeLength,
             method,
             alpha,
@@ -668,7 +668,7 @@ inline std::vector<int> findSubdivisions(
 
         return findSubdivisions(
             chartData,
-            fixedSubsides,
+            fixedSubdivisionSubsides,
             chartEdgeLength,
             ILPMethod::ABS,
             alpha,
@@ -699,7 +699,7 @@ template<class TriangleMeshType, class PolyMeshType>
 void quadrangulate(
         TriangleMeshType& newSurface,
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubsides,
+        const std::vector<size_t> fixedPositionSubsides,
         const std::vector<int>& ilpResult,
         const Parameters& parameters,
         PolyMeshType& quadrangulation,
@@ -710,7 +710,7 @@ void quadrangulate(
     return QuadRetopology::quadrangulate(
             newSurface,
             chartData,
-            fixedSubsides,
+            fixedPositionSubsides,
             ilpResult,
             parameters.chartSmoothingIterations,
             parameters.quadrangulationFixedSmoothingIterations,
@@ -726,7 +726,7 @@ template<class TriangleMeshType, class PolyMeshType>
 void quadrangulate(
         TriangleMeshType& newSurface,
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubsides,
+        const std::vector<size_t> fixedPositionSubsides,
         const std::vector<int>& ilpResult,
         const int chartSmoothingIterations,
         const int quadrangulationFixedSmoothingIterations,
@@ -749,7 +749,7 @@ void quadrangulate(
     quadrangulationCorners.resize(chartData.charts.size());
 
     vector<bool> isFixed(chartData.subsides.size(), false);
-    for (int sId : fixedSubsides) {
+    for (int sId : fixedPositionSubsides) {
         isFixed[sId] = true;
     }
 

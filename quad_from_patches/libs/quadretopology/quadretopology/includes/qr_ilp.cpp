@@ -19,11 +19,21 @@ protected:
     void callback() override;
 };
 
+//inline void getChartSideData(
+//        const ChartData& chartData,
+//        const size_t& cId,
+//        const std::vector<GRBVar>& vars,
+//        const std::vector<bool>& hasVariable,
+//        const bool hardParityConstraint,
+//        std::vector<const ChartSide*>& chartSides,
+//        std::vector<GRBLinExpr>& chartSubsideSum);
+
 void getChartSubsideSum(
         const ChartData& chartData,
         const size_t& cId,
         const std::vector<GRBVar>& vars,
         const std::vector<bool>& hasVariable,
+        const bool hardParityConstraint,
         std::vector<GRBLinExpr>& chartSubsideSum);
 
 void getChartSubsideSumResults(
@@ -118,10 +128,12 @@ inline std::vector<int> solveILP(
                     hasVariable[subsideId] = true;
                 }
                 else if (feasibilityFix && subside.isOnBorder) {
-                    vars[subsideId] = model.addVar(std::max(subside.size - 1, MIN_SUBDIVISION_VALUE), subside.size + 1, 0.0, GRB_INTEGER, "s" + to_string(subsideId));
-                    GRBLinExpr value = vars[subsideId] - subside.size;
+                    const int fixedSize = hardParityConstraint ? subside.size : std::round(subside.size / 2.0);
 
-                    supportObj += getGurobiAbsInteger(model, value) * FEASIBILITY_FIX_COST * (1.0 / subside.size);
+                    vars[subsideId] = model.addVar(std::max(fixedSize - 1, MIN_SUBDIVISION_VALUE), fixedSize + 1, 0.0, GRB_INTEGER, "s" + to_string(subsideId));
+                    GRBLinExpr value = vars[subsideId] - fixedSize;
+
+                    supportObj += getGurobiAbsInteger(model, value) * FEASIBILITY_FIX_COST * (1.0 / fixedSize);
 
                     hasVariable[subsideId] = true;
                 }
@@ -170,7 +182,7 @@ inline std::vector<int> solveILP(
                     /* ------------------------ REGULARITY ------------------------ */
 
                     std::vector<GRBLinExpr> chartSubsideSum;
-                    getChartSubsideSum(chartData, cId, vars, hasVariable, chartSubsideSum);
+                    getChartSubsideSum(chartData, cId, vars, hasVariable, hardParityConstraint, chartSubsideSum);
 
                     for (size_t j = 0; j < nSides; j++) {
                         GRBLinExpr value = 0.0;
@@ -343,7 +355,7 @@ inline std::vector<int> solveILP(
 
 
                                 std::vector<GRBLinExpr> adjChartSubsideSum;
-                                getChartSubsideSum(chartData, currentChartId, vars, hasVariable, adjChartSubsideSum);
+                                getChartSubsideSum(chartData, currentChartId, vars, hasVariable, hardParityConstraint, adjChartSubsideSum);
 
                                 //Singularity alignment for triangular case
                                 if (currentChartNSides == 3) {
@@ -419,8 +431,9 @@ inline std::vector<int> solveILP(
                             if (hasVariable[subsideId]) {
                                 sumExp += vars[subsideId];
                             }
-                            else {
-                                sumExp += subside.size;
+                            else {                                
+                                const int fixedSize = hardParityConstraint ? subside.size : std::round(subside.size / 2.0);
+                                sumExp += fixedSize;
                             }
                         }
 
@@ -450,13 +463,14 @@ inline std::vector<int> solveILP(
                 const ChartSubside& subside = chartData.subsides[subsideId];
                 if (hasVariable[subsideId]) {
                     result[subsideId] = static_cast<int>(std::round(vars[subsideId].get(GRB_DoubleAttr_X)));
-
-                    if (!hardParityConstraint) {
-                        result[subsideId] *= 2;
-                    }
                 }
                 else {
-                    result[subsideId] = subside.size;
+                    const int fixedSize = hardParityConstraint ? subside.size : std::round(subside.size / 2.0);
+                    result[subsideId] = fixedSize;
+                }
+
+                if (!hardParityConstraint) {
+                    result[subsideId] *= 2;
                 }
             }
 
@@ -753,44 +767,47 @@ inline std::vector<int> solveILP(
     return result;
 }
 
-inline void getChartSideData(
-        const ChartData& chartData,
-        const size_t& cId,
-        const std::vector<GRBVar>& vars,
-        const std::vector<bool>& hasVariable,
-        std::vector<const ChartSide*>& chartSides,
-        std::vector<GRBLinExpr>& chartSubsideSum)
-{
-    const Chart& chart = chartData.charts[cId];
-    size_t nSides = chart.chartSides.size();
+//inline void getChartSideData(
+//        const ChartData& chartData,
+//        const size_t& cId,
+//        const std::vector<GRBVar>& vars,
+//        const std::vector<bool>& hasVariable,
+//        const bool hardParityConstraint,
+//        std::vector<const ChartSide*>& chartSides,
+//        std::vector<GRBLinExpr>& chartSubsideSum)
+//{
+//    const Chart& chart = chartData.charts[cId];
+//    size_t nSides = chart.chartSides.size();
 
-    chartSides.resize(nSides, nullptr);
-    chartSubsideSum.resize(nSides, 0.0);
+//    chartSides.resize(nSides, nullptr);
+//    chartSubsideSum.resize(nSides, 0.0);
 
-    for (size_t i = 0; i < nSides; i++) {
-        const ChartSide* sidePtr = &(chart.chartSides[i]);
-        GRBLinExpr subsideSum = 0;
-        for (const size_t& subsideId : sidePtr->subsides) {
-            const ChartSubside& subside = chartData.subsides[subsideId];
+//    for (size_t i = 0; i < nSides; i++) {
+//        const ChartSide* sidePtr = &(chart.chartSides[i]);
+//        GRBLinExpr subsideSum = 0;
+//        for (const size_t& subsideId : sidePtr->subsides) {
+//            const ChartSubside& subside = chartData.subsides[subsideId];
 
-            if (hasVariable[subsideId]) {
-                subsideSum += vars[subsideId];
-            }
-            else {
-                subsideSum += subside.size;
-            }
-        }
+//            if (hasVariable[subsideId]) {
+//                subsideSum += vars[subsideId];
+//            }
+//            else {
+//                const int fixedSize = hardParityConstraint ? subside.size : std::round(subside.size / 2.0);
+//                subsideSum += fixedSize;
+//            }
+//        }
 
-        chartSides[i] = sidePtr;
-        chartSubsideSum[i] = subsideSum;
-    }
-}
+//        chartSides[i] = sidePtr;
+//        chartSubsideSum[i] = subsideSum;
+//    }
+//}
 
 inline void getChartSubsideSum(
         const ChartData& chartData,
         const size_t& cId,
         const std::vector<GRBVar>& vars,
         const std::vector<bool>& hasVariable,
+        const bool hardParityConstraint,
         std::vector<GRBLinExpr>& chartSubsideSum)
 {
     const Chart& chart = chartData.charts[cId];
@@ -808,8 +825,9 @@ inline void getChartSubsideSum(
             if (hasVariable[subsideId]) {
                 subsideSum += vars[subsideId];
             }
-            else {
-                subsideSum += subside.size;
+            else {                
+                const int fixedSize = hardParityConstraint ? subside.size : std::round(subside.size / 2.0);
+                subsideSum += fixedSize;
             }
         }
 

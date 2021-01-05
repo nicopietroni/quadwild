@@ -12,6 +12,7 @@ void quadrangulationFromPatches(
     const std::vector<std::vector<size_t>>& trimeshCorners,
     const std::vector<double>& chartEdgeLength,
     const QuadRetopology::Parameters& parameters,
+    const double fixToIsometryRatio,
     PolyMesh& quadmesh,
     std::vector<std::vector<size_t>>& quadmeshPartitions,
     std::vector<std::vector<size_t>>& quadmeshCorners,

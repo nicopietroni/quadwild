@@ -45,19 +45,19 @@ ChartData computeChartData(
 
 std::vector<double> computeChartEdgeLength(
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubsides,
+        const std::vector<size_t> fixedSubdivisionSubsides,
         const size_t& iterations,
         const double& weight);
 
 std::vector<int> findSubdivisions(
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubsides,
+        const std::vector<size_t> fixedSubdivisionSubsides,
         const std::vector<double>& chartEdgeLength,
         const Parameters& parameters,
         double& gap);
 std::vector<int> findSubdivisions(
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubsides,
+        const std::vector<size_t> fixedSubdivisionSubsides,
         const std::vector<double>& chartEdgeLength,
         const ILPMethod& method,
         const double alpha,
@@ -84,7 +84,7 @@ template<class TriangleMeshType, class PolyMeshType>
 void quadrangulate(
         TriangleMeshType& newSurface,
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubsides,
+        const std::vector<size_t> fixedPositionSubsides,
         const std::vector<int>& ilpResult,
         const Parameters& parameters,
         PolyMeshType& quadrangulation,
@@ -95,7 +95,7 @@ template<class TriangleMeshType, class PolyMeshType>
 void quadrangulate(
         TriangleMeshType& newSurface,
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubsides,
+        const std::vector<size_t> fixedPositionSubsides,
         const std::vector<int>& ilpResult,
         const int chartSmoothingIterations,
         const int quadrangulationFixedSmoothingIterations,
