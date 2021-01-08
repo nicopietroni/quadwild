@@ -137,6 +137,7 @@ public:
 
     void ImportData(const MyTriFace  & left )
     {
+        IndexOriginal=left.IndexOriginal;
         vcg::Face<TriUsedTypes,
                 vcg::face::VertexRef,
                 vcg::face::VFAdj,
@@ -146,9 +147,7 @@ public:
                 vcg::face::CurvatureDird,
                 vcg::face::Qualityd,
                 vcg::face::WedgeTexCoord2d,
-                vcg::face::Mark>ImportData(left);
-
-        IndexOriginal=left.IndexOriginal;
+                vcg::face::Mark>::ImportData(left);
     }
 
     FeatureKind FKind[3];

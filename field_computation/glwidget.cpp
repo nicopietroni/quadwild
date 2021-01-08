@@ -41,6 +41,8 @@
 #include <GL/glew.h>
 #include <QMouseEvent>
 
+#include <chrono>
+
 #include <math.h>
 #include "glwidget.h"
 
@@ -116,17 +118,29 @@ void DoAutoRemesh()
     RemPar.iterations   = remesher_iterations;
     RemPar.targetAspect = remesher_aspect_ratio;
     RemPar.targetDeltaFN= remesher_termination_delta;
+    RemPar.creaseAngle  = sharp_feature_thr;
+    RemPar.erodeDilate  = feature_erode_dilate;
     RemPar.userSelectedCreases = true;
     RemPar.surfDistCheck = true;
 
+    auto t1 = std::chrono::high_resolution_clock::now();
+    std::cout << "cleaning the mesh..." << std::endl;
     std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh, false);
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::cout << "Cleaning time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
 
+    t1 = std::chrono::high_resolution_clock::now();
     clean->UpdateDataStructures();
     clean->InitSharpFeatures(sharp_feature_thr);
     clean->ErodeDilate(feature_erode_dilate);
 //    tri_mesh.ErodeDilate(feature_erode_dilate);
+    t2 = std::chrono::high_resolution_clock::now();
+    std::cout << "Sharp Features time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
 
+    t1 = std::chrono::high_resolution_clock::now();
     std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
+    t2 = std::chrono::high_resolution_clock::now();
+    std::cout << "Remesh time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
     AutoRemesher<MyTriMesh>::SplitNonManifold(*ret);
 
     tri_mesh.Clear();

@@ -263,8 +263,11 @@ public:
         int initialApproximateFN = 20000;
 
         ScalarType creaseAngle = 25.;
+
         bool userSelectedCreases = true;
         bool surfDistCheck = true;
+
+        int erodeDilate = 0;
 
     } Params;
 
@@ -388,8 +391,16 @@ public:
     static std::shared_ptr<Mesh> CleanMesh(Mesh & m, const bool & splitNonManifold = false)
     {
         std::shared_ptr<Mesh> ret = std::make_shared<Mesh>();
-
         vcg::tri::Append<Mesh, Mesh>::MeshCopy(*ret, m);
+        vcg::tri::UpdateTopology<Mesh>::FaceFace(*ret);
+
+        int i = 0; int removed = 0;
+        do
+        {
+            removed = vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(*ret, 0.0001);
+            std::cout << "removed " << removed << " non manifold vertices..." << std::endl;
+        }
+        while (removed > 0 && i < 50);
 
         std::cout << "Removed " << vcg::tri::Clean<Mesh>::RemoveDuplicateFace(*ret) << " duplicate faces..." << std::endl;
         std::cout << "Removed " << vcg::tri::Clean<Mesh>::RemoveUnreferencedVertex(*ret) << " unreferenced vertices..." << std::endl;
@@ -445,7 +456,7 @@ public:
 
         para.maxSurfDist = m.bbox.Diag() / 2500.;
         para.surfDistCheck = m.FN() < 400000 ? par.surfDistCheck : false;
-        para.userSelectedCreases = false;//par.userSelectedCreases;
+        para.userSelectedCreases = true;//par.userSelectedCreases;
 
         ScalarType prevFN = m.FN();
         ScalarType deltaFN = m.FN();
@@ -460,11 +471,55 @@ public:
 
         vcg::tri::Append<Mesh, Mesh>::MeshCopy(*ret, m);
 
+        ret->UpdateDataStructures();
+        ret->InitSharpFeatures(par.creaseAngle);
+        ret->ErodeDilate(par.erodeDilate);
+
         vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
         std::cout << "Iter: "<<  0 << " faces: " << ret->FN() << " quality: " <<  computeAR(*ret) << std::endl;
-        para.SetTargetLen(edgeL);
+
+        ret->UpdateDataStructures();
+        ret->InitSharpFeatures(par.creaseAngle);
+        ret->ErodeDilate(par.erodeDilate);
+
+        para.SetTargetLen(edgeL * 0.85);
+        para.adapt = true;
+        para.maxSurfDist = m.bbox.Diag() / 2500.;
+
         vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
-        std::cout << "Iter: "<<  1 << " faces: " << ret->FN() << " quality: " <<  computeAR(*ret) << std::endl;
+        auto quality = computeAR(*ret);
+        std::cout << "Iter: "<<  1 << " faces: " << ret->FN() << " quality: " << quality << std::endl;
+
+
+        if (quality < 0.1)
+        {
+            ret->UpdateDataStructures();
+            ret->InitSharpFeatures(par.creaseAngle);
+            ret->ErodeDilate(par.erodeDilate);
+
+            int count = 0;
+            vcg::tri::ForEachFace(*ret, [&] (FaceType & f) {
+
+                if (f.cQ() < 0.01)
+                {
+                    ++count;
+                    for (int i = 0; i < 3; ++i)
+                    {
+                        f.ClearFaceEdgeS(i);
+                    }
+                }
+            });
+
+            std::cout << count << " faces were relieved of crease edges due to poor quality" << std::endl;
+            para.SetTargetLen(edgeL * 0.6);
+            para.adapt = true;
+            para.maxSurfDist = m.bbox.Diag() / 200.;
+            vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
+            auto quality = computeAR(*ret);
+            std::cout << "Iter: "<<  3 << " faces: " << ret->FN() << " quality: " << quality << std::endl;
+        }
+
+
         /*
         bool forcedExit = false;
         int countIterations = 0;
