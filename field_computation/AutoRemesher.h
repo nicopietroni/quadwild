@@ -491,8 +491,8 @@ public:
         std::cout << "Iter: "<<  1 << " faces: " << ret->FN() << " quality: " << quality << std::endl;
 
 
-        if (quality < 0.1)
-        {
+//        if (quality < 0.1)
+//        {
             ret->UpdateDataStructures();
             ret->InitSharpFeatures(par.creaseAngle);
             ret->ErodeDilate(par.erodeDilate);
@@ -500,12 +500,14 @@ public:
             int count = 0;
             vcg::tri::ForEachFace(*ret, [&] (FaceType & f) {
 
-                if (f.cQ() < 0.01)
+                if (f.cQ() < 0.05)
                 {
                     ++count;
                     for (int i = 0; i < 3; ++i)
                     {
                         f.ClearFaceEdgeS(i);
+                        if (vcg::face::IsBorder(f,i))continue;
+                        f.FFp(i)->ClearFaceEdgeS(f.FFi(i));
                     }
                 }
             });
@@ -515,9 +517,9 @@ public:
             para.adapt = true;
             para.maxSurfDist = m.bbox.Diag() / 200.;
             vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
-            auto quality = computeAR(*ret);
-            std::cout << "Iter: "<<  3 << " faces: " << ret->FN() << " quality: " << quality << std::endl;
-        }
+            auto quality1 = computeAR(*ret);
+            std::cout << "Iter: "<<  3 << " faces: " << ret->FN() << " quality: " << quality1 << std::endl;
+//        }
 
 
         /*
