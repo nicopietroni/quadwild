@@ -269,6 +269,12 @@ public:
 
         int erodeDilate = 0;
 
+        ScalarType minAdaptiveMult = 0.3;
+        ScalarType maxAdaptiveMult = 3;
+        ScalarType minAspectRatioThr = 0.05;
+        ScalarType targetEdgeLen = 0;
+
+
     } Params;
 
     static size_t openNonManifoldEdges(Mesh & m, const ScalarType moveThreshold)
@@ -450,24 +456,29 @@ public:
         para.projectFlag  = true;
         para.selectedOnly = false;
         para.adapt=false;
-
         para.aspectRatioThr = 0.3;
         para.cleanFlag = false;
 
-        para.maxSurfDist = m.bbox.Diag() / 2500.;
+        para.minAdaptiveMult = par.minAdaptiveMult;
+        para.maxAdaptiveMult = par.maxAdaptiveMult;
+
+        para.maxSurfDist = m.bbox.Diag() / 1500.;
         para.surfDistCheck = m.FN() < 400000 ? par.surfDistCheck : false;
         para.userSelectedCreases = true;//par.userSelectedCreases;
 
-        ScalarType prevFN = m.FN();
-        ScalarType deltaFN = m.FN();
+//        ScalarType prevFN = m.FN();
+//        ScalarType deltaFN = m.FN();
 
-        ScalarType aspect = 0;
-        ScalarType edgeLow  = 0;
+//        ScalarType aspect = 0;
+//        ScalarType edgeLow  = 0;
         ScalarType edgeL = std::sqrt(2.309 * vcg::tri::Stat<Mesh>::ComputeMeshArea(m) / par.initialApproximateFN);//m.bbox.Diag() * 0.025;//std::sqrt(vcg::tri::Stat<Mesh>::ComputeMeshArea(m) * 2 / par.initialApproximateFN);
 
-        ScalarType edgeHigh = edgeL * 2.;
+        if (par.targetEdgeLen == 0)
+            par.targetEdgeLen = edgeL;
 
-        para.SetTargetLen(edgeL);
+//        ScalarType edgeHigh = edgeL * 2.;
+
+        para.SetTargetLen(par.targetEdgeLen);
 
         vcg::tri::Append<Mesh, Mesh>::MeshCopy(*ret, m);
 
@@ -482,9 +493,9 @@ public:
         ret->InitSharpFeatures(par.creaseAngle);
         ret->ErodeDilate(par.erodeDilate);
 
-        para.SetTargetLen(edgeL * 0.85);
+        para.SetTargetLen(par.targetEdgeLen * 0.85);
         para.adapt = true;
-        para.maxSurfDist = m.bbox.Diag() / 2500.;
+        para.maxSurfDist = m.bbox.Diag() / 1500.;
 
         vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
         auto quality = computeAR(*ret);
@@ -500,7 +511,7 @@ public:
             int count = 0;
             vcg::tri::ForEachFace(*ret, [&] (FaceType & f) {
 
-                if (f.cQ() < 0.05)
+                if (f.cQ() < par.minAspectRatioThr)
                 {
                     ++count;
                     for (int i = 0; i < 3; ++i)
@@ -513,9 +524,9 @@ public:
             });
 
             std::cout << count << " faces were relieved of crease edges due to poor quality" << std::endl;
-            para.SetTargetLen(edgeL * 0.6);
+            para.SetTargetLen(par.targetEdgeLen * 0.7);
             para.adapt = true;
-            para.maxSurfDist = m.bbox.Diag() / 200.;
+            para.maxSurfDist = m.bbox.Diag() / 500.;
             vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
             auto quality1 = computeAR(*ret);
             std::cout << "Iter: "<<  3 << " faces: " << ret->FN() << " quality: " << quality1 << std::endl;
