@@ -126,7 +126,7 @@ ChartData computeChartData(
 
 #ifndef NDEBUG
         if (cornerSet.size() < 3 || cornerSet.size() > 6) {
-            std::cout << "Warning 3: Given as input for " << pId << ": " << chart.chartSides.size() << " sides." << std::endl;
+            std::cout << "Warning 3: Given as input for " << pId << ": " << cornerSet.size() << " sides." << std::endl;
         }
 #endif
 
@@ -448,16 +448,23 @@ ChartData computeChartData(
 
 inline std::vector<double> computeChartEdgeLength(
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubdivisionSubsides,
         const size_t& iterations,
+        const std::vector<int>& ilpResults,
         const double& weight)
 {
-    vector<bool> isFixed(chartData.subsides.size(), false);
-    for (int sId : fixedSubdivisionSubsides) {
-        isFixed[sId] = true;
-    }
-
     std::vector<double> avgLengths(chartData.charts.size() , -1);
+
+
+    vector<bool> isFixed(chartData.subsides.size(), false);
+    vector<bool> isComputable(chartData.subsides.size(), true);
+    for (size_t subsideId = 0; subsideId < chartData.subsides.size(); ++subsideId) {
+        if (ilpResults[subsideId] == ILP_IGNORE) {
+            isComputable[subsideId] = false;
+        }
+        else if (ilpResults[subsideId] >= 0) {
+            isFixed[subsideId] = true;
+        }
+    }
 
     //Fill charts with a border
     for (size_t i = 0; i < chartData.charts.size(); i++) {
@@ -468,7 +475,7 @@ inline std::vector<double> computeChartEdgeLength(
 
             for (size_t sId : chart.chartSubsides) {
                 const ChartSubside& subside = chartData.subsides[sId];
-                if (isFixed[sId]) {
+                if (isComputable[sId] && isFixed[sId]) {
                     currentQuadLength += subside.length / subside.size;
                     numSides++;
                 }
@@ -537,16 +544,15 @@ inline std::vector<double> computeChartEdgeLength(
     return avgLengths;
 }
 
-inline std::vector<int> findSubdivisions(
+void findSubdivisions(
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubdivisionSubsides,
         const std::vector<double>& chartEdgeLength,
         const Parameters& parameters,
-        double& gap)
+        double& gap,
+        std::vector<int>& ilpResults)
 {
     return findSubdivisions(
         chartData,
-        fixedSubdivisionSubsides,
         chartEdgeLength,
         parameters.ilpMethod,
         parameters.alpha,
@@ -567,12 +573,12 @@ inline std::vector<int> findSubdivisions(
         parameters.callbackTimeLimit,
         parameters.callbackGapLimit,
         parameters.minimumGap,
-        gap);
+        gap,
+        ilpResults);
 }
 
-inline std::vector<int> findSubdivisions(
+void findSubdivisions(
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubdivisionSubsides,
         const std::vector<double>& chartEdgeLength,
         const ILPMethod& method,
         const double alpha,
@@ -593,17 +599,18 @@ inline std::vector<int> findSubdivisions(
         const std::vector<float>& callbackTimeLimit,
         const std::vector<float>& callbackGapLimit,
         const double minimumGap,
-        double& gap)
+        double& gap,
+        std::vector<int>& ilpResults)
 {
     if (chartData.charts.size() <= 0)
-        return std::vector<int>();
+        return;
 
     ILPStatus status;
 
     //Solve ILP to find the best patches
-    std::vector<int> ilpResult = internal::solveILP(
+    std::vector<int> result = ilpResults;
+    internal::solveILP(
         chartData,
-        fixedSubdivisionSubsides,
         chartEdgeLength,
         method,
         alpha,
@@ -624,17 +631,18 @@ inline std::vector<int> findSubdivisions(
         callbackTimeLimit,
         callbackGapLimit,
         gap,
-        status);
+        status,
+        result);
 
     if (status == ILPStatus::SOLUTIONFOUND && gap < minimumGap) {
         std::cout << "Solution found! Gap: " << gap << std::endl;
+        ilpResults = result;
     }
     else if (status == ILPStatus::SOLUTIONWRONG && !hardParityConstraint) {
         std::cout << std::endl << " >>>>>> Solution wrong! Trying with hard constraints for parity. It should not happen..." << std::endl << std::endl;
 
         return findSubdivisions(
             chartData,
-            fixedSubdivisionSubsides,
             chartEdgeLength,
             method,
             alpha,
@@ -655,7 +663,8 @@ inline std::vector<int> findSubdivisions(
             callbackTimeLimit,
             callbackGapLimit,
             minimumGap,
-            gap);
+            gap,
+            ilpResults);
     }
     else if (method != ILPMethod::ABS ||
              alignSingularities ||
@@ -668,7 +677,6 @@ inline std::vector<int> findSubdivisions(
 
         return findSubdivisions(
             chartData,
-            fixedSubdivisionSubsides,
             chartEdgeLength,
             ILPMethod::ABS,
             alpha,
@@ -689,10 +697,9 @@ inline std::vector<int> findSubdivisions(
             callbackTimeLimit,
             callbackGapLimit,
             1.0,
-            gap);
+            gap,
+            ilpResults);
     }
-
-    return ilpResult;
 }
 
 template<class TriangleMeshType, class PolyMeshType>

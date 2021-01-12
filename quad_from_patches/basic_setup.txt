@@ -17,4 +17,4 @@ repeatLosingConstraintsNonQuads 0
 repeatLosingConstraintsAlign 1
 hardParityConstraint 1
 scaleFact 1
-fixToIsometryRatio 0.0
+fixedChartClusters 0

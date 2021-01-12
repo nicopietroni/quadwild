@@ -19,20 +19,12 @@ protected:
     void callback() override;
 };
 
-//inline void getChartSideData(
-//        const ChartData& chartData,
-//        const size_t& cId,
-//        const std::vector<GRBVar>& vars,
-//        const std::vector<bool>& hasVariable,
-//        const bool hardParityConstraint,
-//        std::vector<const ChartSide*>& chartSides,
-//        std::vector<GRBLinExpr>& chartSubsideSum);
-
 void getChartSubsideSum(
         const ChartData& chartData,
         const size_t& cId,
         const std::vector<GRBVar>& vars,
-        const std::vector<bool>& hasVariable,
+        const std::vector<bool>& isFixed,
+        const std::vector<int>& ilpResults,
         const bool hardParityConstraint,
         std::vector<GRBLinExpr>& chartSubsideSum);
 
@@ -48,9 +40,8 @@ GRBQuadExpr getGurobiCostTermContinuous(GRBModel& model, const ILPMethod& method
 GRBLinExpr getGurobiAbsInteger(GRBModel& model, const GRBLinExpr& value);
 GRBLinExpr getGurobiAbsContinuous(GRBModel& model, const GRBLinExpr& value);
 
-inline std::vector<int> solveILP(
+void solveILP(
         const ChartData& chartData,
-        const std::vector<size_t>& fixedSubsides,
         const std::vector<double>& chartEdgeLength,
         const ILPMethod& method,
         const double alpha,
@@ -71,16 +62,12 @@ inline std::vector<int> solveILP(
         const std::vector<float>& callbackTimeLimit,
         const std::vector<float>& callbackGapLimit,
         double& gap,
-        ILPStatus& status)
+        ILPStatus& status,
+        std::vector<int>& ilpResults)
 {
     using namespace std;
 
     vector<int> result;
-
-    vector<bool> isFixed(chartData.subsides.size(), false);
-    for (size_t subsideId : fixedSubsides) {
-        isFixed[subsideId] = true;
-    }
 
     std::vector<bool> constraintRespected;
 
@@ -89,8 +76,18 @@ inline std::vector<int> solveILP(
     do {
         std::cout << std::endl << std::endl << " --- OPTIMIZATION: iteration " << it << " ----" << std::endl;
         try {
-            result.clear();
-            result.resize(chartData.subsides.size(), -1);
+            vector<bool> isFixed(chartData.subsides.size(), false);
+            vector<bool> isComputable(chartData.subsides.size(), true);
+            for (size_t subsideId = 0; subsideId < chartData.subsides.size(); ++subsideId) {
+                if (ilpResults[subsideId] == ILP_IGNORE) {
+                    isComputable[subsideId] = false;
+                }
+                else if (ilpResults[subsideId] >= 0) {
+                    isFixed[subsideId] = true;
+                }
+            }
+
+            result = ilpResults;
 
             GRBEnv env = GRBEnv();
 
@@ -114,28 +111,28 @@ inline std::vector<int> solveILP(
 
             vector<GRBVar> vars(chartData.subsides.size());
 
-            std::vector<bool> hasVariable(chartData.subsides.size(), false);
-
             size_t constraintRespectedId = 0;
 
             for (size_t subsideId = 0; subsideId < chartData.subsides.size(); subsideId++) {
+                if (!isComputable[subsideId]) {
+                    continue;
+                }
+
                 const ChartSubside& subside = chartData.subsides[subsideId];
 
                 //If it is not a border (free)
                 if (!isFixed[subsideId]) {
                     vars[subsideId] = model.addVar(MIN_SUBDIVISION_VALUE, GRB_INFINITY, 0.0, GRB_INTEGER, "s" + to_string(subsideId));
-
-                    hasVariable[subsideId] = true;
                 }
                 else if (feasibilityFix && subside.isOnBorder) {
-                    const int fixedSize = hardParityConstraint ? subside.size : std::round(subside.size / 2.0);
+                    const int fixedSize = hardParityConstraint ? ilpResults[subsideId] : std::round(ilpResults[subsideId] / 2.0);
 
                     vars[subsideId] = model.addVar(std::max(fixedSize - 1, MIN_SUBDIVISION_VALUE), fixedSize + 1, 0.0, GRB_INTEGER, "s" + to_string(subsideId));
                     GRBLinExpr value = vars[subsideId] - fixedSize;
 
                     supportObj += getGurobiAbsInteger(model, value) * FEASIBILITY_FIX_COST * (1.0 / fixedSize);
 
-                    hasVariable[subsideId] = true;
+                    isFixed[subsideId] = false;
                 }
             }
 
@@ -143,8 +140,18 @@ inline std::vector<int> solveILP(
 
             for (size_t cId = 0; cId < chartData.charts.size(); cId++) {
                 const Chart& chart = chartData.charts[cId];
-                if (chart.faces.size() > 0) {
+
+                bool computable = true;
+
+                for (size_t i = 0; i < chart.chartSubsides.size(); i++) {
+                    const size_t subsideId = chart.chartSubsides[i];
+                    if (!isComputable[subsideId])
+                        computable = false;
+                }
+
+                if (computable && chart.faces.size() > 0) {
                     size_t nSides = chart.chartSides.size();
+
 
                     size_t numRegularityTerms = 0;
                     size_t numIsometryTerms = 0;
@@ -160,7 +167,7 @@ inline std::vector<int> solveILP(
                             const ChartSubside& subside = chartData.subsides[subsideId];
 
                             //If it is not fixed (free)
-                            if (hasVariable[subsideId]) {
+                            if (!isFixed[subsideId]) {
                                 double edgeLength = chartEdgeLength[cId];
 
                                 double sideSubdivision = subside.length / edgeLength;
@@ -182,7 +189,7 @@ inline std::vector<int> solveILP(
                     /* ------------------------ REGULARITY ------------------------ */
 
                     std::vector<GRBLinExpr> chartSubsideSum;
-                    getChartSubsideSum(chartData, cId, vars, hasVariable, hardParityConstraint, chartSubsideSum);
+                    getChartSubsideSum(chartData, cId, vars, isFixed, ilpResults, hardParityConstraint, chartSubsideSum);
 
                     for (size_t j = 0; j < nSides; j++) {
                         GRBLinExpr value = 0.0;
@@ -307,98 +314,107 @@ inline std::vector<int> solveILP(
                             } while (currentChartId != static_cast<int>(cId) && currentChartId > -1 && currentChartNSides == 4);
 
                             if (currentChartId != static_cast<int>(cId) && currentChartId > -1 && (currentChartNSides == 3 || currentChartNSides == 5 || currentChartNSides == 6)) {
-                                GRBLinExpr valueDown1 = 0.0;
-                                GRBLinExpr valueUp1 = 0.0;
-                                GRBLinExpr valueDown2 = 0.0;
-                                GRBLinExpr valueUp2 = 0.0;
-
-                                //Singularity alignment for triangular case
-                                if (nSides == 3) {
-                                    const GRBLinExpr& subside0Sum = chartSubsideSum[j];
-                                    const GRBLinExpr& subside1Sum = chartSubsideSum[(j+1)%nSides];
-                                    const GRBLinExpr& subside2Sum = chartSubsideSum[(j+2)%nSides];
-
-                                    GRBLinExpr down = subside0Sum + subside2Sum - subside1Sum;
-                                    GRBLinExpr up = subside1Sum + subside0Sum - subside2Sum;
-
-                                    valueDown1 = down;
-                                    valueUp1 = up;
-                                }
-                                //Singularity alignment for pentagonal case
-                                else if (nSides == 5) {
-                                    const GRBLinExpr& subside0Sum = chartSubsideSum[j];
-                                    const GRBLinExpr& subside1Sum = chartSubsideSum[(j+1)%nSides];
-                                    const GRBLinExpr& subside2Sum = chartSubsideSum[(j+2)%nSides];
-                                    const GRBLinExpr& subside3Sum = chartSubsideSum[(j+3)%nSides];
-                                    const GRBLinExpr& subside4Sum = chartSubsideSum[(j+4)%nSides];
-
-                                    GRBLinExpr down = (subside0Sum + subside1Sum + subside2Sum) - (subside3Sum + subside4Sum);
-                                    GRBLinExpr up = (subside3Sum + subside4Sum + subside0Sum) - (subside1Sum + subside2Sum);
-
-                                    valueDown1 = down;
-                                    valueUp1 = up;
-                                }
-                                //Singularity alignment for hexagonal case
-                                else if (nSides == 6) {
-                                    const GRBLinExpr& subside0Sum = chartSubsideSum[j];
-                                    const GRBLinExpr& subside2Sum = chartSubsideSum[(j+2)%nSides];
-                                    const GRBLinExpr& subside4Sum = chartSubsideSum[(j+4)%nSides];
-
-                                    GRBLinExpr down = subside0Sum + subside2Sum - subside4Sum;
-                                    GRBLinExpr up = subside4Sum + subside0Sum - subside2Sum;
-
-                                    valueDown1 = down;
-                                    valueUp1 = up;
+                                bool currentComputable = true;
+                                for (size_t i = 0; i < chartData.charts[currentChartId].chartSubsides.size(); i++) {
+                                    const size_t subsideId = chartData.charts[currentChartId].chartSubsides[i];
+                                    if (!isComputable[subsideId])
+                                        currentComputable = false;
                                 }
 
+                                if (currentComputable) {
+                                    GRBLinExpr valueDown1 = 0.0;
+                                    GRBLinExpr valueUp1 = 0.0;
+                                    GRBLinExpr valueDown2 = 0.0;
+                                    GRBLinExpr valueUp2 = 0.0;
+
+                                    //Singularity alignment for triangular case
+                                    if (nSides == 3) {
+                                        const GRBLinExpr& subside0Sum = chartSubsideSum[j];
+                                        const GRBLinExpr& subside1Sum = chartSubsideSum[(j+1)%nSides];
+                                        const GRBLinExpr& subside2Sum = chartSubsideSum[(j+2)%nSides];
+
+                                        GRBLinExpr down = subside0Sum + subside2Sum - subside1Sum;
+                                        GRBLinExpr up = subside1Sum + subside0Sum - subside2Sum;
+
+                                        valueDown1 = down;
+                                        valueUp1 = up;
+                                    }
+                                    //Singularity alignment for pentagonal case
+                                    else if (nSides == 5) {
+                                        const GRBLinExpr& subside0Sum = chartSubsideSum[j];
+                                        const GRBLinExpr& subside1Sum = chartSubsideSum[(j+1)%nSides];
+                                        const GRBLinExpr& subside2Sum = chartSubsideSum[(j+2)%nSides];
+                                        const GRBLinExpr& subside3Sum = chartSubsideSum[(j+3)%nSides];
+                                        const GRBLinExpr& subside4Sum = chartSubsideSum[(j+4)%nSides];
+
+                                        GRBLinExpr down = (subside0Sum + subside1Sum + subside2Sum) - (subside3Sum + subside4Sum);
+                                        GRBLinExpr up = (subside3Sum + subside4Sum + subside0Sum) - (subside1Sum + subside2Sum);
+
+                                        valueDown1 = down;
+                                        valueUp1 = up;
+                                    }
+                                    //Singularity alignment for hexagonal case
+                                    else if (nSides == 6) {
+                                        const GRBLinExpr& subside0Sum = chartSubsideSum[j];
+                                        const GRBLinExpr& subside2Sum = chartSubsideSum[(j+2)%nSides];
+                                        const GRBLinExpr& subside4Sum = chartSubsideSum[(j+4)%nSides];
+
+                                        GRBLinExpr down = subside0Sum + subside2Sum - subside4Sum;
+                                        GRBLinExpr up = subside4Sum + subside0Sum - subside2Sum;
+
+                                        valueDown1 = down;
+                                        valueUp1 = up;
+                                    }
 
 
 
-                                std::vector<GRBLinExpr> adjChartSubsideSum;
-                                getChartSubsideSum(chartData, currentChartId, vars, hasVariable, hardParityConstraint, adjChartSubsideSum);
 
-                                //Singularity alignment for triangular case
-                                if (currentChartNSides == 3) {
-                                    const GRBLinExpr& subside0Sum = adjChartSubsideSum[currentChartSideId];
-                                    const GRBLinExpr& subside1Sum = adjChartSubsideSum[(currentChartSideId+1)%currentChartNSides];
-                                    const GRBLinExpr& subside2Sum = adjChartSubsideSum[(currentChartSideId+2)%currentChartNSides];
+                                    std::vector<GRBLinExpr> adjChartSubsideSum;
+                                    getChartSubsideSum(chartData, currentChartId, vars, isFixed, ilpResults, hardParityConstraint, adjChartSubsideSum);
 
-                                    GRBLinExpr down = subside0Sum + subside2Sum - subside1Sum;
-                                    GRBLinExpr up = subside1Sum + subside0Sum - subside2Sum;
+                                    //Singularity alignment for triangular case
+                                    if (currentChartNSides == 3) {
+                                        const GRBLinExpr& subside0Sum = adjChartSubsideSum[currentChartSideId];
+                                        const GRBLinExpr& subside1Sum = adjChartSubsideSum[(currentChartSideId+1)%currentChartNSides];
+                                        const GRBLinExpr& subside2Sum = adjChartSubsideSum[(currentChartSideId+2)%currentChartNSides];
 
-                                    valueDown2 = down;
-                                    valueUp2 = up;
+                                        GRBLinExpr down = subside0Sum + subside2Sum - subside1Sum;
+                                        GRBLinExpr up = subside1Sum + subside0Sum - subside2Sum;
+
+                                        valueDown2 = down;
+                                        valueUp2 = up;
+                                    }
+                                    //Singularity alignment for pentagonal case
+                                    else if (currentChartNSides == 5) {
+                                        const GRBLinExpr& subside0Sum = adjChartSubsideSum[currentChartSideId];
+                                        const GRBLinExpr& subside1Sum = adjChartSubsideSum[(currentChartSideId+1)%currentChartNSides];
+                                        const GRBLinExpr& subside2Sum = adjChartSubsideSum[(currentChartSideId+2)%currentChartNSides];
+                                        const GRBLinExpr& subside3Sum = adjChartSubsideSum[(currentChartSideId+3)%currentChartNSides];
+                                        const GRBLinExpr& subside4Sum = adjChartSubsideSum[(currentChartSideId+4)%currentChartNSides];
+
+                                        GRBLinExpr down = (subside0Sum + subside1Sum + subside2Sum) - (subside3Sum + subside4Sum);
+                                        GRBLinExpr up = (subside3Sum + subside4Sum + subside0Sum) - (subside1Sum + subside2Sum);
+
+                                        valueDown2 = down;
+                                        valueUp2 = up;
+                                    }
+                                    //Singularity alignment for hexagonal case
+                                    else if (currentChartNSides == 6) {
+                                        const GRBLinExpr& subside0Sum = adjChartSubsideSum[currentChartSideId];
+                                        const GRBLinExpr& subside2Sum = adjChartSubsideSum[(currentChartSideId+2)%currentChartNSides];
+                                        const GRBLinExpr& subside4Sum = adjChartSubsideSum[(currentChartSideId+4)%currentChartNSides];
+
+                                        GRBLinExpr down = subside0Sum + subside2Sum - subside4Sum;
+                                        GRBLinExpr up = subside4Sum + subside0Sum - subside2Sum;
+
+                                        valueDown2 = down;
+                                        valueUp2 = up;
+                                    }
+
+                                    value1 = valueUp1 - valueDown2;
+                                    value2 = valueDown1 - valueUp2;
+                                    valueComputed = true;
                                 }
-                                //Singularity alignment for pentagonal case
-                                else if (currentChartNSides == 5) {
-                                    const GRBLinExpr& subside0Sum = adjChartSubsideSum[currentChartSideId];
-                                    const GRBLinExpr& subside1Sum = adjChartSubsideSum[(currentChartSideId+1)%currentChartNSides];
-                                    const GRBLinExpr& subside2Sum = adjChartSubsideSum[(currentChartSideId+2)%currentChartNSides];
-                                    const GRBLinExpr& subside3Sum = adjChartSubsideSum[(currentChartSideId+3)%currentChartNSides];
-                                    const GRBLinExpr& subside4Sum = adjChartSubsideSum[(currentChartSideId+4)%currentChartNSides];
-
-                                    GRBLinExpr down = (subside0Sum + subside1Sum + subside2Sum) - (subside3Sum + subside4Sum);
-                                    GRBLinExpr up = (subside3Sum + subside4Sum + subside0Sum) - (subside1Sum + subside2Sum);
-
-                                    valueDown2 = down;
-                                    valueUp2 = up;
-                                }
-                                //Singularity alignment for hexagonal case
-                                else if (currentChartNSides == 6) {
-                                    const GRBLinExpr& subside0Sum = adjChartSubsideSum[currentChartSideId];
-                                    const GRBLinExpr& subside2Sum = adjChartSubsideSum[(currentChartSideId+2)%currentChartNSides];
-                                    const GRBLinExpr& subside4Sum = adjChartSubsideSum[(currentChartSideId+4)%currentChartNSides];
-
-                                    GRBLinExpr down = subside0Sum + subside2Sum - subside4Sum;
-                                    GRBLinExpr up = subside4Sum + subside0Sum - subside2Sum;
-
-                                    valueDown2 = down;
-                                    valueUp2 = up;
-                                }
-
-                                value1 = valueUp1 - valueDown2;
-                                value2 = valueDown1 - valueUp2;
-                                valueComputed = true;
                             }
 
                             if (valueComputed) {
@@ -428,11 +444,13 @@ inline std::vector<int> solveILP(
                         GRBLinExpr sumExp = 0;
                         for (const size_t& subsideId : chart.chartSubsides) {
                             const ChartSubside& subside = chartData.subsides[subsideId];
-                            if (hasVariable[subsideId]) {
+
+                            if (!isFixed[subsideId]) {
+                                assert(isComputable[subsideId] && !isFixed[subsideId]);
                                 sumExp += vars[subsideId];
                             }
                             else {                                
-                                const int fixedSize = hardParityConstraint ? subside.size : std::round(subside.size / 2.0);
+                                const int fixedSize = hardParityConstraint ? ilpResults[subsideId] : std::round(ilpResults[subsideId] / 2.0);
                                 sumExp += fixedSize;
                             }
                         }
@@ -461,16 +479,19 @@ inline std::vector<int> solveILP(
 
             for (size_t subsideId = 0; subsideId < chartData.subsides.size(); subsideId++) {
                 const ChartSubside& subside = chartData.subsides[subsideId];
-                if (hasVariable[subsideId]) {
-                    result[subsideId] = static_cast<int>(std::round(vars[subsideId].get(GRB_DoubleAttr_X)));
-                }
-                else {
-                    const int fixedSize = hardParityConstraint ? subside.size : std::round(subside.size / 2.0);
-                    result[subsideId] = fixedSize;
-                }
-
-                if (!hardParityConstraint) {
-                    result[subsideId] *= 2;
+                if (isComputable[subsideId]) {
+                    if (!isFixed[subsideId]) {
+                        assert(isComputable[subsideId] && !isFixed[subsideId]);
+                        result[subsideId] = static_cast<int>(std::round(vars[subsideId].get(GRB_DoubleAttr_X)));
+                    }
+                    else {
+                        const int fixedSize = hardParityConstraint ? ilpResults[subsideId] : std::round(ilpResults[subsideId] / 2.0);
+                        result[subsideId] = fixedSize;
+                    }
+    
+                    if (!hardParityConstraint) {
+                        result[subsideId] *= 2;
+                    }
                 }
             }
 
@@ -490,7 +511,16 @@ inline std::vector<int> solveILP(
 
                 for (size_t cId = 0; cId < chartData.charts.size(); cId++) {
                     const Chart& chart = chartData.charts[cId];
-                    if (chart.faces.size() > 0) {
+
+                    bool computable = true;
+
+                    for (size_t i = 0; i < chart.chartSubsides.size(); i++) {
+                        const size_t subsideId = chart.chartSubsides[i];
+                        if (!isComputable[subsideId])
+                            computable = false;
+                    }
+
+                    if (computable && chart.faces.size() > 0) {
                         size_t nSides = chart.chartSides.size();
 
                         std::vector<int> chartSubsideSumResults;
@@ -605,101 +635,111 @@ inline std::vector<int> solveILP(
                                 } while (currentChartId != static_cast<int>(cId) && currentChartId > -1 && currentChartNSides == 4);
 
                                 if (currentChartId != static_cast<int>(cId) && currentChartId > -1 && (currentChartNSides == 3 || currentChartNSides == 5 || currentChartNSides == 6)) {
-                                    int valueDown1 = 0.0;
-                                    int valueUp1 = 0.0;
-                                    int valueDown2 = 0.0;
-                                    int valueUp2 = 0.0;
-
-                                    //Singularity alignment for triangular case
-                                    if (nSides == 3) {
-                                        const int& subside0Sum = chartSubsideSumResults[j];
-                                        const int& subside1Sum = chartSubsideSumResults[(j+1)%nSides];
-                                        const int& subside2Sum = chartSubsideSumResults[(j+2)%nSides];
-
-                                        int down = subside0Sum + subside2Sum - subside1Sum;
-                                        int up = subside1Sum + subside0Sum - subside2Sum;
-
-                                        valueDown1 = down;
-                                        valueUp1 = up;
-                                    }
-                                    //Singularity alignment for pentagonal case
-                                    else if (nSides == 5) {
-                                        const int& subside0Sum = chartSubsideSumResults[j];
-                                        const int& subside1Sum = chartSubsideSumResults[(j+1)%nSides];
-                                        const int& subside2Sum = chartSubsideSumResults[(j+2)%nSides];
-                                        const int& subside3Sum = chartSubsideSumResults[(j+3)%nSides];
-                                        const int& subside4Sum = chartSubsideSumResults[(j+4)%nSides];
-
-                                        int down = (subside0Sum + subside1Sum + subside2Sum) - (subside3Sum + subside4Sum);
-                                        int up = (subside3Sum + subside4Sum + subside0Sum) - (subside1Sum + subside2Sum);
-
-                                        valueDown1 = down;
-                                        valueUp1 = up;
-                                    }
-                                    //Singularity alignment for hexagonal case
-                                    else if (nSides == 6) {
-                                        const int& subside0Sum = chartSubsideSumResults[j];
-                                        const int& subside2Sum = chartSubsideSumResults[(j+2)%nSides];
-                                        const int& subside4Sum = chartSubsideSumResults[(j+4)%nSides];
-
-                                        int down = subside0Sum + subside2Sum - subside4Sum;
-                                        int up = subside4Sum + subside0Sum - subside2Sum;
-
-                                        valueDown1 = down;
-                                        valueUp1 = up;
+                                    bool currentComputable = true;
+                                    for (size_t i = 0; i < chartData.charts[currentChartId].chartSubsides.size(); i++) {
+                                        const size_t subsideId = chartData.charts[currentChartId].chartSubsides[i];
+                                        if (!isComputable[subsideId])
+                                            currentComputable = false;
                                     }
 
+                                    if (currentComputable) {
+
+                                        int valueDown1 = 0.0;
+                                        int valueUp1 = 0.0;
+                                        int valueDown2 = 0.0;
+                                        int valueUp2 = 0.0;
+
+                                        //Singularity alignment for triangular case
+                                        if (nSides == 3) {
+                                            const int& subside0Sum = chartSubsideSumResults[j];
+                                            const int& subside1Sum = chartSubsideSumResults[(j+1)%nSides];
+                                            const int& subside2Sum = chartSubsideSumResults[(j+2)%nSides];
+
+                                            int down = subside0Sum + subside2Sum - subside1Sum;
+                                            int up = subside1Sum + subside0Sum - subside2Sum;
+
+                                            valueDown1 = down;
+                                            valueUp1 = up;
+                                        }
+                                        //Singularity alignment for pentagonal case
+                                        else if (nSides == 5) {
+                                            const int& subside0Sum = chartSubsideSumResults[j];
+                                            const int& subside1Sum = chartSubsideSumResults[(j+1)%nSides];
+                                            const int& subside2Sum = chartSubsideSumResults[(j+2)%nSides];
+                                            const int& subside3Sum = chartSubsideSumResults[(j+3)%nSides];
+                                            const int& subside4Sum = chartSubsideSumResults[(j+4)%nSides];
+
+                                            int down = (subside0Sum + subside1Sum + subside2Sum) - (subside3Sum + subside4Sum);
+                                            int up = (subside3Sum + subside4Sum + subside0Sum) - (subside1Sum + subside2Sum);
+
+                                            valueDown1 = down;
+                                            valueUp1 = up;
+                                        }
+                                        //Singularity alignment for hexagonal case
+                                        else if (nSides == 6) {
+                                            const int& subside0Sum = chartSubsideSumResults[j];
+                                            const int& subside2Sum = chartSubsideSumResults[(j+2)%nSides];
+                                            const int& subside4Sum = chartSubsideSumResults[(j+4)%nSides];
+
+                                            int down = subside0Sum + subside2Sum - subside4Sum;
+                                            int up = subside4Sum + subside0Sum - subside2Sum;
+
+                                            valueDown1 = down;
+                                            valueUp1 = up;
+                                        }
 
 
 
-                                    std::vector<int> adjChartSubsideSumResults;
-                                    getChartSubsideSumResults(chartData, currentChartId, result, adjChartSubsideSumResults);
 
-                                    //Singularity alignment for triangular case
-                                    if (currentChartNSides == 3) {
-                                        const int& subside0Sum = adjChartSubsideSumResults[currentChartSideId];
-                                        const int& subside1Sum = adjChartSubsideSumResults[(currentChartSideId+1)%currentChartNSides];
-                                        const int& subside2Sum = adjChartSubsideSumResults[(currentChartSideId+2)%currentChartNSides];
+                                        std::vector<int> adjChartSubsideSumResults;
+                                        getChartSubsideSumResults(chartData, currentChartId, result, adjChartSubsideSumResults);
 
-                                        int down = subside0Sum + subside2Sum - subside1Sum;
-                                        int up = subside1Sum + subside0Sum - subside2Sum;
+                                        //Singularity alignment for triangular case
+                                        if (currentChartNSides == 3) {
+                                            const int& subside0Sum = adjChartSubsideSumResults[currentChartSideId];
+                                            const int& subside1Sum = adjChartSubsideSumResults[(currentChartSideId+1)%currentChartNSides];
+                                            const int& subside2Sum = adjChartSubsideSumResults[(currentChartSideId+2)%currentChartNSides];
 
-                                        valueDown2 = down;
-                                        valueUp2 = up;
+                                            int down = subside0Sum + subside2Sum - subside1Sum;
+                                            int up = subside1Sum + subside0Sum - subside2Sum;
+
+                                            valueDown2 = down;
+                                            valueUp2 = up;
+                                        }
+                                        //Singularity alignment for pentagonal case
+                                        else if (currentChartNSides == 5) {
+                                            const int& subside0Sum = adjChartSubsideSumResults[currentChartSideId];
+                                            const int& subside1Sum = adjChartSubsideSumResults[(currentChartSideId+1)%currentChartNSides];
+                                            const int& subside2Sum = adjChartSubsideSumResults[(currentChartSideId+2)%currentChartNSides];
+                                            const int& subside3Sum = adjChartSubsideSumResults[(currentChartSideId+3)%currentChartNSides];
+                                            const int& subside4Sum = adjChartSubsideSumResults[(currentChartSideId+4)%currentChartNSides];
+
+                                            int down = (subside0Sum + subside1Sum + subside2Sum) - (subside3Sum + subside4Sum);
+                                            int up = (subside3Sum + subside4Sum + subside0Sum) - (subside1Sum + subside2Sum);
+
+                                            valueDown2 = down;
+                                            valueUp2 = up;
+                                        }
+                                        //Singularity alignment for hexagonal case
+                                        else if (currentChartNSides == 6) {
+                                            const int& subside0Sum = adjChartSubsideSumResults[currentChartSideId];
+                                            const int& subside2Sum = adjChartSubsideSumResults[(currentChartSideId+2)%currentChartNSides];
+                                            const int& subside4Sum = adjChartSubsideSumResults[(currentChartSideId+4)%currentChartNSides];
+
+                                            int down = subside0Sum + subside2Sum - subside4Sum;
+                                            int up = subside4Sum + subside0Sum - subside2Sum;
+
+                                            valueDown2 = down;
+                                            valueUp2 = up;
+                                        }
+
+                                        value1 = valueUp1 - valueDown2;
+                                        value2 = valueDown1 - valueUp2;
+
+                                        respected = value1 == 0 && value2 == 0;
+
+                                        valueComputed = true;
                                     }
-                                    //Singularity alignment for pentagonal case
-                                    else if (currentChartNSides == 5) {
-                                        const int& subside0Sum = adjChartSubsideSumResults[currentChartSideId];
-                                        const int& subside1Sum = adjChartSubsideSumResults[(currentChartSideId+1)%currentChartNSides];
-                                        const int& subside2Sum = adjChartSubsideSumResults[(currentChartSideId+2)%currentChartNSides];
-                                        const int& subside3Sum = adjChartSubsideSumResults[(currentChartSideId+3)%currentChartNSides];
-                                        const int& subside4Sum = adjChartSubsideSumResults[(currentChartSideId+4)%currentChartNSides];
-
-                                        int down = (subside0Sum + subside1Sum + subside2Sum) - (subside3Sum + subside4Sum);
-                                        int up = (subside3Sum + subside4Sum + subside0Sum) - (subside1Sum + subside2Sum);
-
-                                        valueDown2 = down;
-                                        valueUp2 = up;
-                                    }
-                                    //Singularity alignment for hexagonal case
-                                    else if (currentChartNSides == 6) {
-                                        const int& subside0Sum = adjChartSubsideSumResults[currentChartSideId];
-                                        const int& subside2Sum = adjChartSubsideSumResults[(currentChartSideId+2)%currentChartNSides];
-                                        const int& subside4Sum = adjChartSubsideSumResults[(currentChartSideId+4)%currentChartNSides];
-
-                                        int down = subside0Sum + subside2Sum - subside4Sum;
-                                        int up = subside4Sum + subside0Sum - subside2Sum;
-
-                                        valueDown2 = down;
-                                        valueUp2 = up;
-                                    }
-
-                                    value1 = valueUp1 - valueDown2;
-                                    value2 = valueDown1 - valueUp2;
-
-                                    respected = value1 == 0 && value2 == 0;
-
-                                    valueComputed = true;
                                 }
 
                                 if (valueComputed) {
@@ -731,11 +771,21 @@ inline std::vector<int> solveILP(
 
             status = ILPStatus::SOLUTIONFOUND;
 
+            model.reset();
+
 
             for (size_t cId = 0; cId < chartData.charts.size(); cId++) {
                 const Chart& chart = chartData.charts[cId];
 
-                if (chart.faces.size() > 0) {
+                bool computable = true;
+
+                for (size_t i = 0; i < chart.chartSubsides.size(); i++) {
+                    const size_t subsideId = chart.chartSubsides[i];
+                    if (!isComputable[subsideId])
+                        computable = false;
+                }
+
+                if (computable && chart.faces.size() > 0) {
                     int sizeSum = 0;
                     for (const size_t& subsideId : chart.chartSubsides) {
                         sizeSum += result[subsideId];
@@ -764,49 +814,15 @@ inline std::vector<int> solveILP(
     }
     while (status == ILPStatus::SOLUTIONFOUND && it < repeatLosingConstraintsIterations + 1 && !allRespectConstraints);
 
-    return result;
+    ilpResults = result;
 }
-
-//inline void getChartSideData(
-//        const ChartData& chartData,
-//        const size_t& cId,
-//        const std::vector<GRBVar>& vars,
-//        const std::vector<bool>& hasVariable,
-//        const bool hardParityConstraint,
-//        std::vector<const ChartSide*>& chartSides,
-//        std::vector<GRBLinExpr>& chartSubsideSum)
-//{
-//    const Chart& chart = chartData.charts[cId];
-//    size_t nSides = chart.chartSides.size();
-
-//    chartSides.resize(nSides, nullptr);
-//    chartSubsideSum.resize(nSides, 0.0);
-
-//    for (size_t i = 0; i < nSides; i++) {
-//        const ChartSide* sidePtr = &(chart.chartSides[i]);
-//        GRBLinExpr subsideSum = 0;
-//        for (const size_t& subsideId : sidePtr->subsides) {
-//            const ChartSubside& subside = chartData.subsides[subsideId];
-
-//            if (hasVariable[subsideId]) {
-//                subsideSum += vars[subsideId];
-//            }
-//            else {
-//                const int fixedSize = hardParityConstraint ? subside.size : std::round(subside.size / 2.0);
-//                subsideSum += fixedSize;
-//            }
-//        }
-
-//        chartSides[i] = sidePtr;
-//        chartSubsideSum[i] = subsideSum;
-//    }
-//}
 
 inline void getChartSubsideSum(
         const ChartData& chartData,
         const size_t& cId,
         const std::vector<GRBVar>& vars,
-        const std::vector<bool>& hasVariable,
+        const std::vector<bool>& isFixed,
+        const std::vector<int>& ilpResults,
         const bool hardParityConstraint,
         std::vector<GRBLinExpr>& chartSubsideSum)
 {
@@ -822,11 +838,12 @@ inline void getChartSubsideSum(
         for (const size_t& subsideId : side.subsides) {
             const ChartSubside& subside = chartData.subsides[subsideId];
 
-            if (hasVariable[subsideId]) {
+            if (!isFixed[subsideId]) {
+                assert(ilpResults[subsideId] != ILP_IGNORE && !isFixed[subsideId]);
                 subsideSum += vars[subsideId];
             }
             else {                
-                const int fixedSize = hardParityConstraint ? subside.size : std::round(subside.size / 2.0);
+                const int fixedSize = hardParityConstraint ? ilpResults[subsideId] : std::round(ilpResults[subsideId] / 2.0);
                 subsideSum += fixedSize;
             }
         }

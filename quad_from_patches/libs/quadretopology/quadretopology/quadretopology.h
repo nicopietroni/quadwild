@@ -45,19 +45,19 @@ ChartData computeChartData(
 
 std::vector<double> computeChartEdgeLength(
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubdivisionSubsides,
         const size_t& iterations,
+        const std::vector<int>& ilpResults,
         const double& weight);
 
-std::vector<int> findSubdivisions(
+void findSubdivisions(
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubdivisionSubsides,
         const std::vector<double>& chartEdgeLength,
         const Parameters& parameters,
-        double& gap);
-std::vector<int> findSubdivisions(
+        double& gap,
+        std::vector<int>& ilpResults);
+
+void findSubdivisions(
         const ChartData& chartData,
-        const std::vector<size_t> fixedSubdivisionSubsides,
         const std::vector<double>& chartEdgeLength,
         const ILPMethod& method,
         const double alpha,
@@ -66,7 +66,7 @@ std::vector<int> findSubdivisions(
         const bool regularityNonQuadrilaterals,
         const double regularityNonQuadrilateralsWeight,
         const bool alignSingularities,
-        const double alignSingularitiesWeight,        
+        const double alignSingularitiesWeight,
         const int repeatLosingConstraintsIterations,
         const bool repeatLosingConstraintsQuads,
         const bool repeatLosingConstraintsNonQuads,
@@ -78,7 +78,8 @@ std::vector<int> findSubdivisions(
         const std::vector<float>& callbackTimeLimit,
         const std::vector<float>& callbackGapLimit,
         const double minimumGap,
-        double& gap);
+        double& gap,
+        std::vector<int>& ilpResults);
 
 template<class TriangleMeshType, class PolyMeshType>
 void quadrangulate(

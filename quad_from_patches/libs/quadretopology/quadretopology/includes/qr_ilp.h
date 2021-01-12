@@ -6,15 +6,17 @@
 
 #include <gurobi_c++.h>
 
+#define ILP_FIND_SUBDIVISION -1
+#define ILP_IGNORE -2
+
 namespace QuadRetopology {
 
 enum ILPStatus { SOLUTIONFOUND, SOLUTIONWRONG, INFEASIBLE };
 
 namespace internal {
 
-std::vector<int> solveILP(
-        const ChartData& chartData,
-        const std::vector<size_t>& fixedSubsides,
+void solveILP(
+        const ChartData& chartData,     
         const std::vector<double>& chartEdgeLength,
         const ILPMethod& method,
         const double alpha,
@@ -35,7 +37,8 @@ std::vector<int> solveILP(
         const std::vector<float>& callbackTimeLimit,
         const std::vector<float>& callbackGapLimit,
         double& gap,
-        ILPStatus& status);
+        ILPStatus& status,
+        std::vector<int>& ilpResults);
 
 }
 }
