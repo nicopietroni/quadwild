@@ -431,6 +431,19 @@ public:
         DirN0=GetClosestDirTo(IndexV0,Dir);
         DirN1=GetClosestDirTo(IndexV1,-Dir);
     }
+
+    void GetEdgeNodes(const size_t &IndexV0,const size_t &IndexV1,
+                      size_t &IndexN0,size_t &IndexN1)const
+    {
+        CoordType Dir=Mesh().vert[IndexV1].P()-
+                      Mesh().vert[IndexV0].P();
+        Dir.Normalize();
+        size_t DirN0=GetClosestDirTo(IndexV0,Dir);
+        size_t DirN1=GetClosestDirTo(IndexV1,Dir);
+        IndexN0=IndexNode(IndexV0,DirN0);
+        IndexN1=IndexNode(IndexV1,DirN1);
+    }
+
 private:
 
     //the node structure
@@ -1516,7 +1529,7 @@ bool SplitAdjacentSingularities(MeshType &mesh)
 }
 
 template <class MeshType>
-void PreProcessMesh(MeshType &mesh,bool DebugMsg=false)
+void PreProcessMesh(MeshType &mesh,bool DebugMsg=true)
 {
     mesh.SelectSharpFeatures();
     SplitAdjacentSingularities(mesh);
@@ -1526,8 +1539,10 @@ void PreProcessMesh(MeshType &mesh,bool DebugMsg=false)
         std::cout<<"splitting along sharp features"<<std::endl;
     VertSplitter<MeshType>::SplitAlongEdgeSel(mesh);
     vcg::tri::Allocator<MeshType>::CompactEveryVector(mesh);
+    std::cout<<"splitted"<<std::endl;
     //then update attributes
     mesh.UpdateAttributes();
+    //vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"test0.ply");
     //then reupdate the vert cross field
     vcg::tri::CrossField<MeshType>::UpdateSingularByCross(mesh,true);
     vcg::tri::CrossField<MeshType>::SetVertCrossVectorFromFace(mesh);

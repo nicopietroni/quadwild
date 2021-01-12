@@ -553,7 +553,7 @@ void TW_CALL BatchProcess(void *)
     InitStructures();
 
     //PTr.BatchProcess();
-    PTr.BatchAddLoops(false,false);//,false,true);//,false);
+    PTr.BatchAddLoops(false,false,false,false);//,false,true);//,false);
     PTr.UpdatePartitionsFromChoosen();
     PTr.ColorByPartitions();
     CurrPatchMode=CMPatchCol;

@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
         std::cout<<"ERROR LOADING MESH"<<std::endl;
         exit(0);
     }
-
+    std::cout<<"MESH NAME "<<meshFilename.c_str()<<std::endl;
     std::cout<<"Loaded "<<trimesh.vert.size()<<" vertices"<<std::endl;
     std::cout<<"Loaded "<<trimesh.face.size()<<" faces"<<std::endl;
 

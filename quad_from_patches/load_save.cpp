@@ -68,12 +68,20 @@ std::vector<std::vector<size_t>> loadCorners(const std::string& filename)
         input >> numCorners;
 
         corners[i].resize(numCorners);
+//        std::cout<<"Reading Patch "<<i<<std::endl;
+//        std::cout<<"Size "<<numCorners<<std::endl;
         for (size_t j = 0; j < numCorners; j++)
+        {
             input >> corners[i][j];
+             //std::cout<<corners[i][j]<<",";
+        }
+
+//        std::cout<<std::endl;
+//        std::cout<<std::endl;
     }
 
     input.close();
-
+    //exit(0);
     return corners;
 }
 

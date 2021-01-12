@@ -345,6 +345,7 @@ public:
     {
 //        int nonManifV=0;
 //        int degF=0;
+
         int zeroAFace=0;
         bool modified=false;
         ScalarType Magnitudo=2;
@@ -400,6 +401,7 @@ public:
             HasRepositioned=RepositionDuplicatedV();
             HasSolvedZeroF=RemoveZeroAreaF();
         }while (HasRepositioned || HasSolvedZeroF);
+        UpdateAttributes();
 
     }
 

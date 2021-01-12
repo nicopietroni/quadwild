@@ -2008,6 +2008,21 @@ private:
 
 public:
 
+    void AddSingleEdgePath(const size_t &IndexN0,
+                           const size_t &IndexN1)
+    {
+        CandidateTrace CurrC;
+        CurrC.FromType=GetTypeOfNode(IndexN0);
+        CurrC.ToType=GetTypeOfNode(IndexN1);
+        CurrC.IsLoop=false;
+        CurrC.PathNodes.push_back(IndexN0);
+        CurrC.PathNodes.push_back(IndexN1);
+        CurrC.Priority=0;
+        CurrC.Unremovable=false;
+        CurrC.Updated=true;
+        ChoosenPaths.push_back(CurrC);
+    }
+
     int NumEmitterType(const TypeVert EmitType)
     {
         size_t NumE=0;
@@ -2707,7 +2722,13 @@ private:
         assert(Index<PartitionCorners.size());
         assert(Index<Partitions.size());
 
-        //REMOVE THE REST
+        //REMOVE THE REST      
+        if (PatchInfos[Index].Genus!=1)
+        {
+            PartitionType[Index]=NonDisk;
+            return;
+        }
+
         if (PatchInfos[Index].NumEmitters>0)
         {
             PartitionType[Index]=HasEmitter;
@@ -2723,12 +2744,6 @@ private:
         if (PatchInfos[Index].NumCorners>(int)MaxVal)
         {
             PartitionType[Index]=HighCorners;
-            return;
-        }
-
-        if (PatchInfos[Index].Genus!=1)
-        {
-            PartitionType[Index]=NonDisk;
             return;
         }
 
@@ -4689,7 +4704,8 @@ public:
 
     void BatchAddLoops(bool ForceReceivers,
                        bool AddOnlyNeeded,
-                       bool OnlyNarrowConcave=false)
+                       bool OnlyNarrowConcave,
+                       bool force_always)
     {
         //might need to resample
         //other disconnected components
@@ -4716,8 +4732,11 @@ public:
             MaxNarrowWeight/=100;
             JoinNarrowStep();
             JoinConcaveStep();
-            MaxNarrowWeight*=100;
-            AllReceivers=false;
+            if (!force_always)
+            {
+                MaxNarrowWeight*=100;
+                AllReceivers=false;
+            }
         }
         JoinNarrowStep();
         JoinConcaveStep();
@@ -4761,6 +4780,13 @@ public:
         JoinBoundaries(AddOnlyNeeded);
         if (DebugMsg)
             std::cout<<"done"<<std::endl;
+
+        //restore the setup
+        if (ForceReceivers && force_always)
+        {
+            MaxNarrowWeight*=100;
+            AllReceivers=false;
+        }
         //        if (FinalRemoval)
         //            BatchRemoval();//SmoothOnRemoval);
     }
@@ -4897,10 +4923,15 @@ public:
         std::vector<PatchType> UnsolvedType;
         GetUnsolvedPartitions(UnsolvedPartition,UnsolvedType,false);
         PatchManager<MeshType>::SelectFaces(Mesh(),UnsolvedPartition);
+//        for (size_t i=0;i<UnsolvedType.size();i++)
+//        {
+//            if (UnsolvedType[i]!=NonDisk)continue;
+//            PatchManager<MeshType>::SelectFaces(Mesh(),UnsolvedPartition[i]);
+//        }
         vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(problem_mesh);
 
         vcg::tri::Append<MeshType,MeshType>::Mesh(problem_mesh,Mesh(),true);
-        //vcg::tri::io::ExporterPLY<MeshType>::Save(problem_mesh,"test_problem.ply");
+ //       vcg::tri::io::ExporterPLY<MeshType>::Save(problem_mesh,"test_problem.ply");
         problem_mesh.UpdateAttributes();
     }
 
@@ -4929,6 +4960,12 @@ public:
 //        InitEdgeL();
 //    }
 
+    void GetEdgeNodes(const size_t &IndexV0,const size_t &IndexV1,
+                      size_t &IndexN0,size_t &IndexN1)const
+    {
+        VFGraph.GetEdgeNodes(IndexV0,IndexV1,IndexN0,IndexN1);
+    }
+
     void GetUnsolvedPartitionsIndex(std::vector<size_t > &UnsolvedPartitionIndex,
                                     std::vector<PatchType> &PatchTypes)
     {
@@ -4943,7 +4980,7 @@ public:
         }
     }
 
-    void GetTopologicallyOKPartitionsIndex(std::vector<size_t > &NonGenusPartitionIndex)
+    void GetTopologicallyNotOKPartitionsIndex(std::vector<size_t > &NonGenusPartitionIndex)
     {
         NonGenusPartitionIndex.clear();
 
@@ -4952,6 +4989,13 @@ public:
             if (PatchManager<MeshType>::PatchGenus(Mesh(),Partitions[i])!=1)
                 NonGenusPartitionIndex.push_back(i);
         }
+    }
+
+    void GetTopologicallyNotOKPartitionsIndex(std::set<size_t > &NonGenusPartitionIndexSet)
+    {
+        std::vector<size_t > NonGenusPartitionIndexV;
+        GetTopologicallyNotOKPartitionsIndex(NonGenusPartitionIndexV);
+        NonGenusPartitionIndexSet=std::set<size_t >(NonGenusPartitionIndexV.begin(),NonGenusPartitionIndexV.end());
     }
 
     void SetChoosenFromVertDir(const std::vector<std::vector<size_t> > &VertIdx,
@@ -5111,8 +5155,10 @@ public:
         FixedV.insert(FixedV.end(),ConvexV.begin(),ConvexV.end());
 
         //std::vector<std::vector<ScalarType> >  SideLen;
-
-        MMesh.Init(&Mesh(),PartitionCorners,FacePartitions,CurrV,IsLoop,FixedV,EdgeL,EDirTable);
+        std::set<size_t > NonGenusPartitionIndexSet;
+        GetTopologicallyNotOKPartitionsIndex(NonGenusPartitionIndexSet);
+        MMesh.Init(&Mesh(),PartitionCorners,FacePartitions,CurrV,IsLoop,
+                   FixedV,EdgeL,EDirTable,NonGenusPartitionIndexSet);
     }
 
     void RemoveMetaMeshStep()

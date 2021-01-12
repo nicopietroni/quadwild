@@ -144,6 +144,158 @@ void SplitAlongShap(MeshType &mesh)
     //return done;
 }
 
+//template <class MeshType>
+//bool RemovePatches(const std::vector<size_t> &IndexPatches,
+//                   PatchTracer<MeshType> &PTr)
+//{
+//    typedef typename MeshType::ScalarType ScalarType;
+
+//    vcg::tri::io::ExporterPLY<MeshType>::Save(PTr.Mesh(),"test_before.ply");
+
+//    //split to remove sub path portions
+//    PTr.SplitIntoSubPaths();
+
+
+//    //get the patches
+//    std::vector<std::vector<size_t> > VertIdx;
+//    std::vector<std::vector<size_t> > VertDir;
+//    std::vector<bool> IsLoop;
+//    PTr.GetCurrVertDir(VertIdx,VertDir,IsLoop);
+
+//    //save original index of vert on quality
+//    for (size_t i=0;i<PTr.Mesh().vert.size();i++)
+//        PTr.Mesh().vert[i].Q()=i;
+
+//    //select the one to remove
+////    vcg::tri::UpdateSelection<MeshType>::FaceClear(PTr.Mesh());
+////    vcg::tri::UpdateSelection<MeshType>::VertexClear(PTr.Mesh());
+//    for (size_t i=0;i<IndexPatches.size();i++)
+//        for (size_t j=0;j<PTr.Partitions[IndexPatches[i]].size();j++)
+//        {
+//            size_t IndexF=PTr.Partitions[IndexPatches[i]][j];
+//            vcg::tri::Allocator<MeshType>::DeleteFace(PTr.Mesh(),PTr.Mesh().face[IndexF]);
+//        }
+//    vcg::tri::Clean<MeshType>::RemoveUnreferencedVertex(PTr.Mesh());
+//    vcg::tri::Allocator<MeshType>::CompactEveryVector(PTr.Mesh());
+////    vcg::tri::UpdateSelection<MeshType>::FaceClear(PTr.Mesh());
+////    vcg::tri::UpdateSelection<MeshType>::VertexClear(PTr.Mesh());
+//    PTr.Mesh().UpdateAttributes();
+
+//    //get vertex map
+//    std::map<size_t,size_t> VertMap;
+//    for (size_t i=0;i<PTr.Mesh().vert.size();i++)
+//    {
+//        size_t OldIdx=PTr.Mesh().vert[i].Q();
+//        VertMap[OldIdx]=i;
+//    }
+
+//    //remap vertices
+//    for (size_t i=0;i<VertIdx.size();i++)
+//        for (size_t j=0;j<VertIdx[i].size();j++)
+//        {
+//            size_t OldIdx=VertIdx[i][j];
+//            //referring to a non existing vert
+//            if (VertMap.count(OldIdx)==0)
+//            {
+//                VertIdx[i].clear();
+//                break;
+//            }
+//            else
+//            {
+//                size_t NewIdx=VertMap[OldIdx];
+//                VertIdx[i][j]=NewIdx;
+//            }
+//        }
+
+//    //check new borders
+//    std::set<std::pair<size_t,size_t> > BorderE;
+//    //std::set<std::pair<size_t,size_t> > InternalE;
+//    for (size_t i=0;i<PTr.Mesh().face.size();i++)
+//        for (size_t j=0;j<3;j++)
+//        {
+//            size_t IndexV0=vcg::tri::Index(PTr.Mesh(),PTr.Mesh().face[i].V0(j));
+//            size_t IndexV1=vcg::tri::Index(PTr.Mesh(),PTr.Mesh().face[i].V1(j));
+//            std::pair<size_t,size_t>  key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
+//            if (vcg::face::IsBorder(PTr.Mesh().face[i],j))
+//                 BorderE.insert(key);
+//                //                BorderE.insert(key);
+//                //            else
+//                //InternalE.insert(key);
+//        }
+
+//    //then filter the paths
+//    std::vector<std::vector<size_t> > VertIdxSwap;
+//    std::vector<std::vector<size_t> > VertDirSwap;
+//    std::vector<bool> IsLoopSwap;
+//    for (size_t i=0;i<VertIdx.size();i++)
+//    {
+//        bool to_delete=false;
+//        if (VertIdx[i].size()==0)continue;
+
+//        size_t Limit=VertIdx[i].size()-1;
+//        if (IsLoop[i])Limit++;
+//        size_t Size=VertIdx[i].size();
+//        for (size_t j=0;j<Limit;j++)
+//        {
+//            size_t IndexV0=VertIdx[i][j];
+//            size_t IndexV1=VertIdx[i][(j+1)%Size];
+//            std::pair<size_t,size_t>  key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
+//            if (BorderE.count(key)==0)continue;
+//            to_delete=true;
+//            std::cout<<"AAA"<<std::endl;
+//            break;
+//        }
+//        if (!to_delete)
+//        {
+//            VertIdxSwap.push_back(VertIdx[i]);
+//            VertDirSwap.push_back(VertDir[i]);
+//            IsLoopSwap.push_back(IsLoop[i]);
+//        }
+//    }
+//    VertIdx=VertIdxSwap;
+//    VertDir=VertDirSwap;
+//    IsLoop=IsLoopSwap;
+
+
+//    std::set<std::pair<size_t,size_t> > AddedE;
+//    for (size_t i=0;i<VertIdx.size();i++)
+//    {
+//        size_t Limit=VertIdx[i].size()-1;
+//        if (IsLoop[i])Limit++;
+//        size_t Size=VertIdx[i].size();
+//        for (size_t j=0;j<Limit;j++)
+//        {
+//            size_t IndexV0=VertIdx[i][j];
+//            size_t IndexV1=VertIdx[i][(j+1)%Size];
+//            std::pair<size_t,size_t>  key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
+//            assert(AddedE.count(key)==0);
+//            assert(BorderE.count(key)==0);
+//            AddedE.insert(key);
+//            //std::cout<<"AAA"<<std::endl;
+//            //break;
+//        }
+//    }
+
+
+//    //update the graph
+//    std::cout<<"A"<<std::endl;
+//    ScalarType currDrift=PTr.Drift;
+//    PTr.Reset();
+//    PTr.InitTracer(currDrift,false);
+//    //copy paths
+//    std::cout<<"0"<<std::endl;
+//    PTr.SetChoosenFromVertDir(VertIdx,VertDir,IsLoop);
+//    std::cout<<"1"<<std::endl;
+//    PTr.InitEdgeDirTable();
+//    std::cout<<"2"<<std::endl;
+//    PTr.InitEdgeL();
+//    std::cout<<"3"<<std::endl;
+//    vcg::tri::io::ExporterPLY<MeshType>::Save(PTr.Mesh(),"test_remain.ply");
+
+//    PTr.UpdatePartitionsFromChoosen(true);
+//    std::cout<<"4"<<std::endl;
+//}
+
 template <class MeshType>
 bool TraceSubPatch(const size_t &IndexPatch,
                    PatchTracer<MeshType> &PTr,
@@ -152,7 +304,8 @@ bool TraceSubPatch(const size_t &IndexPatch,
                    std::vector<bool> &IsLoop,
                    bool onlyneeded,
                    bool resample_loops,
-                   bool DebugMsg)
+                   bool DebugMsg,
+                   bool force_always)
 {
     size_t t0=clock();
     
@@ -229,7 +382,7 @@ bool TraceSubPatch(const size_t &IndexPatch,
 
     //then trace in the subpatch
     SubTr.DebugMsg=DebugMsg;
-    SubTr.BatchAddLoops(true,onlyneeded);//inteleaveremoval,finalremoval);//,interleave_smooth);
+    SubTr.BatchAddLoops(true,onlyneeded,false,force_always);//inteleaveremoval,finalremoval);//,interleave_smooth);
 
 
     //copy back paths to the original
@@ -317,7 +470,8 @@ void FilterFullTracedPatches(PatchTracer<MeshType> &PTr,std::vector<size_t> &Par
 template <class MeshType>
 void SolveSubPatches(PatchTracer<MeshType> &PTr,
                      bool onlyneeded,
-                     bool only_non_disk)
+                     bool only_non_disk,
+                     bool force_always=false)
 {
     std::vector<std::vector<size_t> > TotVertIdx;
     std::vector<std::vector<size_t> > TotVertDir;
@@ -340,21 +494,25 @@ void SolveSubPatches(PatchTracer<MeshType> &PTr,
         if (!only_non_disk)
             PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex,PatchTypes);
         else
-            PTr.GetTopologicallyOKPartitionsIndex(UnsolvedPartitionIndex);
+            PTr.GetTopologicallyNotOKPartitionsIndex(UnsolvedPartitionIndex);
 
         if (UnsolvedPartitionIndex.size()==0)
             solved=true;
 
-        FilterFullTracedPatches(PTr,UnsolvedPartitionIndex);
+        if (!only_non_disk)
+            FilterFullTracedPatches(PTr,UnsolvedPartitionIndex);
 
         std::cout<<"**** SUBPATCH TRACING - THERE ARE "<<UnsolvedPartitionIndex.size()<<" Unsolved Partitions ****"<<std::endl;
-        WriteUnsolvedStats(PatchTypes);
+
+        if (!only_non_disk)
+            WriteUnsolvedStats(PatchTypes);
         //PTr.WriteInfo();
 
         //first copy the submesh
         for (size_t i=0;i<PTr.Mesh().vert.size();i++)
             PTr.Mesh().vert[i].Q()=i;
 
+        size_t Has_traced=0;
         for(size_t i=0;i<UnsolvedPartitionIndex.size();i++)
         {
 
@@ -363,7 +521,7 @@ void SolveSubPatches(PatchTracer<MeshType> &PTr,
             std::vector<bool> NewIsLoop;
             size_t currPartIndex=UnsolvedPartitionIndex[i];
             bool traced=TraceSubPatch<MeshType>(currPartIndex,PTr,NewVertIdx,NewVertDir,
-                                                NewIsLoop,onlyneeded,only_non_disk,false);
+                                                NewIsLoop,onlyneeded,only_non_disk,false,force_always);
             if (!traced)
             {
                 for (size_t j=0;j<PTr.Partitions[currPartIndex].size();j++)
@@ -373,11 +531,15 @@ void SolveSubPatches(PatchTracer<MeshType> &PTr,
                     PTr.Mesh().face[IndxF].FullTraced=true;
                 }
             }
+            else
+                Has_traced++;
+
             TotVertIdx.insert(TotVertIdx.end(),NewVertIdx.begin(),NewVertIdx.end());
             TotVertDir.insert(TotVertDir.end(),NewVertDir.begin(),NewVertDir.end());
             TotIsLoop.insert(TotIsLoop.end(),NewIsLoop.begin(),NewIsLoop.end());
 
         }
+        std::cout<<"Has traced into "<<Has_traced<<" patches"<<std::endl;
 
         std::cout<<"Updating Patches"<<std::endl;
         PTr.SetChoosenFromVertDir(TotVertIdx,TotVertDir,TotIsLoop);
@@ -401,6 +563,85 @@ void SolveSubPatches(PatchTracer<MeshType> &PTr,
         }
     }while(added_trace & (!solved));
 }
+
+//template <class MeshType>
+//void RemoveNonTopologicallyOK(PatchTracer<MeshType> &PTr)
+//{
+//    std::vector<size_t> To_Remove;
+//    for (size_t i=0;i<PTr.Partitions.size();i++)
+//    {
+//        if (PTr.PartitionType[i]!=NonDisk)continue;
+//        To_Remove.push_back(i);
+//    }
+//    if (To_Remove.size()>0);
+//    RemovePatches(To_Remove,PTr);
+//}
+
+//template <class MeshType>
+//void ForceSolvePatch(const std::vector<size_t> &IndexPatches,
+//                     PatchTracer<MeshType> &PTr)
+//{
+//    typedef typename MeshType::ScalarType ScalarType;
+
+//    //save all existing edges
+//    std::set<std::pair<size_t,size_t> > ExistingE;
+//    std::vector<std::vector<size_t> > CurrV,CurrDir;
+//    std::vector<bool> IsLoop;
+//    PTr.GetCurrVertDir(CurrV,CurrDir,IsLoop);
+//    for (size_t i=0;i<CurrV.size();i++)
+//    {
+//        size_t Limit=CurrV[i].size()-1;
+//        if (IsLoop[i])Limit++;
+//        size_t Size=CurrV[i].size();
+//        for (size_t j=0;j<Limit;j++)
+//        {
+//            size_t IndexV0=CurrV[i][j];
+//            size_t IndexV1=CurrV[i][(j+1)%Size];
+//            std::pair<size_t,size_t>  key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
+//            ExistingE.insert(key);
+//        }
+//    }
+//    //    for (size_t i=0;i<PTr.Mesh().face.size();i++)
+//    //        for (size_t j=0;j<3;j++)
+//    //        {
+//    //            size_t IndexV0=vcg::tri::Index(PTr.Mesh(),PTr.Mesh().face[i].V0(j));
+//    //            size_t IndexV1=vcg::tri::Index(PTr.Mesh(),PTr.Mesh().face[i].V1(j));
+//    //            std::pair<size_t,size_t>  key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
+//    //            ExistingE.insert(key);
+//    //        }
+
+//    for (size_t i=0;i<IndexPatches.size();i++)
+//        for (size_t j=0;j<PTr.Partitions[IndexPatches[i]].size();j++)
+//        {
+//            size_t IndexF=PTr.Partitions[IndexPatches[i]][j];
+//            for (size_t k=0;k<3;k++)
+//            {
+//                size_t IndexV0=vcg::tri::Index(PTr.Mesh(),PTr.Mesh().face[IndexF].V0(k));
+//                size_t IndexV1=vcg::tri::Index(PTr.Mesh(),PTr.Mesh().face[IndexF].V1(k));
+//                std::pair<size_t,size_t>  key(std::min(IndexV0,IndexV1),std::max(IndexV0,IndexV1));
+//                if (ExistingE.count(key)>0)continue;
+//                size_t IndexN0,IndexN1;
+//                PTr.GetEdgeNodes(IndexV0,IndexV1,IndexN0,IndexN1);
+//                PTr.AddSingleEdgePath(IndexN0,IndexN1);
+//            }
+//        }
+
+//    PTr.UpdatePartitionsFromChoosen(true);
+//}
+
+
+//template <class MeshType>
+//void SolveNonTopologicallyOK(PatchTracer<MeshType> &PTr)
+//{
+//    std::vector<size_t> To_Solve;
+//    for (size_t i=0;i<PTr.Partitions.size();i++)
+//    {
+//        if (PTr.PartitionType[i]!=NonDisk)continue;
+//        To_Solve.push_back(i);
+//    }
+//    if (To_Solve.size()>0);
+//    ForceSolvePatch(To_Solve,PTr);
+//}
 
 template <class MeshType>
 void RecursiveProcess(PatchTracer<MeshType> &PTr,
@@ -434,13 +675,13 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
 
     //in this case need to trace loops
     if ((NumE0==0)||(NumE1==0))
-        PTr.BatchAddLoops(false,onlyneeded,false);
+        PTr.BatchAddLoops(false,onlyneeded,false,false);
     else
-        PTr.BatchAddLoops(false,onlyneeded,ForceMultiSplit);
+        PTr.BatchAddLoops(false,onlyneeded,ForceMultiSplit,false);
 
     //if no patch has been created than trace loops
     if ((ForceMultiSplit==true)&&(PTr.Partitions.size()==0))
-        PTr.BatchAddLoops(false,onlyneeded,false);
+        PTr.BatchAddLoops(false,onlyneeded,false,false);
 
     int t1=clock();
     Time_FirstTrace+=t1-t0;
@@ -458,15 +699,12 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     std::cout<<"**** CHECK NO DISK ONES ****"<<std::endl;
     SolveSubPatches(PTr,onlyneeded,true);
 
+    std::cout<<"**** FORCE SOLVING NO DISK ONES ****"<<std::endl;
+    SolveSubPatches(PTr,onlyneeded,true,true);
+
     std::vector<size_t> UnsolvedPartitionIndex;
     std::vector<PatchType> PatchTypes;
     std::cout<<"**** After All Insertion Steps ****"<<std::endl;
-
-    std::cout<<"Updating Patches"<<std::endl;
-    PTr.LazyUpdatePartitions();
-    PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex,PatchTypes);
-    WriteUnsolvedStats(PatchTypes);
-    std::cout<<"Updated"<<std::endl;
 
     int t2=clock();
     if (finalremoval)
@@ -474,7 +712,16 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
         std::cout<<"**** FINAL REMOVAL ****"<<std::endl;
         //PTr.UpdatePartitionsFromChoosen(true);
         PTr.SetAllRemovable();
-        if (UseMetamesh)
+
+        bool HasNonManif=false;
+        std::vector<size_t > NonGenusOK;
+//        PTr.UpdatePartitionsFromChoosen(true);
+        PTr.GetTopologicallyNotOKPartitionsIndex(NonGenusOK);
+        if (NonGenusOK.size()>0)
+            HasNonManif=true;
+
+
+        if (UseMetamesh)// && (!HasNonManif))
             PTr.BatchRemovalMetaMesh(PreRemoveStep);
         else
             PTr.BatchRemovalOnMesh(PreRemoveStep);
@@ -482,9 +729,11 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
         std::cout<<"**** After Last Removal Step ****"<<std::endl;
 
         //        PTr.CutEarPath();
-
-        PTr.GetUnsolvedPartitionsIndex(UnsolvedPartitionIndex,PatchTypes);
-        WriteUnsolvedStats(PatchTypes);
+        if (HasNonManif)
+        {
+           PTr.UpdatePartitionsFromChoosen(true);
+           PTr.WriteInfo();
+        }
     }
     else
     {
@@ -513,9 +762,9 @@ void RecursiveProcess(PatchTracer<MeshType> &PTr,
     ScalarType ElpsedSec=(ScalarType)(t4-t0)/CLOCKS_PER_SEC;
     std::cout<<"**** FINAL ELAPSED TIME "<<ElpsedSec<<" Seconds ****"<<std::endl;
 
-//    //check if metamesh has not been initialized already
-//    if (!(finalremoval && UseMetamesh))
-//        PTr.InitMetaMesh();
+    //    //check if metamesh has not been initialized already
+    //    if (!(finalremoval && UseMetamesh))
+    //        PTr.InitMetaMesh();
 
     //    std::cout<<"Time First Trace "<<(ScalarType)Time_FirstTrace/CLOCKS_PER_SEC<<std::endl;
     //    std::cout<<"Time Init SubPatches 0 "<<(ScalarType)Time_InitSubPatches0/CLOCKS_PER_SEC<<std::endl;
@@ -580,6 +829,142 @@ void SaveCSV(PatchTracer<MeshType> &PTr,
 }
 
 
+//template <class MeshType>
+//void SaveAllData(PatchTracer<MeshType> &PTr,
+//                 const std::string &pathProject,
+//                 const size_t CurrNum,
+//                 bool subdivide_when_save,
+//                 bool save_origFace)
+//{
+//    typedef typename MeshType::CoordType CoordType;
+
+//    std::vector<std::pair<CoordType,CoordType> > SharpCoords;
+//    PTr.Mesh().GetSharpCoordPairs(SharpCoords);
+
+//    //copy the mesh
+//    MeshType SaveM;
+//    vcg::tri::Append<MeshType,MeshType>::Mesh(SaveM,PTr.Mesh());
+//    std::vector<size_t> SharpCorners;
+//    PTr.getCornerSharp(SharpCorners);
+//    std::set<CoordType> SharpCornerPos;
+//    for(size_t i=0;i<SharpCorners.size();i++)
+//        SharpCornerPos.insert(PTr.Mesh().vert[SharpCorners[i]].P());
+
+//    //merge vertices
+//    vcg::tri::Clean<MeshType>::RemoveDuplicateVertex(SaveM);
+//    vcg::tri::Clean<MeshType>::RemoveUnreferencedVertex(SaveM);
+//    vcg::tri::Allocator<MeshType>::CompactEveryVector(SaveM);
+//    SaveM.UpdateAttributes();
+//    SaveM.UpdateFromCoordPairs(SharpCoords);
+
+//    //save vert pos
+//    std::map<CoordType,size_t> VertMap;
+//    for (size_t i=0;i<SaveM.vert.size();i++)
+//        VertMap[SaveM.vert[i].P()]=i;
+
+//    for (size_t i=0;i<SaveM.face.size();i++)
+//        SaveM.face[i].Q()=PTr.FacePartitions[i];
+
+//    //vcg::tri::io::ExporterPLY<MeshType>::Save(SaveM,"test_final.ply");
+
+
+//    if (subdivide_when_save)
+//    {
+//        SplitAlongShap(SaveM);
+//    }
+
+//    //update sharp vertices
+//    SaveM.SharpCorners.clear();
+//    for (size_t i=0;i<SaveM.vert.size();i++)
+//        if (SharpCornerPos.count(SaveM.vert[i].P())>0)
+//            SaveM.SharpCorners.push_back(i);
+
+//    //save the mesh
+//    int Mask=0;
+//    std::string pathMeshFinal=pathProject;
+//    pathMeshFinal=pathMeshFinal+"_p"+std::to_string(CurrNum)+".obj";
+//    vcg::tri::io::ExporterOBJ<MeshType>::Save(SaveM,pathMeshFinal.c_str(),Mask);
+
+//    std::string pathPartitions=pathProject;
+//    //pathPartitions.append("_p.patch");
+//    pathPartitions=pathPartitions+"_p"+std::to_string(CurrNum)+".patch";
+//    FILE *F=fopen(pathPartitions.c_str(),"wt");
+//    assert(F!=NULL);
+//    //    assert(PTr.FacePartitions.size()==PTr.Mesh().face.size());
+//    //    fprintf(F,"%d\n",PTr.FacePartitions.size());
+//    //    for (size_t i=0;i<PTr.FacePartitions.size();i++)
+//    //        fprintf(F,"%d\n",PTr.FacePartitions[i]);
+//    //    fclose(F);
+//    fprintf(F,"%d\n",SaveM.face.size());
+//    for (size_t i=0;i<SaveM.face.size();i++)
+//        fprintf(F,"%d\n",(int)SaveM.face[i].Q());
+//    fclose(F);
+
+//    std::string pathCorners=pathProject;
+//    //pathCorners.append("_p.corners");
+//    pathCorners=pathCorners+"_p"+std::to_string(CurrNum)+".corners";
+//    F=fopen(pathCorners.c_str(),"wt");
+//    assert(F!=NULL);
+//    assert(PTr.PartitionCorners.size()==PTr.Partitions.size());
+//    fprintf(F,"%d\n",PTr.PartitionCorners.size());
+
+//    //std::cout<<"**** SAVING MESH ****"<<std::endl;
+//    PTr.WriteInfo();
+//    for (size_t i=0;i<PTr.PartitionCorners.size();i++)
+//    {
+//        //check uniqueness
+//        std::set<size_t> TestCorn;
+//        fprintf(F,"%d\n",PTr.PartitionCorners[i].size());
+
+//        //        std::cout<<"Writing Patch "<<i<<std::endl;
+//        //        std::cout<<"Size "<<PTr.PartitionCorners[i].size()<<std::endl;
+//        for (size_t j=0;j<PTr.PartitionCorners[i].size();j++)
+//        {
+//            //            if (PTr.PartitionCorners[i].size()<MIN_ADMITTIBLE)
+//            //            {
+//            //                PTr.GetPatchMesh(i,mesh);
+//            //                vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"")
+//            //                assert(0);
+//            //            }
+//            assert(PTr.PartitionCorners[i].size()>=MIN_ADMITTIBLE);
+//            assert(PTr.PartitionCorners[i].size()<=MAX_ADMITTIBLE);
+//            size_t IndexV=PTr.PartitionCorners[i][j];
+//            CoordType CornerPos=PTr.Mesh().vert[IndexV].P();
+//            assert(VertMap.count(CornerPos)>0);
+//            fprintf(F,"%d\n",VertMap[CornerPos]);
+//            TestCorn.insert(VertMap[CornerPos]);
+//            //std::cout<<VertMap[CornerPos]<<",";
+//        }
+//        assert(TestCorn.size()==PTr.PartitionCorners[i].size());
+
+//        //        std::cout<<std::endl;
+//        //        for (size_t j=0;j<PTr.PartitionCorners[i].size();j++)
+//        //        {
+//        //            size_t IndexV=PTr.PartitionCorners[i][j];
+//        //            std::cout<<IndexV<<",";
+//        //        }
+//        //        std::cout<<std::endl;
+//        //        std::cout<<std::endl;
+//    }
+//    fclose(F);
+
+//    std::string featurePartitions=pathProject;
+//    featurePartitions=featurePartitions+"_p"+std::to_string(CurrNum)+".feature";
+//    SaveM.SaveFeatures(featurePartitions);
+
+//    std::string featureCorners=pathProject;
+//    featureCorners=featureCorners+"_p"+std::to_string(CurrNum)+".c_feature";
+//    SaveM.SaveSharpCorners(featureCorners);
+
+//    if (save_origFace)
+//    {
+//        std::string origfaceP=pathProject;
+//        origfaceP=featureCorners+"_p"+std::to_string(CurrNum)+"_origf.txt";
+//        SaveM.SaveOrigFace(origfaceP);
+//    }
+//}
+
+
 template <class MeshType>
 void SaveAllData(PatchTracer<MeshType> &PTr,
                  const std::string &pathProject,
@@ -601,20 +986,89 @@ void SaveAllData(PatchTracer<MeshType> &PTr,
     for(size_t i=0;i<SharpCorners.size();i++)
         SharpCornerPos.insert(PTr.Mesh().vert[SharpCorners[i]].P());
 
+    for (size_t i=0;i<SaveM.face.size();i++)
+        SaveM.face[i].Q()=PTr.FacePartitions[i];
+
+    //merge across sharp features
+    vcg::tri::Clean<MeshType>::RemoveDuplicateVertex(SaveM);
+    vcg::tri::Clean<MeshType>::RemoveUnreferencedVertex(SaveM);
+    vcg::tri::Allocator<MeshType>::CompactEveryVector(SaveM);
+    SaveM.UpdateAttributes();
+
+    //then remove the non disk-like
+    std::set<size_t > ToErasePartitions;
+    PTr.GetTopologicallyNotOKPartitionsIndex(ToErasePartitions);
+    std::vector<std::vector<size_t> > PatchCorners;
+
+    //add the patches of faces that has non-manifoldness (if occours)
+    int num=vcg::tri::Clean<MeshType>::CountNonManifoldEdgeFF(SaveM,true);
+    if (num>0)
+    {
+        for (size_t i=0;i<SaveM.face.size();i++)
+        {
+            if (!SaveM.face[i].IsS())continue;
+            size_t CurrP=SaveM.face[i].Q();
+            ToErasePartitions.insert(CurrP);
+        }
+    }
+    bool has_erased=false;
+    if (ToErasePartitions.size()>0)
+    {
+        std::cout<<ToErasePartitions.size()<<"- NON DISK OR NON MANIF PATCH ERASED- "<<std::endl;
+        has_erased=true;
+        //first remove the faces
+        size_t NumPart=0;
+        for (size_t i=0;i<SaveM.face.size();i++)
+        {
+            size_t IndexP=SaveM.face[i].Q();
+            NumPart=std::max(NumPart,IndexP);
+            if (ToErasePartitions.count(IndexP)==0)continue;
+            vcg::tri::Allocator<MeshType>::DeleteFace(SaveM,SaveM.face[i]);
+        }
+
+        //then remap the partitions
+        std::vector<int> PartitionMap(NumPart+1,-1);
+        size_t currP=0;
+        for (size_t i=0;i<PartitionMap.size();i++)
+        {
+            if (ToErasePartitions.count(i)>0)
+                continue;//in this case do not consider that patch
+
+            //otherwise add the patch corners and the index too
+            PatchCorners.push_back(PTr.PartitionCorners[i]);
+            PartitionMap[i]=currP;
+            currP++;
+        }
+
+        //final check
+        assert((currP+ToErasePartitions.size()-1)==NumPart);
+
+        //remap faces partitions
+        for (size_t i=0;i<SaveM.face.size();i++)
+        {
+            if (SaveM.face[i].IsD())continue;
+            int currP=SaveM.face[i].Q();
+            assert(currP>=0);
+            assert(currP<PartitionMap.size());
+            int newPIdx=PartitionMap[currP];
+            assert(newPIdx>=0);
+            SaveM.face[i].Q()=newPIdx;
+        }
+    }
+    else
+        PatchCorners=PTr.PartitionCorners;
+
     //merge vertices
     vcg::tri::Clean<MeshType>::RemoveDuplicateVertex(SaveM);
     vcg::tri::Clean<MeshType>::RemoveUnreferencedVertex(SaveM);
     vcg::tri::Allocator<MeshType>::CompactEveryVector(SaveM);
     SaveM.UpdateAttributes();
-    SaveM.UpdateFromCoordPairs(SharpCoords);
+    SaveM.UpdateFromCoordPairs(SharpCoords,false);
 
     //save vert pos
     std::map<CoordType,size_t> VertMap;
     for (size_t i=0;i<SaveM.vert.size();i++)
         VertMap[SaveM.vert[i].P()]=i;
-
-    for (size_t i=0;i<SaveM.face.size();i++)
-        SaveM.face[i].Q()=PTr.FacePartitions[i];
 
     //vcg::tri::io::ExporterPLY<MeshType>::Save(SaveM,"test_final.ply");
 
@@ -656,29 +1110,47 @@ void SaveAllData(PatchTracer<MeshType> &PTr,
     pathCorners=pathCorners+"_p"+std::to_string(CurrNum)+".corners";
     F=fopen(pathCorners.c_str(),"wt");
     assert(F!=NULL);
-    assert(PTr.PartitionCorners.size()==PTr.Partitions.size());
-    fprintf(F,"%d\n",PTr.PartitionCorners.size());
+    //assert(PTr.PartitionCorners.size()==PTr.Partitions.size());
+    fprintf(F,"%d\n",PatchCorners.size());
 
-    //std::cout<<"**** SAVING MESH ****"<<std::endl;
+
     PTr.WriteInfo();
-    for (size_t i=0;i<PTr.PartitionCorners.size();i++)
+
+    std::cout<<"**** SAVING MESH ****"<<std::endl;
+    for (size_t i=0;i<PatchCorners.size();i++)
     {
-        fprintf(F,"%d\n",PTr.PartitionCorners[i].size());
-        for (size_t j=0;j<PTr.PartitionCorners[i].size();j++)
+        //check uniqueness
+        std::set<size_t> TestCorn;
+        fprintf(F,"%d\n",PatchCorners[i].size());
+        for (size_t j=0;j<PatchCorners[i].size();j++)
         {
-            //            if (PTr.PartitionCorners[i].size()<MIN_ADMITTIBLE)
-            //            {
-            //                PTr.GetPatchMesh(i,mesh);
-            //                vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"")
-            //                assert(0);
-            //            }
-            assert(PTr.PartitionCorners[i].size()>=MIN_ADMITTIBLE);
-            assert(PTr.PartitionCorners[i].size()<=MAX_ADMITTIBLE);
-            size_t IndexV=PTr.PartitionCorners[i][j];
+            assert(PatchCorners[i].size()>=MIN_ADMITTIBLE);
+            assert(PatchCorners[i].size()<=MAX_ADMITTIBLE);
+            int IndexV=PatchCorners[i][j];//PTr.PartitionCorners[i][j];
+            assert(IndexV<PTr.Mesh().vert.size());
+            assert(IndexV>=0);
             CoordType CornerPos=PTr.Mesh().vert[IndexV].P();
+
             assert(VertMap.count(CornerPos)>0);
             fprintf(F,"%d\n",VertMap[CornerPos]);
+            TestCorn.insert(VertMap[CornerPos]);
+            //std::cout<<VertMap[CornerPos]<<",";
         }
+        if (TestCorn.size()!=PatchCorners[i].size())
+        {
+            std::cout<<"WARNING DOUBLE VERT: "<<TestCorn.size()<<"!="<<PatchCorners[i].size()<<std::endl;
+            //assert(0);
+        }
+        //assert(TestCorn.size()==PatchCorners[i].size());
+
+        //        std::cout<<std::endl;
+        //        for (size_t j=0;j<PTr.PartitionCorners[i].size();j++)
+        //        {
+        //            size_t IndexV=PTr.PartitionCorners[i][j];
+        //            std::cout<<IndexV<<",";
+        //        }
+        //        std::cout<<std::endl;
+        //        std::cout<<std::endl;
     }
     fclose(F);
 
@@ -697,6 +1169,4 @@ void SaveAllData(PatchTracer<MeshType> &PTr,
         SaveM.SaveOrigFace(origfaceP);
     }
 }
-
-
 #endif

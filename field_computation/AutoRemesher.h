@@ -77,8 +77,8 @@ class AutoRemesher {
                             }
                         }
 
-                        if (minEdgeLength <= maxEdgeLength * edgeRatio)
-                        {
+//                        if (minEdgeLength <= maxEdgeLength * edgeRatio)
+//                        {
                             PosType pi(&*fi, minEdge);
                             VertexPair  bp = VertexPair(fi->V0(minEdge), fi->V1(minEdge));
                             CoordType mp = (fi->cP0(minEdge) + fi->cP1(minEdge))/2.f;
@@ -87,7 +87,7 @@ class AutoRemesher {
                             {
                                 Collapser::Do(m, bp, mp, true);
                             }
-                        }
+//                        }
                     }
                 }
         } while (count > 0 && ++iter < maxIter);
@@ -452,7 +452,7 @@ public:
         para.splitFlag    = true;
         para.swapFlag     = true;
         para.collapseFlag = true;
-        para.smoothFlag   = true;
+        para.smoothFlag   = false;
         para.projectFlag  = true;
         para.selectedOnly = false;
         para.adapt=false;
@@ -462,7 +462,7 @@ public:
         para.minAdaptiveMult = par.minAdaptiveMult;
         para.maxAdaptiveMult = par.maxAdaptiveMult;
 
-        para.maxSurfDist = m.bbox.Diag() / 1500.;
+        para.maxSurfDist = m.bbox.Diag() / 2500.;
         para.surfDistCheck = m.FN() < 400000 ? par.surfDistCheck : false;
         para.userSelectedCreases = true;//par.userSelectedCreases;
 
@@ -489,98 +489,76 @@ public:
         vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
         std::cout << "Iter: "<<  0 << " faces: " << ret->FN() << " quality: " <<  computeAR(*ret) << std::endl;
 
+
+        //const ScalarType thr = 0.01;
+        collapseSurvivingMicroEdges(*ret, 0.01);
+
         ret->UpdateDataStructures();
         ret->InitSharpFeatures(par.creaseAngle);
         ret->ErodeDilate(par.erodeDilate);
 
-        para.SetTargetLen(par.targetEdgeLen * 0.85);
+        //para.SetTargetLen(par.targetEdgeLen * 0.85);
         para.adapt = true;
-        para.maxSurfDist = m.bbox.Diag() / 1500.;
+        para.smoothFlag   = true;
+        para.maxSurfDist = m.bbox.Diag() / 2500.;
 
         vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
         auto quality = computeAR(*ret);
         std::cout << "Iter: "<<  1 << " faces: " << ret->FN() << " quality: " << quality << std::endl;
 
+//        //then do a final step fixing the features
+//        vcg::tri::UpdateSelection<Mesh>::VertexClear(*ret);
+//        vcg::tri::UpdateSelection<Mesh>::FaceClear(*ret);
+//        vcg::tri::ForEachFace(*ret, [&] (FaceType & f) {
+//                            for (int i = 0; i < 3; ++i)
+//                            {
+//                                bool IsSh=(vcg::face::IsBorder(f,i)||
+//                                           f.IsFaceEdgeS(i));
+//                                if (!IsSh)continue;
+//                                f.V0(i)->SetS();
+//                                f.V1(i)->SetS();
+//                            }
+//                   });
+//        vcg::tri::UpdateSelection<Mesh>::FaceFromVertexLoose(*ret);
+//        vcg::tri::UpdateSelection<Mesh>::FaceInvert(*ret);
+//        //vcg::tri::UpdateSelection<Mesh>::FaceErode(*ret);
+//        vcg::tri::UpdateSelection<Mesh>::VertexClear(*ret);
+//        para.smoothFlag   = true;
+//        para.selectedOnly = true;
+//        para.adapt=true;
+//        vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
 
-//        if (quality < 0.1)
-//        {
-            ret->UpdateDataStructures();
-            ret->InitSharpFeatures(par.creaseAngle);
-            ret->ErodeDilate(par.erodeDilate);
+////        if (quality < 0.1)
+////        {
+//            ret->UpdateDataStructures();
+//            ret->InitSharpFeatures(par.creaseAngle);
+//            ret->ErodeDilate(par.erodeDilate);
 
-            int count = 0;
-            vcg::tri::ForEachFace(*ret, [&] (FaceType & f) {
+//            int count = 0;
+//            vcg::tri::ForEachFace(*ret, [&] (FaceType & f) {
 
-                if (f.cQ() < par.minAspectRatioThr)
-                {
-                    ++count;
-                    for (int i = 0; i < 3; ++i)
-                    {
-                        f.ClearFaceEdgeS(i);
-                        if (vcg::face::IsBorder(f,i))continue;
-                        f.FFp(i)->ClearFaceEdgeS(f.FFi(i));
-                    }
-                }
-            });
+//                if (f.cQ() < par.minAspectRatioThr)
+//                {
+//                    ++count;
+//                    for (int i = 0; i < 3; ++i)
+//                    {
+//                        f.ClearFaceEdgeS(i);
+//                        if (vcg::face::IsBorder(f,i))continue;
+//                        f.FFp(i)->ClearFaceEdgeS(f.FFi(i));
+//                    }
+//                }
+//            });
 
-            std::cout << count << " faces were relieved of crease edges due to poor quality" << std::endl;
-            para.SetTargetLen(par.targetEdgeLen * 0.7);
-            para.adapt = true;
-            para.maxSurfDist = m.bbox.Diag() / 500.;
-            vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
-            auto quality1 = computeAR(*ret);
-            std::cout << "Iter: "<<  3 << " faces: " << ret->FN() << " quality: " << quality1 << std::endl;
-//        }
+//            std::cout << count << " faces were relieved of crease edges due to poor quality" << std::endl;
+//            para.SetTargetLen(par.targetEdgeLen * 0.7);
+//            para.adapt = true;
+//            para.maxSurfDist = m.bbox.Diag() / 500.;
+//            vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
+//            auto quality1 = computeAR(*ret);
+//            std::cout << "Iter: "<<  3 << " faces: " << ret->FN() << " quality: " << quality1 << std::endl;
+////        }
 
 
-        /*
-        bool forcedExit = false;
-        int countIterations = 0;
-        do {
-            ++countIterations;
-            vcg::tri::Append<Mesh, Mesh>::MeshCopy(*ret, m);
-
-            para.SetTargetLen(edgeL);
-#ifdef DEBUG
-            std::cout << edgeLow << "--" << edgeL << "--" << edgeHigh << std::endl;
-#endif
-
-            vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
-
-            aspect = computeAR(*ret);
-            ScalarType newFN = ret->FN();
-        std::cout << "Iter: "<<  countIterations << " faces: " << newFN << std::endl;
-            deltaFN = std::abs(ret->FN() - prevFN);
-            prevFN = newFN;
-
-        if (aspect >= par.targetAspect && newFN >= 30000 && newFN <= 100000)
-        break;
-
-            if (aspect >= par.targetAspect)
-            {
-                edgeLow = edgeL;
-            } else {
-                edgeHigh = edgeL;
-            }
-
-            edgeL = (edgeHigh + edgeLow) / 2.;
-
-            if (ret->FN() > 200000 && aspect < par.targetAspect * 0.5)
-            {
-                specialTreatment(*ret, m, para);
-
-                break;
-                //vcg::tri::Append<Mesh, Mesh>::MeshCopy(m, *ret);
-            }
-
-#ifdef DEBUG
-            std::cout << "Delta FN " << deltaFN << std::endl;
-            std::cout << "Mesh FN  " << ret->FN() << std::endl;
-            std::cout << "Min AR   " << computeAR(*ret) << std::endl;
-#endif
-        }
-        while (aspect < par.targetAspect || deltaFN > par.targetDeltaFN);
-*/
         std::cerr << "[REMESH] RemeshedFaces:" << ret->FN() << std::endl;
         std::cerr << "[REMESH] RemeshedAspect:" << computeAR(*ret) << std::endl;
 

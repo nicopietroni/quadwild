@@ -19,6 +19,7 @@ class MetaMesh
 
     ScalarType MaxL;
     int MaxPath;
+    std::set<size_t> AvoidPartitions;
     MeshType *mesh;
 
     struct MetaVert
@@ -174,8 +175,17 @@ class MetaMesh
             assert(IndexE<(int)NumVerts(IndexF));
             int IndexF1=MFaces[IndexF].AdjF[IndexE].first;
             int IndexE1=MFaces[IndexF].AdjF[IndexE].second;
-            assert(IndexF1==(int)indexMetaFace);
-            assert(IndexE1==(int)i);
+            if ((IndexF1!=(int)indexMetaFace)||(IndexE1!=(int)i))
+            {
+                std::cout<<" WARNING NON COHERENT ADJACENCY ACROSS "<<std::endl;
+                std::cout<<"* Face "<<indexMetaFace<<" Edge "<<i<<std::endl;
+                MFaces[indexMetaFace].AdjF[i].first=-1;
+                MFaces[indexMetaFace].AdjF[i].second=-1;
+//                std::cout<<"* Face "<<IndexF<<" Edge "<<IndexE<<std::endl;
+//                std::cout<<"* Face "<<IndexF1<<" Edge "<<IndexE1<<std::endl;
+            }
+//            assert(IndexF1==(int)indexMetaFace);
+//            assert(IndexE1==(int)i);
         }
     }
 
@@ -430,10 +440,18 @@ class MetaMesh
                 std::pair<int,int> TestSide((int)IndexF1,(int)IndexE1) ;
                 if(MFaces[IndexF0].AdjF[IndexE0]!=TestSide)
                 {
-                    std::pair<int,int> TestAdj=MFaces[IndexF0].AdjF[IndexE0];
-                    std::cout<<"*Curr Adj is "<<TestSide.first<<","<<TestSide.second<<std::endl;
-                    std::cout<<"*Assugn Adj is "<<TestAdj.first<<","<<TestAdj.second<<std::endl;
-                    assert(0);
+//                    std::pair<int,int> TestAdj=MFaces[IndexF0].AdjF[IndexE0];
+                    std::cout<<"- WARNING NON COHERENT ADJACENCY -"<<std::endl;
+                    std::cout<<"* Face "<<IndexF0<<" Edge "<<IndexE0<<std::endl;
+                    std::cout<<"* Face "<<IndexF1<<" Edge "<<IndexE1<<std::endl;
+                    MFaces[IndexF0].AdjF[IndexE0].first=-1;
+                    MFaces[IndexF0].AdjF[IndexE0].second=-1;
+                    MFaces[IndexF1].AdjF[IndexE1].first=-1;
+                    MFaces[IndexF1].AdjF[IndexE1].second=-1;
+                    continue;
+//                    std::cout<<"*Curr Adj is "<<TestSide.first<<","<<TestSide.second<<std::endl;
+//                    std::cout<<"*Assugn Adj is "<<TestAdj.first<<","<<TestAdj.second<<std::endl;
+                    //assert(0);
                 }
             }
             if (MFaces[IndexF1].AdjF[IndexE1]!=std::pair<int,int>(-1,-1))
@@ -442,10 +460,18 @@ class MetaMesh
                 //assert(MFaces[IndexF1].AdjF[IndexE1]==TestSide);
                 if(MFaces[IndexF0].AdjF[IndexE0]!=TestSide)
                 {
-                    std::pair<int,int> TestAdj=MFaces[IndexF0].AdjF[IndexE0];
-                    std::cout<<"*Curr Adj is "<<TestSide.first<<","<<TestSide.second<<std::endl;
-                    std::cout<<"*Assign Adj is "<<TestAdj.first<<","<<TestAdj.second<<std::endl;
-                    assert(0);
+                    //std::pair<int,int> TestAdj=MFaces[IndexF0].AdjF[IndexE0];
+                    std::cout<<"- WARNING NON COHERENT ADJACENCY -"<<std::endl;
+                    std::cout<<"* Face "<<IndexF0<<" Edge "<<IndexE0<<std::endl;
+                    std::cout<<"* Face "<<IndexF1<<" Edge "<<IndexE1<<std::endl;
+                    MFaces[IndexF0].AdjF[IndexE0].first=-1;
+                    MFaces[IndexF0].AdjF[IndexE0].second=-1;
+                    MFaces[IndexF1].AdjF[IndexE1].first=-1;
+                    MFaces[IndexF1].AdjF[IndexE1].second=-1;
+                    continue;
+//                    std::cout<<"*Curr Adj is "<<TestSide.first<<","<<TestSide.second<<std::endl;
+//                    std::cout<<"*Assign Adj is "<<TestAdj.first<<","<<TestAdj.second<<std::endl;
+//                    assert(0);
                 }
             }
 
@@ -540,7 +566,10 @@ class MetaMesh
                 for (size_t k=0;k<FaceEdge.size();k++)
                 {
                     size_t IndexF=FaceEdge[k].first;
+                    if (AvoidPartitions.count(IndexF)>0)continue;
                     size_t IndexE=FaceEdge[k].second;
+                    assert(MFaces[IndexF].V.size()>0);
+                    assert(IndexE<MFaces[IndexF].PathId.size()>0);
                     if (MFaces[IndexF].PathId[IndexE]==-1)
                         MFaces[IndexF].PathId[IndexE]=IndexPath;
                     else
@@ -716,6 +745,7 @@ class MetaMesh
         //MetaEdgeMeshPos.clear();
         for (size_t i=0;i<MFaces.size();i++)
         {
+            if (AvoidPartitions.count(i)>0)continue;
             RetrieveMetaFace(i,FaceCorners[i],PartitionFaces[i],EdgeMap,EDTableMesh);
             //numE+=MFaces[i].Edges.size();
         }
@@ -1718,8 +1748,13 @@ public:
               const std::vector<bool> &IsLoop,
               const std::vector<size_t> &FixedV,
               const std::map<std::pair<size_t,size_t>,ScalarType> &EdgeMap,
-              const EdgeDirectionTable &EDTableMesh)
+              const EdgeDirectionTable &EDTableMesh,
+              const std::set<size_t> &_AvoidPartitions)
     {
+
+        AvoidPartitions=_AvoidPartitions;
+        std::cout<<"** FACES IGNORED IN METAMESH **:"<<AvoidPartitions.size()<<std::endl;
+
         Clear();
 
         mesh=_mesh;

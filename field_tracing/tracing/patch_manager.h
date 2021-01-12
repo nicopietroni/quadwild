@@ -197,60 +197,93 @@ public:
     //        return ( NumV + NumF - NumE );
     //    }
 
+//    static int PatchGenus(MeshType &mesh,const std::vector<size_t> &PatchFaces)
+//    {
+
+//        vcg::tri::UnMarkAll(mesh);
+
+//        //std::unordered_set<std::pair<size_t,size_t> > EdgeSet;
+//        std::set<std::pair<CoordType,CoordType> > EdgeSet;
+//        //std::set<CoordType> VertSet;
+//        size_t NumF=PatchFaces.size();
+//        size_t NumV=0;
+//        size_t NumE=0;
+
+//        for (size_t i=0;i<PatchFaces.size();i++)
+//            vcg::tri::Mark(mesh,&mesh.face[PatchFaces[i]]);
+
+//        for (size_t i=0;i<PatchFaces.size();i++)
+//        {
+//            FaceType *f0=&mesh.face[PatchFaces[i]];
+//            for (size_t j=0;j<3;j++)
+//            {
+//                //count the vertex
+//                if (!vcg::tri::IsMarked(mesh,f0->V0(j)))
+//                {
+//                    NumV++;
+//                    vcg::tri::Mark(mesh,f0->V0(j));
+//                }
+//                bool AddEdge=vcg::face::IsBorder((*f0),j);
+//                FaceType *f1=f0->FFp(j);
+//                AddEdge|=(!vcg::tri::IsMarked(mesh,f1));
+//                AddEdge|=(f1<f0);
+//                if (AddEdge)
+//                    NumE++;
+//                //                if (f1==f)
+//                //                if (!VertSet.count(f->P0(j)))
+//                //                {
+//                //                    //vcg::tri::Mark(mesh,f->V0(j));
+//                //                    VertSet.insert(f->P0(j));
+//                //                    NumV++;
+//                //                }
+//                //            size_t IndV0=vcg::tri::Index(mesh,f->V0(j));
+//                //            size_t IndV1=vcg::tri::Index(mesh,f->V1(j));
+//                //            EdgeSet.insert(std::pair<size_t,size_t>(std::min(IndV0,IndV1),std::max(IndV0,IndV1)));
+//                //                CoordType P0=f->P0(j);
+//                //                CoordType P1=f->P1(j);
+//                //                EdgeSet.insert(std::pair<CoordType,CoordType>(std::min(P0,P1),std::max(P0,P1)));
+//            }
+//        }
+//        //    for (size_t i=0;i<subM.vert.size();i++)
+//        //    {
+//        //        if (subM.vert[i].IsD())continue;
+//        //        if (subM.vert[i].IsS())NumV++;
+//        //    }
+
+//        //NumE=EdgeSet.size();
+//        return ( NumV + NumF - NumE );
+//    }
+
     static int PatchGenus(MeshType &mesh,const std::vector<size_t> &PatchFaces)
     {
 
-        vcg::tri::UnMarkAll(mesh);
+        //vcg::tri::UnMarkAll(mesh);
 
         //std::unordered_set<std::pair<size_t,size_t> > EdgeSet;
         std::set<std::pair<CoordType,CoordType> > EdgeSet;
-        //std::set<CoordType> VertSet;
-        size_t NumF=PatchFaces.size();
-        size_t NumV=0;
-        size_t NumE=0;
+        std::set<CoordType> VertSet;
 
-        for (size_t i=0;i<PatchFaces.size();i++)
-            vcg::tri::Mark(mesh,&mesh.face[PatchFaces[i]]);
+        size_t NumF=PatchFaces.size();
+
+//        for (size_t i=0;i<PatchFaces.size();i++)
+//            vcg::tri::Mark(mesh,&mesh.face[PatchFaces[i]]);
 
         for (size_t i=0;i<PatchFaces.size();i++)
         {
             FaceType *f0=&mesh.face[PatchFaces[i]];
             for (size_t j=0;j<3;j++)
             {
-                //count the vertex
-                if (!vcg::tri::IsMarked(mesh,f0->V0(j)))
-                {
-                    NumV++;
-                    vcg::tri::Mark(mesh,f0->V0(j));
-                }
-                bool AddEdge=vcg::face::IsBorder((*f0),j);
-                FaceType *f1=f0->FFp(j);
-                AddEdge|=(!vcg::tri::IsMarked(mesh,f1));
-                AddEdge|=(f1<f0);
-                if (AddEdge)
-                    NumE++;
-                //                if (f1==f)
-                //                if (!VertSet.count(f->P0(j)))
-                //                {
-                //                    //vcg::tri::Mark(mesh,f->V0(j));
-                //                    VertSet.insert(f->P0(j));
-                //                    NumV++;
-                //                }
-                //            size_t IndV0=vcg::tri::Index(mesh,f->V0(j));
-                //            size_t IndV1=vcg::tri::Index(mesh,f->V1(j));
-                //            EdgeSet.insert(std::pair<size_t,size_t>(std::min(IndV0,IndV1),std::max(IndV0,IndV1)));
-                //                CoordType P0=f->P0(j);
-                //                CoordType P1=f->P1(j);
-                //                EdgeSet.insert(std::pair<CoordType,CoordType>(std::min(P0,P1),std::max(P0,P1)));
+                CoordType P0=f0->P0(j);
+                CoordType P1=f0->P1(j);
+                std::pair<CoordType,CoordType> EdgePos(std::min(P0,P1),std::max(P0,P1));
+                EdgeSet.insert(EdgePos);
+                VertSet.insert(P0);
+                VertSet.insert(P1);
             }
         }
-        //    for (size_t i=0;i<subM.vert.size();i++)
-        //    {
-        //        if (subM.vert[i].IsD())continue;
-        //        if (subM.vert[i].IsS())NumV++;
-        //    }
+        size_t NumV=VertSet.size();
+        size_t NumE=EdgeSet.size();
 
-        //NumE=EdgeSet.size();
         return ( NumV + NumF - NumE );
     }
 
@@ -357,6 +390,18 @@ public:
                 assert(IndexV<mesh.vert.size());
                 mesh.vert[IndexV].SetS();
             }
+    }
+
+    static void SelectFaces(MeshType &mesh,const std::vector<size_t> &FacesIDX)
+    {
+        vcg::tri::UpdateSelection<MeshType>::FaceClear(mesh);
+        for (size_t i=0;i<FacesIDX.size();i++)
+        {
+            size_t IndexF=FacesIDX[i];
+            assert(IndexF>=0);
+            assert(IndexF<mesh.face.size());
+            mesh.face[IndexF].SetS();
+        }
     }
 
     static void SelectFaces(MeshType &mesh,const std::vector<std::vector<size_t> > &FacesIDX)
@@ -690,8 +735,8 @@ public:
     }
 
     static void GetMeshFromPatch(MeshType &mesh,
-                                  const std::vector<size_t> &Partition,
-                                  MeshType &PatchMesh)
+                                 const std::vector<size_t> &Partition,
+                                 MeshType &PatchMesh)
     {
         //size_t t0=clock();
 
@@ -765,102 +810,102 @@ public:
         }
         PatchMesh.UpdateAttributes();
 
-//        size_t t1=clock();
-//        Time_InitSubPatches0_0+=t1-t0;
+        //        size_t t1=clock();
+        //        Time_InitSubPatches0_0+=t1-t0;
     }
 
 
-//    static void MeshDifference(MeshType &mesh0,
-//                               MeshType &mesh1)
-//    {
-//        assert(mesh0.vert.size()==mesh1.vert.size());
-//        assert(mesh0.face.size()==mesh1.face.size());
-//        std::vector<CoordType> Pos0;
-//        std::vector<CoordType> Pos1;
-//        for (size_t i=0;i<mesh0.vert.size();i++)
-//            Pos0.push_back(mesh0.vert[i].P());
-//        for (size_t i=0;i<mesh1.vert.size();i++)
-//            Pos1.push_back(mesh1.vert[i].P());
+    //    static void MeshDifference(MeshType &mesh0,
+    //                               MeshType &mesh1)
+    //    {
+    //        assert(mesh0.vert.size()==mesh1.vert.size());
+    //        assert(mesh0.face.size()==mesh1.face.size());
+    //        std::vector<CoordType> Pos0;
+    //        std::vector<CoordType> Pos1;
+    //        for (size_t i=0;i<mesh0.vert.size();i++)
+    //            Pos0.push_back(mesh0.vert[i].P());
+    //        for (size_t i=0;i<mesh1.vert.size();i++)
+    //            Pos1.push_back(mesh1.vert[i].P());
 
-////        std::sort(Pos0.begin(),Pos0.end());
-////        std::sort(Pos1.begin(),Pos1.end());
-////        assert(Pos0==Pos1);
-//    }
+    ////        std::sort(Pos0.begin(),Pos0.end());
+    ////        std::sort(Pos1.begin(),Pos1.end());
+    ////        assert(Pos0==Pos1);
+    //    }
 
-//    static void SortByQ(MeshType &mesh)
-//    {
-//        std::vector<std::pair<int,int> > QVertx;
-//        for (size_t i=0;i<mesh.vert.size();i++)
-//            QVertx.push_back(std::pair<int,int>(mesh.vert[i].Q(),i));
+    //    static void SortByQ(MeshType &mesh)
+    //    {
+    //        std::vector<std::pair<int,int> > QVertx;
+    //        for (size_t i=0;i<mesh.vert.size();i++)
+    //            QVertx.push_back(std::pair<int,int>(mesh.vert[i].Q(),i));
 
-//        std::vector<std::pair<int,int> > QFaces;
-//        for (size_t i=0;i<mesh.face.size();i++)
-//            QFaces.push_back(std::pair<int,int>(mesh.face[i].Q(),i));
+    //        std::vector<std::pair<int,int> > QFaces;
+    //        for (size_t i=0;i<mesh.face.size();i++)
+    //            QFaces.push_back(std::pair<int,int>(mesh.face[i].Q(),i));
 
-//        std::sort(QVertx.begin(),QVertx.end());
-//        std::sort(QFaces.begin(),QFaces.end());
+    //        std::sort(QVertx.begin(),QVertx.end());
+    //        std::sort(QFaces.begin(),QFaces.end());
 
-//        MeshType Mnew;
-//        for (size_t i=0;i<QVertx.size();i++)
-//        {
+    //        MeshType Mnew;
+    //        for (size_t i=0;i<QVertx.size();i++)
+    //        {
 
-//        }
-////        assert(mesh0.vert.size()==mesh1.vert.size());
-////        assert(mesh0.face.size()==mesh1.face.size());
-////        std::vector<CoordType> Pos0;
-////        std::vector<CoordType> Pos1;
-////        for (size_t i=0;i<mesh0.vert.size();i++)
-////            Pos0.push_back(mesh0.vert[i].P());
-////        for (size_t i=0;i<mesh1.vert.size();i++)
-////            Pos1.push_back(mesh1.vert[i].P());
+    //        }
+    ////        assert(mesh0.vert.size()==mesh1.vert.size());
+    ////        assert(mesh0.face.size()==mesh1.face.size());
+    ////        std::vector<CoordType> Pos0;
+    ////        std::vector<CoordType> Pos1;
+    ////        for (size_t i=0;i<mesh0.vert.size();i++)
+    ////            Pos0.push_back(mesh0.vert[i].P());
+    ////        for (size_t i=0;i<mesh1.vert.size();i++)
+    ////            Pos1.push_back(mesh1.vert[i].P());
 
-////        std::sort(Pos0.begin(),Pos0.end());
-////        std::sort(Pos1.begin(),Pos1.end());
-////        assert(Pos0==Pos1);
-//    }
+    ////        std::sort(Pos0.begin(),Pos0.end());
+    ////        std::sort(Pos1.begin(),Pos1.end());
+    ////        assert(Pos0==Pos1);
+    //    }
 
-//    static void GetMeshFromPatch(MeshType &mesh,
-//                                 const std::vector<size_t> &Partition,
-//                                 MeshType &PatchMesh)
-//    {
-////        size_t t0=clock();
-////        //        for (size_t i=0;i<mesh.vert.size();i++)
-////        //            mesh.vert[i].Q()=i;
-////        //        for (size_t i=0;i<mesh.face.size();i++)
-////        //            mesh.face[i].Q()=i;
+    //    static void GetMeshFromPatch(MeshType &mesh,
+    //                                 const std::vector<size_t> &Partition,
+    //                                 MeshType &PatchMesh)
+    //    {
+    ////        size_t t0=clock();
+    ////        //        for (size_t i=0;i<mesh.vert.size();i++)
+    ////        //            mesh.vert[i].Q()=i;
+    ////        //        for (size_t i=0;i<mesh.face.size();i++)
+    ////        //            mesh.face[i].Q()=i;
 
-////        vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
+    ////        vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
 
-////        size_t ExpNumF=0;
-////        for (size_t i=0;i<Partition.size();i++)
-////        {
-////            mesh.face[Partition[i]].SetS();
-////            ExpNumF++;
-////        }
+    ////        size_t ExpNumF=0;
+    ////        for (size_t i=0;i<Partition.size();i++)
+    ////        {
+    ////            mesh.face[Partition[i]].SetS();
+    ////            ExpNumF++;
+    ////        }
 
-////        //        size_t ExpNumV=vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(mesh);
+    ////        //        size_t ExpNumV=vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(mesh);
 
-////        size_t t1=clock();
+    ////        size_t t1=clock();
 
-////        PatchMesh.Clear();
-////        //        PatchMesh.face.reserve(ExpNumF);
-////        //        PatchMesh.vert.reserve(ExpNumV);
-////        vcg::tri::Append<MeshType,MeshType>::Mesh(PatchMesh,mesh,true);
-////        PatchMesh.UpdateAttributes();
+    ////        PatchMesh.Clear();
+    ////        //        PatchMesh.face.reserve(ExpNumF);
+    ////        //        PatchMesh.vert.reserve(ExpNumV);
+    ////        vcg::tri::Append<MeshType,MeshType>::Mesh(PatchMesh,mesh,true);
+    ////        PatchMesh.UpdateAttributes();
 
-////        size_t t2=clock();
+    ////        size_t t2=clock();
 
-////        Time_InitSubPatches0_0+=t1-t0;
-////        Time_InitSubPatches0_1+=t2-t1;
+    ////        Time_InitSubPatches0_0+=t1-t0;
+    ////        Time_InitSubPatches0_1+=t2-t1;
 
-//////        vcg::tri::UpdateSelection<MeshType>::Clear(PatchMesh);
-//////        vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
+    //////        vcg::tri::UpdateSelection<MeshType>::Clear(PatchMesh);
+    //////        vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
 
-////        MeshType PatchMesh2;
-////        GetMeshFromPatch2(mesh,Partition,PatchMesh2);
-////        MeshDifference(PatchMesh,PatchMesh2);
+    ////        MeshType PatchMesh2;
+    ////        GetMeshFromPatch2(mesh,Partition,PatchMesh2);
+    ////        MeshDifference(PatchMesh,PatchMesh2);
 
-//     }
+    //     }
 
     static void GetMeshFromPatch(MeshType &mesh,
                                  const size_t &IndexPatch,
@@ -1373,8 +1418,8 @@ public:
             }
         }
         vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
-            if (MinQ>0)
-                SolveFolds(mesh,MinQ);
+        if (MinQ>0)
+            SolveFolds(mesh,MinQ);
 
         RestoreEdgeSel(mesh,EdgeSel);
     }

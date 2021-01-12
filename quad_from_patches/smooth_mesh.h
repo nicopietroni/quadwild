@@ -486,16 +486,17 @@ void GetProjectionBasis(const BasicMesh &edge_mesh,
         //see if there is such configuration of adjacent patches
         if (Part0==Part1)
         {
-            TriMeshType testM;
-            typename TriMeshType::FaceType *f0,*f1;
-            f0=&tri_mesh.face[IndexF];
-            f1=&tri_mesh.face[IndexFOpp];
-            vcg::tri::Allocator<TriMeshType>::AddFace(testM,f0->P(0),f0->P(1),f0->P(2));
-            vcg::tri::Allocator<TriMeshType>::AddFace(testM,f1->P(0),f1->P(1),f1->P(2));
-            vcg::tri::io::ExporterPLY<TriMeshType>::Save(testM,"test_problem.ply");
-            assert(0);
+            std::cout<<"WARNING - SAME PARTITION ACROSS SHARP"<<std::endl;
+//            TriMeshType testM;
+//            typename TriMeshType::FaceType *f0,*f1;
+//            f0=&tri_mesh.face[IndexF];
+//            f1=&tri_mesh.face[IndexFOpp];
+//            vcg::tri::Allocator<TriMeshType>::AddFace(testM,f0->P(0),f0->P(1),f0->P(2));
+//            vcg::tri::Allocator<TriMeshType>::AddFace(testM,f1->P(0),f1->P(1),f1->P(2));
+//            vcg::tri::io::ExporterPLY<TriMeshType>::Save(testM,"test_problem.ply");
+//            assert(0);
         }
-        assert(Part0!=Part1);
+        //assert(Part0!=Part1);
         PatchPairKey keyPatch(std::min(Part0,Part1),std::max(Part0,Part1));
 
         size_t IndexV0=vcg::tri::Index(tri_mesh,tri_mesh.face[IndexF].cV0(IndexE));
