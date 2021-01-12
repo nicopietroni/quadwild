@@ -3,7 +3,7 @@ import glob, os, sys
 
 # takes directory basename and returns names of files to be rendered
 def getToRenderNames(dirName):
-    return [ dirName + ".obj", dirName + "_rem_p0_0_quadrangulation_smooth.obj"]
+    return [ dirName + ".obj", dirName + "_rem_p0_0_quadrangulation_smooth.obj", dirName + "_rem_p0_0_quadrangulation.obj"]
 
 argv = sys.argv
 argv = argv[argv.index("--") + 1:]
@@ -52,7 +52,9 @@ for dirName in subDirectories:
         for mat in obj.material_slots:
             mat.material = bpy.data.materials['diffuse']
 
-        bpy.context.scene.render.filepath = os.path.join(os.getcwd(), mesh + ".png")
+        bpy.context.scene.render.image_settings.file_format='JPEG'
+        bpy.context.scene.render.image_settings.quality=85
+        bpy.context.scene.render.filepath = os.path.join(os.getcwd(), mesh + ".jpg")
         bpy.ops.render.render(write_still = True)
         bpy.ops.object.delete()
 
@@ -62,8 +64,6 @@ for dirName in subDirectories:
 
 
 
-
-        
 
 
 
