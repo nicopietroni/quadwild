@@ -363,7 +363,10 @@ int main(int argc, char * argv[])
 
 	if (argc < 3)
 	{
-		std::cerr <<  "[USAGE] polyMetrics baseDirectory" << std::endl;
+        std::cout <<  "[USAGE] polyMetrics baseDirectory globpattern" << std::endl;
+        std::cout << "BaseDirectory: the directory that contains all the target subdirectories" << std::endl;
+        std::cout << "globpattern: the pattern that matches the filename of the quad mesh to compute the metrics" << std::endl;
+
 		return 1;
 	}
 
@@ -394,20 +397,22 @@ int main(int argc, char * argv[])
 	QString targetDir = argv[1];
 	QString globPattern = argv[2];
 
-	QDirIterator it(targetDir, QStringList() << globPattern, QDir::Dirs);
+    std::cout << "Target Dir: " << targetDir.toStdString() << " glob pattern: " << globPattern.toStdString() << std::endl;
+
+//	QDirIterator it(targetDir, QStringList() << globPattern, QDir::Dirs);
+    QDirIterator it(targetDir, QStringList() << globPattern, QDir::Files, QDirIterator::Subdirectories);
 	while (it.hasNext())
 	{
-		it.next();
-		dir.setCurrent(it.filePath());
-
-		std::cout << dir.currentPath().toStdString() << std::endl;
+        it.next();
+        dir.setCurrent(it.fileInfo().dir().path());
+        std::cout << dir.currentPath().toStdString() << std::endl;
 
 
 		nlohmann::json json;
 //		std::string dataDirName = QDir::toNativeSeparators(dir.absolutePath() + QDir::separator() + outDirName + QDir::separator()).toStdString();
 
 		PolyMesh m;
-		std::string mesh = it.fileName().toStdString() + "_rem_p0_0_quadrangulation_smooth.obj";
+        std::string mesh = it.fileName().toStdString();// + "_rem_p0_0_quadrangulation_smooth.obj";
 		int err = openMesh(m, mesh);
 
 		std::cout << mesh << " " << m.VN() << std::endl;
