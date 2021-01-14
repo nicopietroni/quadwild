@@ -57,11 +57,13 @@
 
 extern bool do_batch;
 extern bool has_features;
+extern bool has_features_fl;
 extern std::string pathM,pathS;
 
 extern bool do_remesh;
 extern int remesher_iterations;
 extern double remesher_aspect_ratio;
+extern double alpha;
 extern int remesher_termination_delta;
 
 extern double sharp_feature_thr;
@@ -173,6 +175,11 @@ bool loadConfigFile(const std::string & filename)
     fscanf(f,"sharp_feature_erode_dilate %d\n",&feature_erode_dilate);
     std::cout<<"sharp_feature_erode_dilate "<<feature_erode_dilate<<std::endl;
 
+    float alphaf;
+    fscanf(f,"alpha %f\n",&alphaf);
+    alpha=(double)alphaf;
+    std::cout<<"alpha "<<alpha<<std::endl;
+
     fclose(f);
 
     std::cout << "[fieldComputation] Successful config import" << std::endl;
@@ -220,11 +227,16 @@ int main(int argc, char *argv[])
                 pathS=pathTest;
                 has_features=true;
             }
-
+            position=pathTest.find(".fl");
+            if (position!=-1)
+            {
+                pathS=pathTest;
+                has_features_fl=true;
+            }
         }
     }
 
-    if ((has_features)&&(argc>3))
+    if ((has_features || has_features_fl)&&(argc>3))
     {
         if (std::string(argv[3])==std::string("batch"))
             do_batch=true;

@@ -28,9 +28,9 @@ class PolyVertex:public vcg::Vertex<	PUsedTypes,
         vcg::vertex::Coord3d,
         vcg::vertex::Normal3d//,
         /*vcg::vertex::Mark,
-                                                                                                                                vcg::vertex::BitFlags,
-                                                                                                                                vcg::vertex::Qualityd,
-                                                                                                                                vcg::vertex::TexCoord2d*/>{} ;
+                                                                                                                                        vcg::vertex::BitFlags,
+                                                                                                                                        vcg::vertex::Qualityd,
+                                                                                                                                        vcg::vertex::TexCoord2d*/>{} ;
 
 class PolyFace:public vcg::Face<
         PUsedTypes
@@ -42,8 +42,8 @@ class PolyFace:public vcg::Face<
         ,vcg::face::BitFlags // bit flags
         ,vcg::face::Normal3d // normal
         /*,vcg::face::Color4b  // color
-                                                                                                                                ,vcg::face::Qualityd      // face quality.
-                                                                                                                                ,vcg::face::BitFlags                                                                                                                             ,vcg::face::Mark*/
+                                                                                                                                        ,vcg::face::Qualityd      // face quality.
+                                                                                                                                        ,vcg::face::BitFlags                                                                                                                             ,vcg::face::Mark*/
         ,vcg::face::CurvatureDirf> {
 };
 
@@ -521,6 +521,7 @@ public:
             FieldParam.curv_thr=0.1;
             FieldParam.align_borders=true;
         }
+        std::cout<<"..Alpha.."<<FieldParam.alpha_curv<<std::endl;
         std::cout<<"..Smoothing.."<<std::endl;
         FieldSmootherType::SmoothDirections(*this,FieldParam);
         std::cout<<"..Global Orientation.."<<std::endl;
@@ -730,6 +731,77 @@ public:
                     Fopp->FKind[IOpp]=ETConcave;
                 else
                     Fopp->FKind[IOpp]=ETConvex;
+            }
+        }
+        fclose(f);
+        return true;
+    }
+
+    bool LoadSharpFeaturesFL(const std::string &filename)
+    {
+        std::cout<<"Loading Sharp Features FL Format"<<std::endl;
+        for (size_t i=0;i<face.size();i++)
+        {
+            for (size_t j=0;j<3;j++)
+            {
+                face[i].FKind[j]=ETNone;
+                face[i].ClearFaceEdgeS(j);
+            }
+        }
+
+        FILE *f=fopen(filename.c_str(),"rt");
+        if (f==NULL)return false;
+        int Num;
+        fscanf(f,"%d/n",&Num);
+
+        std::map<std::pair<size_t,size_t> , std::pair<size_t,size_t> > FaceEdgeMap;
+        for (size_t i=0;i<face.size();i++)
+        {
+            for (size_t j=0;j<3;j++)
+            {
+                std::pair<size_t,size_t> FaceEdge(i,j);
+                size_t IndexV0=vcg::tri::Index(*this,face[i].V0(j));
+                size_t IndexV1=vcg::tri::Index(*this,face[i].V1(j));
+                std::pair<size_t,size_t> key(std::min(IndexV0,IndexV1),
+                                             std::max(IndexV0,IndexV1));
+                FaceEdgeMap[key]=FaceEdge;
+            }
+        }
+
+        for (size_t i=0;i<Num;i++)
+        {
+            int SizeSh;
+            fscanf(f,"%d/n",&SizeSh);
+            std::vector<int> CurrSh(SizeSh,-1);
+            for (size_t j=0;j<SizeSh;j++)
+                fscanf(f,"%d",&CurrSh[j]);
+
+            for (size_t j=0;j<CurrSh.size()-1;j++)
+            {
+                size_t IndexV0=CurrSh[j];
+                size_t IndexV1=CurrSh[j+1];
+                //std::cout<<"Adding Sharp:"<<IndexV0<<";"<<IndexV1<<std::endl;
+                std::pair<size_t,size_t> key(std::min(IndexV0,IndexV1),
+                                             std::max(IndexV0,IndexV1));
+                assert(FaceEdgeMap.count(key)>0);
+                size_t IndexF=FaceEdgeMap[key].first;
+                size_t IndexE=FaceEdgeMap[key].second;
+                face[IndexF].SetFaceEdgeS(IndexE);
+
+                if (IsConcaveEdge(face[IndexF],IndexE))
+                    face[IndexF].FKind[IndexE]=ETConcave;
+                else
+                    face[IndexF].FKind[IndexE]=ETConvex;
+
+                FeatureKind  FKind=face[IndexF].FKind[IndexE];
+
+                if (!vcg::face::IsBorder(face[IndexF],IndexE))
+                {
+                    FaceType *Fopp=face[IndexF].FFp(IndexE);
+                    int IOpp=face[IndexF].FFi(IndexE);
+                    Fopp->SetFaceEdgeS(IOpp);
+                    Fopp->FKind[IOpp]=FKind;
+                }
             }
         }
         fclose(f);
@@ -1199,12 +1271,12 @@ public:
             std::cout<<"Repositioning "<<NumD<<" duplicated vertices"<<std::endl;
 
 
-//            dilate_step++;
-//            for (size_t i=0;i<dilate_step;i++)
-//            {
-//                vcg::tri::UpdateSelection<MeshType>::FaceFromVertexLoose(*this);
-//                vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(*this);
-//            }
+            //            dilate_step++;
+            //            for (size_t i=0;i<dilate_step;i++)
+            //            {
+            //                vcg::tri::UpdateSelection<MeshType>::FaceFromVertexLoose(*this);
+            //                vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(*this);
+            //            }
             for (size_t i=0;i<vert.size();i++)
                 if (vert[i].IsS())Perturb(vert[i],Magnitudo);
 
@@ -1221,8 +1293,8 @@ public:
 
     bool RemoveZeroAreaF()
     {
-//        int nonManifV=0;
-//        int degF=0;
+        //        int nonManifV=0;
+        //        int degF=0;
         int zeroAFace=0;
         bool modified=false;
         ScalarType Magnitudo=2;
@@ -1241,8 +1313,8 @@ public:
         }while (modified);
         vcg::tri::Allocator<MeshType>::CompactEveryVector(*this);
         std::cout<<"Adjusted "<<zeroAFace<<" zero area faces"<<std::endl;
-//        std::cout<<"Removed "<<degF<<" degenerate faces"<<std::endl;
-//        std::cout<<"Removed "<<zeroAFace<<" nonManifV "<<std::endl;
+        //        std::cout<<"Removed "<<degF<<" degenerate faces"<<std::endl;
+        //        std::cout<<"Removed "<<zeroAFace<<" nonManifV "<<std::endl;
         UpdateDataStructures();
         return modified;
     }

@@ -84,6 +84,7 @@ int Iterations;
 ScalarType EdgeStep;
 ScalarType Multiplier=2;
 ScalarType SharpFactor=6;
+ScalarType alpha=0.3;
 //ScalarType sharp_feature_thr=45;
 
 int xMouse,yMouse;
@@ -96,6 +97,7 @@ FieldSmootherType::SmoothParam FieldParam;
 AutoRemesher<MyTriMesh>::Params RemPar;
 bool do_batch=false;
 bool has_features=false;
+bool has_features_fl=false;
 //size_t ErodeDilateSteps=4;
 
 bool do_remesh=true;
@@ -108,6 +110,7 @@ int feature_erode_dilate=4;
 
 void InitSharp()
 {
+    assert(!(has_features || has_features_fl));
     tri_mesh.UpdateDataStructures();
     tri_mesh.InitSharpFeatures(sharp_feature_thr);
 }
@@ -363,13 +366,18 @@ void BatchProcess ()
     //vcg::tri::Clean<MyTriMesh>::RemoveSmallConnectedComponentsSize(tri_mesh,10);
     vcg::tri::Allocator<MyTriMesh>::CompactEveryVector(tri_mesh);
 
-    InitSharp();
-    tri_mesh.ErodeDilate(feature_erode_dilate);
+    if (!(has_features || has_features_fl))
+    {
+        InitSharp();
+        tri_mesh.ErodeDilate(feature_erode_dilate);
+    }
 
     tri_mesh.RefineIfNeeded();
     tri_mesh.SolveGeometricIssues();
     //FIELD SMOOTH
     bool UseNPoly=tri_mesh.SufficientFeatures(SharpFactor);
+    ScalarType SharpL=tri_mesh.SharpLenght();
+    std::cout<<"Sharp Lenght 0: "<<SharpL<<std::endl;
     if (UseNPoly)
     {
         std::cout<<"Using NPoly"<<std::endl;
@@ -392,12 +400,24 @@ void BatchProcess ()
 
     std::cout << "[fieldComputation] Smooth Field Computation..." << std::endl;
     tri_mesh.SplitFolds();
-    //vcg::tri::io::ExporterPLY<MyTriMesh>::Save(tri_mesh,"test0.ply");
+    SharpL=tri_mesh.SharpLenght();
+    std::cout<<"Sharp Lenght 0.0: "<<SharpL<<std::endl;
     tri_mesh.RemoveFolds();
+    SharpL=tri_mesh.SharpLenght();
+    std::cout<<"Sharp Lenght 0.1: "<<SharpL<<std::endl;
     tri_mesh.SolveGeometricIssues();
+    SharpL=tri_mesh.SharpLenght();
+    std::cout<<"Sharp Lenght 0.2: "<<SharpL<<std::endl;
     tri_mesh.RemoveSmallComponents();
+    SharpL=tri_mesh.SharpLenght();
+    std::cout<<"Sharp Lenght 0.3: "<<SharpL<<std::endl;
 
+    SharpL=tri_mesh.SharpLenght();
+    std::cout<<"Sharp Lenght 1: "<<SharpL<<std::endl;
     tri_mesh.SmoothField(FieldParam);
+
+    SharpL=tri_mesh.SharpLenght();
+    std::cout<<"Sharp Lenght 2: "<<SharpL<<std::endl;
 
     std::string fieldName=projM+std::string("_rem.rosy");
     std::cout<<"Saving Field TO:"<<fieldName.c_str()<<std::endl;
@@ -420,6 +440,8 @@ GLWidget::GLWidget(QWidget *parent)
     hasToPick=false;
     bool AllQuad=false;
     bool Loaded=tri_mesh.LoadTriMesh(pathM,AllQuad);
+    FieldParam.alpha_curv=alpha;
+
     if (!Loaded)
     {
         std::cout<<"Error Loading Mesh"<<std::endl;
@@ -439,7 +461,15 @@ GLWidget::GLWidget(QWidget *parent)
     tri_mesh.LimitConcave=0;
     if (has_features)
     {
+        std::cout<<"*** Loading SHARP FEATURES ***"<<std::endl;
         bool HasRead=tri_mesh.LoadSharpFeatures(pathS);
+        assert(HasRead);
+    }
+
+    if (has_features_fl)
+    {
+        std::cout<<"*** Loading SHARP FEATURES FL***"<<std::endl;
+        bool HasRead=tri_mesh.LoadSharpFeaturesFL(pathS);
         assert(HasRead);
     }
 
@@ -450,7 +480,8 @@ GLWidget::GLWidget(QWidget *parent)
     }
     if ((do_batch)&&(has_features))
     {
-        tri_mesh.PrintSharpInfo();
+        //tri_mesh.PrintSharpInfo();
+        BatchProcess();
         exit(0);
     }
     //remeshed_mesh.UpdateDataStructures();
