@@ -888,9 +888,6 @@ public:
 
     void InitSharpFeatures(ScalarType SharpAngleDegree)
     {
-        if (SharpAngleDegree<=0)return;
-        vcg::tri::UpdateFlags<MeshType>::FaceEdgeSelCrease(*this,vcg::math::ToRad(SharpAngleDegree));
-        InitEdgeType();
         for (size_t i=0;i<face.size();i++)
             for (size_t j=0;j<3;j++)
             {
@@ -899,12 +896,21 @@ public:
                     face[i].SetFaceEdgeS(j);
                     face[i].FKind[j]=ETConvex;
                 }
+            }
+        for (size_t i=0;i<face.size();i++)
+            for (size_t j=0;j<3;j++)
+            {
+
                 if (!vcg::face::IsManifold(face[i],j))
                 {
                     face[i].SetFaceEdgeS(j);
                     face[i].FKind[j]=ETConvex;
                 }
             }
+        if (SharpAngleDegree<=0)return;
+        vcg::tri::UpdateFlags<MeshType>::FaceEdgeSelCrease(*this,vcg::math::ToRad(SharpAngleDegree));
+        InitEdgeType();
+
         std::cout<<"There is "<<SharpLenght()<<" sharp lenght"<<std::endl;
     }
 

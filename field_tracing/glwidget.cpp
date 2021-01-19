@@ -96,6 +96,8 @@ bool final_removal=true;
 bool force_split=false;
 bool drawProblematicsOnly=false;
 int CurrNum=0;
+int VisTraces=-1;
+
 bool subdivide_when_save=false;
 
 std::vector<size_t> ConcaveEmittersNode,ConcaveReceiversNode,
@@ -396,7 +398,7 @@ void FindCurrentNum()
 void UpdatePatchColor()
 {
     if (CurrPatchMode==CMPatchNone)
-        vcg::tri::UpdateColor<CMesh>::PerFaceConstant(mesh);
+        vcg::tri::UpdateColor<CMesh>::PerFaceConstant(mesh,vcg::Color4b(192,192,192,255));
     if (CurrPatchMode==CMPatchCol)
         PTr.ColorByPartitions();
     //PTr.ColorByPatchQuality();
@@ -849,6 +851,9 @@ void InitLoopBar(QWidget *w)
 
     TwAddVarRW(bar,"DrawProblematics",TW_TYPE_BOOLCPP,&drawProblematicsOnly,"label='Draw Problematic'");
 
+    TwAddVarRW(bar,"VIsTraces",TW_TYPE_INT32,&VisTraces,"label='Visualize Until'");
+
+
     TwAddSeparator(bar,NULL,NULL);
 
     TwAddVarRW(bar,"Drift",TW_TYPE_DOUBLE,&Drift,"label='Drift'");
@@ -1036,7 +1041,7 @@ void GLWidget::paintGL ()
             GLGraph.GLDrawPoints(PatchCornerPos,10,vcg::Color4b(255,0,255,255));
 
         if (drawPaths)
-            GLGraph.GLDrawPaths(ChosenCandidates,ChosenIsLoop,mesh.bbox.Diag()*0.01,drawPathNodes);
+            GLGraph.GLDrawPaths(ChosenCandidates,ChosenIsLoop,mesh.bbox.Diag()*0.01,drawPathNodes,VisTraces);
 
         //GLGraph.GLDrawPaths(DiscardedCandidates,DiscardedIsLoop,mesh.bbox.Diag()*0.01,true);
         //GLGraph.GLDrawNodes(TraceableFlatNode,mesh.bbox.Diag()*0.002);

@@ -116,7 +116,7 @@ class CFace   : public vcg::Face<  MyUsedTypes,
         vcg::face::WedgeTexCoord2d>
 {
 public:
-    bool FullTraced;  
+    bool FullTraced;
     size_t IndexOriginal;
 
     void ImportData(const CFace  & left )
@@ -321,12 +321,12 @@ public:
             std::cout<<"Repositioning "<<NumD<<" duplicated vertices"<<std::endl;
 
 
-//            dilate_step++;
-//            for (size_t i=0;i<dilate_step;i++)
-//            {
-//                vcg::tri::UpdateSelection<MeshType>::FaceFromVertexLoose(*this);
-//                vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(*this);
-//            }
+            //            dilate_step++;
+            //            for (size_t i=0;i<dilate_step;i++)
+            //            {
+            //                vcg::tri::UpdateSelection<MeshType>::FaceFromVertexLoose(*this);
+            //                vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(*this);
+            //            }
             for (size_t i=0;i<vert.size();i++)
                 if (vert[i].IsS())Perturb(vert[i],Magnitudo);
 
@@ -343,8 +343,8 @@ public:
 
     bool RemoveZeroAreaF()
     {
-//        int nonManifV=0;
-//        int degF=0;
+        //        int nonManifV=0;
+        //        int degF=0;
 
         int zeroAFace=0;
         bool modified=false;
@@ -364,33 +364,33 @@ public:
         }while (modified);
         vcg::tri::Allocator<MeshType>::CompactEveryVector(*this);
         std::cout<<"Adjusted "<<zeroAFace<<" zero area faces"<<std::endl;
-//        std::cout<<"Removed "<<degF<<" degenerate faces"<<std::endl;
-//        std::cout<<"Removed "<<zeroAFace<<" nonManifV "<<std::endl;
+        //        std::cout<<"Removed "<<degF<<" degenerate faces"<<std::endl;
+        //        std::cout<<"Removed "<<zeroAFace<<" nonManifV "<<std::endl;
         UpdateAttributes();
         return modified;
     }
 
 
-//    bool RemoveZeroAreaF()
-//    {
-//        int nonManifV=0;
-//        int degF=0;
-//        int zeroAFace=0;
-//        bool modified=false;
-//        do{
-//            zeroAFace=vcg::tri::Clean<MeshType>::RemoveZeroAreaFace(*this);
-//            degF=vcg::tri::Clean<MeshType>::RemoveDegenerateFace(*this);
-//            nonManifV=vcg::tri::Clean<MeshType>::RemoveNonManifoldVertex(*this);
-//            vcg::tri::Clean<MeshType>::RemoveUnreferencedVertex(*this);
-//            modified|=((zeroAFace!=0)&&(degF!=0)&&(nonManifV!=0));
-//        }while ((zeroAFace!=0)&&(degF!=0)&&(nonManifV!=0));
-//        vcg::tri::Allocator<MeshType>::CompactEveryVector(*this);
-//        std::cout<<"Removed "<<zeroAFace<<" zero area faces"<<std::endl;
-//        std::cout<<"Removed "<<degF<<" degenerate faces"<<std::endl;
-//        std::cout<<"Removed "<<zeroAFace<<" nonManifV "<<std::endl;
-//        UpdateAttributes();
-//        return modified;
-//    }
+    //    bool RemoveZeroAreaF()
+    //    {
+    //        int nonManifV=0;
+    //        int degF=0;
+    //        int zeroAFace=0;
+    //        bool modified=false;
+    //        do{
+    //            zeroAFace=vcg::tri::Clean<MeshType>::RemoveZeroAreaFace(*this);
+    //            degF=vcg::tri::Clean<MeshType>::RemoveDegenerateFace(*this);
+    //            nonManifV=vcg::tri::Clean<MeshType>::RemoveNonManifoldVertex(*this);
+    //            vcg::tri::Clean<MeshType>::RemoveUnreferencedVertex(*this);
+    //            modified|=((zeroAFace!=0)&&(degF!=0)&&(nonManifV!=0));
+    //        }while ((zeroAFace!=0)&&(degF!=0)&&(nonManifV!=0));
+    //        vcg::tri::Allocator<MeshType>::CompactEveryVector(*this);
+    //        std::cout<<"Removed "<<zeroAFace<<" zero area faces"<<std::endl;
+    //        std::cout<<"Removed "<<degF<<" degenerate faces"<<std::endl;
+    //        std::cout<<"Removed "<<zeroAFace<<" nonManifV "<<std::endl;
+    //        UpdateAttributes();
+    //        return modified;
+    //    }
 
     void SolveGeometricIssues()
     {
@@ -505,7 +505,7 @@ public:
     void SelectPos(const  std::vector<std::vector<vcg::face::Pos<FaceType> > > &ToSel,bool SetSel)
     {
         for (size_t i=0;i<ToSel.size();i++)
-           SelectPos(ToSel[i],SetSel);
+            SelectPos(ToSel[i],SetSel);
     }
 
     void GLDrawSharpEdges(vcg::Color4b col=vcg::Color4b(255,0,0,255))
@@ -514,19 +514,30 @@ public:
         glDisable(GL_LIGHTING);
         glDepthRange(0,0.9999);
         glLineWidth(5);
+        vcg::glColor(col);
         glBegin(GL_LINES);
-        for (size_t i=0;i<face.size();i++)
-            for (size_t j=0;j<3;j++)
-            {
-                if (!face[i].IsFaceEdgeS(j))continue;
+        for (size_t i=0;i<SharpFeatures.size();i++)
+        {
 
-                vcg::glColor(col);
+            size_t IndexF=SharpFeatures[i].first;
+            size_t IndexE=SharpFeatures[i].second;
+            CoordType Pos0=face[IndexF].P0(IndexE);
+            CoordType Pos1=face[IndexF].P1(IndexE);
+            vcg::glVertex(Pos0);
+            vcg::glVertex(Pos1);
+        }
+        //        for (size_t i=0;i<face.size();i++)
+        //            for (size_t j=0;j<3;j++)
+        //            {
+        //                if (!face[i].IsFaceEdgeS(j))continue;
 
-                CoordType Pos0=face[i].P0(j);
-                CoordType Pos1=face[i].P1(j);
-                vcg::glVertex(Pos0);
-                vcg::glVertex(Pos1);
-            }
+        //                vcg::glColor(col);
+
+        //                CoordType Pos0=face[i].P0(j);
+        //                CoordType Pos1=face[i].P1(j);
+        //                vcg::glVertex(Pos0);
+        //                vcg::glVertex(Pos1);
+        //            }
         glEnd();
         glPopAttrib();
     }
@@ -534,33 +545,33 @@ public:
     void InitSingVert()
     {
         // query if an attribute is present or not
-       bool hasSingular = vcg::tri::HasPerVertexAttribute(*this,std::string("Singular"));
-       bool hasSingularIndex = vcg::tri::HasPerVertexAttribute(*this,std::string("SingularIndex"));
+        bool hasSingular = vcg::tri::HasPerVertexAttribute(*this,std::string("Singular"));
+        bool hasSingularIndex = vcg::tri::HasPerVertexAttribute(*this,std::string("SingularIndex"));
 
-       assert(hasSingular);
-       assert(hasSingularIndex);
+        assert(hasSingular);
+        assert(hasSingularIndex);
 
-       typename MeshType::template PerVertexAttributeHandle<bool> Handle_Singular;
-       Handle_Singular=vcg::tri::Allocator<MeshType>::template GetPerVertexAttribute<bool>(*this,std::string("Singular"));
-       typename MeshType::template PerVertexAttributeHandle<int> Handle_SingularIndex;
-       Handle_SingularIndex =vcg::tri::Allocator<MeshType>::template GetPerVertexAttribute<int>(*this,std::string("SingularIndex"));
+        typename MeshType::template PerVertexAttributeHandle<bool> Handle_Singular;
+        Handle_Singular=vcg::tri::Allocator<MeshType>::template GetPerVertexAttribute<bool>(*this,std::string("Singular"));
+        typename MeshType::template PerVertexAttributeHandle<int> Handle_SingularIndex;
+        Handle_SingularIndex =vcg::tri::Allocator<MeshType>::template GetPerVertexAttribute<int>(*this,std::string("SingularIndex"));
 
-       for (size_t i=0;i<vert.size();i++)
-       {
-           vert[i].SingularityValence=4;
-           if (vert[i].IsD())continue;
-           if (!Handle_Singular[i])continue;
+        for (size_t i=0;i<vert.size();i++)
+        {
+            vert[i].SingularityValence=4;
+            if (vert[i].IsD())continue;
+            if (!Handle_Singular[i])continue;
 
-           int SingIndex=Handle_SingularIndex[i];
+            int SingIndex=Handle_SingularIndex[i];
 
-           switch (SingIndex)
-           {
-             case 1:vert[i].SingularityValence=5;break;
-             case 2:vert[i].SingularityValence=6;break;
-             case 3:vert[i].SingularityValence=3;break;
-             case 4:vert[i].SingularityValence=2;break;
-             default:break;
-           }
+            switch (SingIndex)
+            {
+            case 1:vert[i].SingularityValence=5;break;
+            case 2:vert[i].SingularityValence=6;break;
+            case 3:vert[i].SingularityValence=3;break;
+            case 4:vert[i].SingularityValence=2;break;
+            default:break;
+            }
         }
     }
 

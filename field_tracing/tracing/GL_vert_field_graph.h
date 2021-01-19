@@ -282,9 +282,13 @@ public:
     void GLDrawPaths(const std::vector<std::vector<size_t> > &Paths,
                      const std::vector<bool> &IsLoop,
                      ScalarType size,
-                     bool DrawNode)
+                     bool DrawNode,
+                     int VisTraces=-1)
     {
-        for (size_t i=0;i<Paths.size();i++)
+        size_t Limit=Paths.size();
+        if ((VisTraces>0)&&(VisTraces<Paths.size()))
+            Limit=VisTraces;
+        for (size_t i=0;i<Limit;i++)
         {
             vcg::Color4b Col=vcg::Color4b::Scatter(Paths.size(),i);
             GLDrawPath(Paths[i],Col,IsLoop[i]);

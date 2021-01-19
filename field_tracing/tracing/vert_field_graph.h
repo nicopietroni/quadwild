@@ -1531,6 +1531,7 @@ bool SplitAdjacentSingularities(MeshType &mesh)
 template <class MeshType>
 void PreProcessMesh(MeshType &mesh,bool DebugMsg=true)
 {
+
     mesh.SelectSharpFeatures();
     SplitAdjacentSingularities(mesh);
 
@@ -1538,10 +1539,21 @@ void PreProcessMesh(MeshType &mesh,bool DebugMsg=true)
     if (DebugMsg)
         std::cout<<"splitting along sharp features"<<std::endl;
     VertSplitter<MeshType>::SplitAlongEdgeSel(mesh);
+
+    mesh.UpdateAttributes();
     vcg::tri::Allocator<MeshType>::CompactEveryVector(mesh);
+    size_t Test1=vcg::tri::Clean<MeshType>::CountNonManifoldVertexFF(mesh);
+    if (Test1>0)
+    {
+        std::cout<<"WARNING NON MANIFOLD VERTEX SPLIT! "<<std::endl;
+        vcg::tri::Clean<MeshType>::SplitNonManifoldVertex(mesh,std::numeric_limits<typename MeshType::ScalarType>::epsilon()*100);
+    }
     std::cout<<"splitted"<<std::endl;
     //then update attributes
     mesh.UpdateAttributes();
+
+    size_t Test2=vcg::tri::Clean<MeshType>::CountNonManifoldVertexFF(mesh);
+    std::cout<<"Non Manif "<<Test2<<std::endl;
     //vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"test0.ply");
     //then reupdate the vert cross field
     vcg::tri::CrossField<MeshType>::UpdateSingularByCross(mesh,true);

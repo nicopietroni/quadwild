@@ -61,6 +61,16 @@ public:
                                                std::vector<size_t> &Receiver)
     {
         assert(VertOrthoDir[IndexV].size()==2);
+//        if(VertOrthoDir[IndexV].size()!=2)
+//        {
+//            std::cout<<VertOrthoDir[IndexV].size()<<std::endl;
+//            for (size_t j=0;j<VertOrthoDir[IndexV].size();j++)
+//            {
+//                CoordType Dir=VertOrthoDir[IndexV][j];
+//                std::cout<<"Dir:"<<Dir.X()<<","<<Dir.Y()<<","<<Dir.Z()<<std::endl;
+//            }
+//            assert(0);
+//        }
         CoordType Ortho0=VertOrthoDir[IndexV][0];
         CoordType Ortho1=VertOrthoDir[IndexV][1];
         size_t BestDir0=VFGraph.GetClosestDirTo(IndexV,Ortho0);
