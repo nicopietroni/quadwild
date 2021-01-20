@@ -342,10 +342,19 @@ void InitFieldBar(QWidget *w)
 void BatchProcess ()
 {
 //    vcg::tri::Hole<MyTriMesh>::EarCuttingFill<vcg::tri::TrivialEar<MyTriMesh> >(tri_mesh,6);
+    bool Oriented,Orientable;
+    vcg::tri::Clean<MyTriMesh>::OrientCoherentlyMesh(tri_mesh,Oriented,Orientable);
+    if (!Orientable)
+        std::cout<<"WARNING MESH NON ORIENTABLE"<<std::endl;
+
     size_t numDup=tri_mesh.NumDuplicatedV();
     if (numDup>0)std::cout<<"WARNING DUPLICATED VERTICES BEFORE AUTO REMESH!"<<std::endl;
     if (do_remesh)
         DoAutoRemesh();
+
+    vcg::tri::Clean<MyTriMesh>::OrientCoherentlyMesh(tri_mesh,Oriented,Orientable);
+    if (!Orientable)
+        std::cout<<"WARNING MESH NON ORIENTABLE"<<std::endl;
 
     for (size_t i=0;i<tri_mesh.face.size();i++)
         tri_mesh.face[i].IndexOriginal=i;

@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
     int mask;
     vcg::tri::io::ImporterOBJ<TriangleMesh>::LoadMask(meshFilename.c_str(), mask);
     int err = vcg::tri::io::ImporterOBJ<TriangleMesh>::Open(trimesh, meshFilename.c_str(), mask);
+    //trimesh.SolveGeometricIssues();
 
     if ((err!=0)&&(err!=5))
     {
@@ -103,6 +104,8 @@ int main(int argc, char *argv[])
     trimeshCorners = loadCorners(cornerFilename);
     std::cout<<"Loaded "<<trimeshCorners.size()<<" corners set"<<std::endl;
 
+    //CheckIntegrity(trimesh,trimeshPartitions,trimeshCorners);
+
     //FEATURES
     std::string featureFilename = meshFilename;
     featureFilename.erase(featureFilename.find_last_of("."));
@@ -117,6 +120,8 @@ int main(int argc, char *argv[])
     trimeshFeaturesC = loadFeatureCorners(featureCFilename);
     std::cout<<"Loaded "<<featureCFilename.size()<<" corner features"<<std::endl;
     loadFeatureCorners(featureCFilename);
+
+    OrientIfNeeded(trimesh,trimeshPartitions,trimeshCorners,trimeshFeatures,trimeshFeaturesC);
 
     //COMPUTE QUADRANGULATION
     QuadRetopology::internal::updateAllMeshAttributes(trimesh);

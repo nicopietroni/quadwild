@@ -884,10 +884,21 @@ public:
         vcg::tri::UpdateTopology<MyTriMesh>::FaceFace(*this);
         vcg::tri::UpdateTopology<MyTriMesh>::VertexFace(*this);
         vcg::tri::UpdateFlags<MyTriMesh>::VertexBorderFromFaceAdj(*this);
+        vcg::tri::UpdateFlags<MyTriMesh>::FaceBorderFromFF(*this);
     }
 
     void InitSharpFeatures(ScalarType SharpAngleDegree)
     {
+        UpdateDataStructures();
+
+        for (size_t i=0;i<face.size();i++)
+            for (size_t j=0;j<3;j++)
+                face[i].ClearFaceEdgeS(j);
+
+        if (SharpAngleDegree>0)
+            vcg::tri::UpdateFlags<MeshType>::FaceEdgeSelCrease(*this,vcg::math::ToRad(SharpAngleDegree));
+        InitEdgeType();
+
         for (size_t i=0;i<face.size();i++)
             for (size_t j=0;j<3;j++)
             {
@@ -907,10 +918,6 @@ public:
                     face[i].FKind[j]=ETConvex;
                 }
             }
-        if (SharpAngleDegree<=0)return;
-        vcg::tri::UpdateFlags<MeshType>::FaceEdgeSelCrease(*this,vcg::math::ToRad(SharpAngleDegree));
-        InitEdgeType();
-
         std::cout<<"There is "<<SharpLenght()<<" sharp lenght"<<std::endl;
     }
 

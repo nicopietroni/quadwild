@@ -21,8 +21,8 @@ struct MyBasicTypes : public vcg::UsedTypes<
 
 class BasicVertex : public vcg::Vertex<
         MyBasicTypes,
-        vcg::vertex::Normal3d,
-        vcg::vertex::Coord3d,
+        vcg::vertex::Normal3f,
+        vcg::vertex::Coord3f,
         vcg::vertex::BitFlags>{};
 
 class BasicEdge : public vcg::Edge<

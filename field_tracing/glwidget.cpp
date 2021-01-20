@@ -245,10 +245,23 @@ void SaveSetupFile(const std::string pathProject,
         fprintf(f,"FinalRem 1\n");
     else
         fprintf(f,"FinalRem 0\n");
+
+
+    if (force_split)
+        fprintf(f,"Force Split 1\n");
+    else
+        fprintf(f,"Force Split 0\n");
+
     if (subdivide_when_save)
         fprintf(f,"Subd 1\n");
     else
         fprintf(f,"Subd 0\n");
+
+    if (meta_mesh_collapse)
+        fprintf(f,"MetaCollapse 1\n");
+    else
+        fprintf(f,"MetaCollapse 0\n");
+
     //    if (PTr.avoid_increase_valence)
     //        fprintf(f,"IncreaseValRem 1\n");
     //    else
@@ -348,6 +361,13 @@ void LoadSetupFile(std::string path)
         subdivide_when_save=false;
     else
         subdivide_when_save=true;
+
+    fscanf(f,"MetaCollapse %d\n",&IntVar);
+    std::cout<<"META COLLAPSE "<<IntVar<<std::endl;
+    if (IntVar==0)
+        meta_mesh_collapse=false;
+    else
+        meta_mesh_collapse=true;
 
     //    if ((batch_process)&&(BatchSample>0))
     //        PTr.sample_ratio=BatchSample;
