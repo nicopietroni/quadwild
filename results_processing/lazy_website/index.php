@@ -59,7 +59,8 @@ animation-direction: alternate;
 	float: left;
 }
 .bigimg{
-	width: 100%;
+	display:block;
+	width: auto;
 	height: 100%;
 	border: 0;
 	margin: 5px;
@@ -214,8 +215,8 @@ var files = [
 		document.getElementById("show").style.visibility = "visible";
 		document.getElementById("showimgbottom").src = files[a]+"/"+files[a]+"_rem_p0_0_quadrangulation_smooth.obj.jpg";
 		document.getElementById("showimgtop").src = files[a]+"/"+files[a]+".obj.jpg";
-		document.getElementById("output").href = files[a]+"/"+files[a]+"_rem_p0_0_quadrangulation_smooth.obj.zip";
-		document.getElementById("input").href = files[a]+"/"+files[a]+".obj.zip";
+		document.getElementById("output").href = files[a]+"/"+files[a]+"_rem_p0_0_quadrangulation_smooth.zip";
+		document.getElementById("input").href = files[a]+"/"+files[a]+".zip";
 		
 	}
 	toggle = function(){ if (b) d.classList.add("b"); else d.classList.remove("b"); b=!b; }
