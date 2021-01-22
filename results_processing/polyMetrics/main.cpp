@@ -12,6 +12,8 @@
 #define WITHOUT_NUMPY
 #include <matplotlibcpp.h>
 
+#define GENERATE_CSV
+
 using namespace std;
 
 typedef vcg::Histogram<ScalarType> Histogram;
@@ -344,6 +346,120 @@ static void computeModelStatsAndDump(PolyMesh & m, std::string & m_id, QTextStre
 	geometryStream.flush();
 }
 
+#ifdef GENERATE_CSV
+static void computeModelStatsCSV(PolyMesh & m, std::string & m_id, QTextStream &topologyStream, QTextStream &geometryStream, std::string & dataPath)
+{
+    /* valence stats */
+    vcg::tri::UpdateTopology<PolyMesh>::FaceFace(m);
+    vcg::Histogram<ScalarType> valenceHist;
+    vcg::tri::UpdateQuality<PolyMesh>::VertexValence(m);
+    vcg::tri::Stat<PolyMesh>::ComputePerVertexQualityHistogram(m, valenceHist);
+
+    int non_manifold_edges    = vcg::tri::Clean<PolyMesh>::CountNonManifoldEdgeFF(m);
+    int non_manifold_vertices = vcg::tri::Clean<PolyMesh>::CountNonManifoldVertexFF(m);
+
+    int num_edges = 0; int num_nonManifold_edges = 0; int num_boundary_edges = 0;
+    vcg::tri::Clean<PolyMesh>::CountEdgeNum(m, num_edges, num_boundary_edges, num_nonManifold_edges);
+
+    int num_holes = vcg::tri::Clean<PolyMesh>::CountHoles(m);
+
+    bool manifold = (non_manifold_edges + non_manifold_vertices) == 0;
+
+    int num_cc = vcg::tri::Clean<PolyMesh>::CountConnectedComponents(m);
+
+    int genus = vcg::tri::Clean<PolyMesh>::MeshGenus(m.VN(), num_edges, m.FN(), num_holes, num_cc);
+    int euler = m.VN() - num_edges + m.FN();
+
+    bool watertight = vcg::tri::Clean<PolyMesh>::IsWaterTight(m);
+
+    int numSingularities = 0;
+    vcg::tri::UpdateQuality<PolyMesh>::VertexValence(m);
+    for (size_t i = 0; i < m.vert.size(); i++) {
+        if (m.vert[i].Q() != 4) {
+            numSingularities++;
+        }
+    }
+
+    //	topologyStream << "ID,NUM_VERTS,NUM_EDGES,NUM_FACES,EULER,GENUS,NUM_HOLES,NUM_COMPONENTS,IS_WATERTIGHT,IS_MANIFOLD,NUM_SINGULARITIES\n";
+    topologyStream << m_id.c_str() << "," << m.VN() << "," << num_edges << "," << m.FN() << "," << euler << "," << genus << ",";
+    topologyStream << num_holes << "," << num_cc << "," << watertight << "," << manifold << "," << numSingularities << "\n";
+    topologyStream.flush();
+
+    //   geometryStream << "ID,"
+    std::cout<<"computing geo stats" << std::endl;
+    geometryStream << m_id.c_str() << ",";
+
+
+    /* area stats */
+    //   geometryStream << "TOTAL_AREA,MIN_AREA,MAX_AREA,MEAN_AREA,P25AREA,P50AREA,P75AREA,P90AREA,P95AREA,";
+    Histogram areaHist;
+    for (size_t i = 0; i < m.face.size(); ++i)
+        m.face[i].Q() = vcg::PolyArea(m.face[i]);
+    vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, areaHist);
+    std::cout << dataPath << std::endl;
+    dumpHistogram(areaHist, geometryStream);
+    geometryStream << ",";
+
+    /* */
+    //   geometryStream << "TOTAL_ANGLEDEV,MIN_ANGLEDEV,MAX_ANGLEDEV,MEAN_ANGLEDEV,P25ANGLEDEV,P50ANGLEDEV,P75ANGLEDEV,P90ANGLEDEV,P95ANGLEDEV,";
+    Histogram faceAngleDeviationHist;
+    vcg::PolygonalAlgorithm<PolyMesh>::UpdateQuality(m, vcg::PolygonalAlgorithm<PolyMesh>::QAngle);
+    vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceAngleDeviationHist);
+    dumpHistogram(faceAngleDeviationHist, geometryStream);
+    geometryStream << ",";
+
+    /* */
+    //   geometryStream << "TOTAL_FLATNESS,MIN_FLATNESS,MAX_FLATNESS,MEAN_FLATNESS,P25FLATNESS,P50FLATNESS,P75FLATNESS,P90FLATNESS,P95FLATNESS,";
+    Histogram faceFlatnessHist;
+    vcg::PolygonalAlgorithm<PolyMesh>::UpdateQuality(m, vcg::PolygonalAlgorithm<PolyMesh>::QPlanar);
+    vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceFlatnessHist);
+    dumpHistogram(faceFlatnessHist, geometryStream);
+    geometryStream << ",";
+
+    /* */
+    //   geometryStream << "TOTAL_TEMPLATE,MIN_TEMPLATE,MAX_TEMPLATE,MEAN_TEMPLATE,P25TEMPLATE,P50TEMPLATE,P75TEMPLATE,P90TEMPLATE,P95TEMPLATE,";
+    Histogram faceAspectHist;
+    vcg::PolygonalAlgorithm<PolyMesh>::UpdateQuality(m, vcg::PolygonalAlgorithm<PolyMesh>::QTemplate);
+    vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceAspectHist);
+    dumpHistogram(faceAspectHist, geometryStream);
+    geometryStream << ",";
+
+    /* */
+    //   geometryStream << "TOTAL_BENDING,MIN_BENDING,MAX_BENDING,MEAN_BENDING,P25BENDING,P50BENDING,P75BENDING,P90BENDING,P95BENDING,";
+    Histogram faceBendingHist;
+    vcg::PolygonalAlgorithm<PolyMesh>::InitQualityFaceBending(m);
+    vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceBendingHist);
+    dumpHistogram(faceBendingHist, geometryStream);
+    geometryStream << ",";
+
+    /* */
+    //   geometryStream << "TOTAL_TORSION,MIN_TORSION,MAX_TORSION,MEAN_TORSION,P25TORSION,P50TORSION,P75TORSION,P90TORSION,P95TORSION,";
+    Histogram faceTorsionHist;
+    vcg::PolygonalAlgorithm<PolyMesh>::InitQualityFaceTorsion(m);
+    vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceTorsionHist);
+    dumpHistogram(faceTorsionHist, geometryStream);
+    geometryStream << ",";
+
+    /* */
+    //   geometryStream << "TOTAL_EDGELEN,MIN_EDGELEN,MAX_EDGELEN,MEAN_EDGELEN,P25EDGELEN,P50EDGELEN,P75EDGELEN,P90EDGELEN,P95EDGELEN,";
+    Histogram vertEdgeLenHist;
+    vcg::PolygonalAlgorithm<PolyMesh>::InitQualityVertEdgeLenght(m);
+    vcg::tri::Stat<PolyMesh>::ComputePerVertexQualityHistogram(m, vertEdgeLenHist);
+    dumpHistogram(vertEdgeLenHist, geometryStream);
+    geometryStream << ",";
+
+    /* */
+    //   geometryStream << "TOTAL_VOROAREA,MIN_VOROAREA,MAX_VOROAREA,MEAN_VOROAREA,P25VOROAREA,P50VOROAREA,P75VOROAREA,P90VOROAREA,P95VOROAREA,";
+    Histogram vertVoronoiAreaHist;
+    vcg::PolygonalAlgorithm<PolyMesh>::InitQualityVertVoronoiArea(m);
+    vcg::tri::Stat<PolyMesh>::ComputePerVertexQualityHistogram(m, vertVoronoiAreaHist);
+    dumpHistogram(vertVoronoiAreaHist, geometryStream);
+
+    geometryStream << "\n";
+    geometryStream.flush();
+}
+#endif
+
 
 static int openMesh(PolyMesh & m, std::string & name)
 {
@@ -370,27 +486,30 @@ int main(int argc, char * argv[])
 		return 1;
 	}
 
-//	QFile topologyFile("./topology.csv");
-//	QFile geometryFile("./geometry.csv");
+#ifdef GENERATE_CSV
+    QFile topologyFile("./topology.csv");
+    QFile geometryFile("./geometry.csv");
 
-//	if(!topologyFile.open(QFile::WriteOnly |QFile::Truncate) || !geometryFile.open(QFile::WriteOnly |QFile::Truncate))
-//	{
-//		std::cerr << "[PolyMetrics] Error opening files" << std::endl;
-//		return -1;
-//	}
+    if(!topologyFile.open(QFile::WriteOnly |QFile::Truncate) || !geometryFile.open(QFile::WriteOnly |QFile::Truncate))
+    {
+        std::cerr << "[PolyMetrics] Error opening files" << std::endl;
+        return -1;
+    }
 
-//	QTextStream topologyStream(&topologyFile);
-//	QTextStream geometryStream(&geometryFile);
+    QTextStream topologyStream(&topologyFile);
+    QTextStream geometryStream(&geometryFile);
 
-//	topologyStream << "ID,NUM_VERTS,NUM_EDGES,NUM_FACES,EULER,GENUS,NUM_HOLES,NUM_COMPONENTS,IS_WATERTIGHT,IS_MANIFOLD\n";
-//	geometryStream << "ID,TOTAL_AREA,MIN_AREA,MAX_AREA,MEAN_AREA,P25AREA,P50AREA,P75AREA,P90AREA,P95AREA,";
-//	geometryStream << "TOTAL_ANGLEDEV,MIN_ANGLEDEV,MAX_ANGLEDEV,MEAN_ANGLEDEV,P25ANGLEDEV,P50ANGLEDEV,P75ANGLEDEV,P90ANGLEDEV,P95ANGLEDEV,";
-//	geometryStream << "TOTAL_FLATNESS,MIN_FLATNESS,MAX_FLATNESS,MEAN_FLATNESS,P25FLATNESS,P50FLATNESS,P75FLATNESS,P90FLATNESS,P95FLATNESS,";
-//	geometryStream << "TOTAL_BENDING,MIN_BENDING,MAX_BENDING,MEAN_BENDING,P25BENDING,P50BENDING,P75BENDING,P90BENDING,P95BENDING,";
-//	geometryStream << "TOTAL_TORSION,MIN_TORSION,MAX_TORSION,MEAN_TORSION,P25TORSION,P50TORSION,P75TORSION,P90TORSION,P95TORSION,";
-//	geometryStream << "TOTAL_EDGELEN,MIN_EDGELEN,MAX_EDGELEN,MEAN_EDGELEN,P25EDGELEN,P50EDGELEN,P75EDGELEN,P90EDGELEN,P95EDGELEN,";
-//	geometryStream << "TOTAL_VOROAREA,MIN_VOROAREA,MAX_VOROAREA,MEAN_VOROAREA,P25VOROAREA,P50VOROAREA,P75VOROAREA,P90VOROAREA,P95VOROAREA,";
+    topologyStream << "ID,NUM_VERTS,NUM_EDGES,NUM_FACES,EULER,GENUS,NUM_HOLES,NUM_COMPONENTS,IS_WATERTIGHT,IS_MANIFOLD,NUM_SINGULARITIES\n";
 
+    geometryStream << "ID,TOTAL_AREA,MIN_AREA,MAX_AREA,MEAN_AREA,P25AREA,P50AREA,P75AREA,P90AREA,P95AREA,";
+    geometryStream << "TOTAL_ANGLEDEV,MIN_ANGLEDEV,MAX_ANGLEDEV,MEAN_ANGLEDEV,P25ANGLEDEV,P50ANGLEDEV,P75ANGLEDEV,P90ANGLEDEV,P95ANGLEDEV,";
+    geometryStream << "TOTAL_FLATNESS,MIN_FLATNESS,MAX_FLATNESS,MEAN_FLATNESS,P25FLATNESS,P50FLATNESS,P75FLATNESS,P90FLATNESS,P95FLATNESS,";
+    geometryStream << "TOTAL_TEMPLATE,MIN_TEMPLATE,MAX_TEMPLATE,MEAN_TEMPLATE,P25TEMPLATE,P50TEMPLATE,P75TEMPLATE,P90TEMPLATE,P95TEMPLATE,";
+    geometryStream << "TOTAL_BENDING,MIN_BENDING,MAX_BENDING,MEAN_BENDING,P25BENDING,P50BENDING,P75BENDING,P90BENDING,P95BENDING,";
+    geometryStream << "TOTAL_TORSION,MIN_TORSION,MAX_TORSION,MEAN_TORSION,P25TORSION,P50TORSION,P75TORSION,P90TORSION,P95TORSION,";
+    geometryStream << "TOTAL_EDGELEN,MIN_EDGELEN,MAX_EDGELEN,MEAN_EDGELEN,P25EDGELEN,P50EDGELEN,P75EDGELEN,P90EDGELEN,P95EDGELEN,";
+    geometryStream << "TOTAL_VOROAREA,MIN_VOROAREA,MAX_VOROAREA,MEAN_VOROAREA,P25VOROAREA,P50VOROAREA,P75VOROAREA,P90VOROAREA,P95VOROAREA\n";
+#endif
 
 	QDir dir;
 	QString basePath = dir.currentPath();
@@ -424,6 +543,11 @@ int main(int argc, char * argv[])
 
 		std::string baseName = it.fileInfo().baseName().toStdString();
 		computeModelStatsAndDump(m, baseName, json);
+		
+#ifdef GENERATE_CSV
+        std::string dataDirName = targetDir.toStdString();
+        computeModelStatsCSV(m, baseName, topologyStream, geometryStream, dataDirName);
+#endif
 
 		dir.setCurrent(basePath);
 	}
