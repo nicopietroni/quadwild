@@ -134,8 +134,12 @@ $files = array_filter(glob('*'), 'is_dir');
 $n = 0;
 foreach ($files as $file) {
 	$ext =  pathinfo($file, PATHINFO_EXTENSION) ;
-	if ($ext!="") continue;
-	if ($file[0]==".") continue;
+	if ($ext!="" || $file[0]==".")
+	{
+		unset($files, $fiels[n]);
+		continue;
+	}
+	
 	//$name =  str_replace(   ".jpg" , "", $file);
 	//$search =  str_replace(   "-" , "+", $name,);
 	//$search =  str_replace(   " " , "+", $search);
@@ -146,15 +150,21 @@ foreach ($files as $file) {
 	// print ".a$n:hover,.a$n.b{ background-image:url('".$file."/".$file."_rem_p0_0_quadrangulation_smooth.obj.jpg');}".PHP_EOL;
 	$n++;
 }
+$files = array_values($files);
 ?>
 </style>
 </head>
 <body>
 <div class="panel">
 <?php
-for ($x = 0; $x < $n; $x++) {
-	print "	<img class='t a$x' onclick='show($x)' width='170px' height='170px' loading='lazy' src='$files[$x]/$files[$x].obj.jpg'>".PHP_EOL;
-}?>
+foreach ($files as $key => $value)
+{
+	print "	<img class='t a$key' onclick='show($key)' width='170px' height='170px' loading='lazy' src='$value/$value.obj.jpg'>".PHP_EOL;
+}
+// for ($x = 0; $x < $n; $x++) {
+	// print "	<img class='t a$x' onclick='show($x)' width='170px' height='170px' loading='lazy' src='$files[$x]/$files[$x].obj.jpg'>".PHP_EOL;
+// }
+?>
 </div>
 <div id="show">
 			<a id="input" >

@@ -132,8 +132,7 @@ static void computeModelStatsAndDump(PolyMesh & m, std::string & m_id, nlohmann:
 
 	int num_edges = 0; int num_nonManifold_edges = 0; int num_boundary_edges = 0;
 	vcg::tri::Clean<PolyMesh>::CountEdgeNum(m, num_edges, num_boundary_edges, num_nonManifold_edges);
-
-	int num_holes = vcg::tri::Clean<PolyMesh>::CountHoles(m);
+	int num_holes = -1;//vcg::tri::Clean<PolyMesh>::CountHoles(m);
 
 	bool manifold = (non_manifold_edges + non_manifold_vertices) == 0;
 
@@ -171,6 +170,9 @@ static void computeModelStatsAndDump(PolyMesh & m, std::string & m_id, nlohmann:
 	/* */
 	Histogram faceAngleDeviationHist;
 	vcg::PolygonalAlgorithm<PolyMesh>::UpdateQuality(m, vcg::PolygonalAlgorithm<PolyMesh>::QAngle);
+	for (size_t i = 0; i < size_t(m.FN()); ++i)
+		m.face[i].Q() *= 90;
+
 	vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceAngleDeviationHist);
 
 	json["angledeviation"] = dumpHistogram(faceAngleDeviationHist);
@@ -191,8 +193,9 @@ static void computeModelStatsAndDump(PolyMesh & m, std::string & m_id, nlohmann:
 //	vcg::PolygonalAlgorithm<PolyMesh>::UpdateQuality(m, vcg::PolygonalAlgorithm<PolyMesh>::QTemplate);
 //	vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceAspectHist);
 
-//	dumpHistogram(faceAspectHist, geometryStream);
-//	dumpFaceQualityHistogramPlot(m, "aspectRatioHistogram.png");
+//	json["template"] = dumpHistogram(faceAspectHist);
+//	dumpFaceQualityFile(m, "faceAspectRatio.txt");
+//	dumpFaceQualityHistogramPlot(m, "Template", "aspectRatioHistogram.png");
 
 	/* */
 	Histogram faceBendingHist;
@@ -213,12 +216,18 @@ static void computeModelStatsAndDump(PolyMesh & m, std::string & m_id, nlohmann:
 	dumpFaceQualityFile(m, "faceTorsion.txt");
 
 	/* */
-	Histogram vertEdgeLenHist;
+	Histogram vertEdgeLenHist, vertEdgeLenDevHist;
 	vcg::PolygonalAlgorithm<PolyMesh>::InitQualityVertEdgeLenght(m);
 	vcg::tri::Stat<PolyMesh>::ComputePerVertexQualityHistogram(m, vertEdgeLenHist);
 
-	json["edgelength"] = dumpHistogram(vertEdgeLenHist);
-	dumpVertQualityHistogramPlot(m, "Edge Length", "edgeLenHistogram.png");
+	double avg = vertEdgeLenHist.Avg();
+	for (size_t i = 0; i < size_t(m.VN()); ++i)
+		m.vert[i].Q() = (std::fabs(m.vert[i].Q() - avg) / avg) * 100.;
+
+	vcg::tri::Stat<PolyMesh>::ComputePerVertexQualityHistogram(m, vertEdgeLenDevHist);
+
+	json["edgelength"] = dumpHistogram(vertEdgeLenDevHist);
+	dumpVertQualityHistogramPlot(m, "Mean Edge Length Deviaiton", "edgeLenHistogram.png");
 	dumpVertQualityFile(m, "vertEdgeLen.txt");
 
 	/* */
@@ -284,7 +293,11 @@ static void computeModelStatsAndDump(PolyMesh & m, std::string & m_id, QTextStre
 	/* */
 	Histogram faceAngleDeviationHist;
 	vcg::PolygonalAlgorithm<PolyMesh>::UpdateQuality(m, vcg::PolygonalAlgorithm<PolyMesh>::QAngle);
+	for (size_t i = 0; i < size_t(m.FN()); ++i)
+		m.face[i].Q() *= 90;
+
 	vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceAngleDeviationHist);
+
 
 	dumpHistogram(faceAngleDeviationHist, geometryStream);
 	dumpFaceQualityHistogramPlot(m, "Angle Deviation", dataPath + "angleDevHistogram.png");
@@ -326,14 +339,18 @@ static void computeModelStatsAndDump(PolyMesh & m, std::string & m_id, QTextStre
 	dumpFaceQualityFile(m, dataPath + "faceTorsion.txt");
 
 	/* */
-	Histogram vertEdgeLenHist;
+	Histogram vertEdgeLenHist, vertEdgeLenDevHist;
 	vcg::PolygonalAlgorithm<PolyMesh>::InitQualityVertEdgeLenght(m);
 	vcg::tri::Stat<PolyMesh>::ComputePerVertexQualityHistogram(m, vertEdgeLenHist);
 
-	dumpHistogram(vertEdgeLenHist, geometryStream);
-	dumpVertQualityHistogramPlot(m, "Edge Length", dataPath + "edgeLenHistogram.png");
-	dumpVertQualityFile(m, dataPath + "vertEdgeLen.txt");
+	double avg = vertEdgeLenHist.Avg();
+	for (size_t i = 0; i < size_t(m.VN()); ++i)
+		m.vert[i].Q() = (std::fabs(m.vert[i].Q() - avg) / avg) * 100.;
 
+	vcg::tri::Stat<PolyMesh>::ComputePerVertexQualityHistogram(m, vertEdgeLenDevHist);
+
+	dumpVertQualityHistogramPlot(m, "Mean Edge Length Deviaiton", "edgeLenHistogram.png");
+	dumpVertQualityFile(m, "vertEdgeLen.txt");
 	/* */
 	Histogram vertVoronoiAreaHist;
 	vcg::PolygonalAlgorithm<PolyMesh>::InitQualityVertVoronoiArea(m);
@@ -404,6 +421,11 @@ static void computeModelStatsCSV(PolyMesh & m, std::string & m_id, QTextStream &
     //   geometryStream << "TOTAL_ANGLEDEV,MIN_ANGLEDEV,MAX_ANGLEDEV,MEAN_ANGLEDEV,P25ANGLEDEV,P50ANGLEDEV,P75ANGLEDEV,P90ANGLEDEV,P95ANGLEDEV,";
     Histogram faceAngleDeviationHist;
     vcg::PolygonalAlgorithm<PolyMesh>::UpdateQuality(m, vcg::PolygonalAlgorithm<PolyMesh>::QAngle);
+
+	for (size_t i = 0; i < size_t(m.FN()); ++i)
+		m.face[i].Q() *= 90;
+
+
     vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceAngleDeviationHist);
     dumpHistogram(faceAngleDeviationHist, geometryStream);
     geometryStream << ",";
@@ -418,11 +440,11 @@ static void computeModelStatsCSV(PolyMesh & m, std::string & m_id, QTextStream &
 
     /* */
     //   geometryStream << "TOTAL_TEMPLATE,MIN_TEMPLATE,MAX_TEMPLATE,MEAN_TEMPLATE,P25TEMPLATE,P50TEMPLATE,P75TEMPLATE,P90TEMPLATE,P95TEMPLATE,";
-    Histogram faceAspectHist;
-    vcg::PolygonalAlgorithm<PolyMesh>::UpdateQuality(m, vcg::PolygonalAlgorithm<PolyMesh>::QTemplate);
-    vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceAspectHist);
-    dumpHistogram(faceAspectHist, geometryStream);
-    geometryStream << ",";
+//    Histogram faceAspectHist;
+//    vcg::PolygonalAlgorithm<PolyMesh>::UpdateQuality(m, vcg::PolygonalAlgorithm<PolyMesh>::QTemplate);
+//    vcg::tri::Stat<PolyMesh>::ComputePerFaceQualityHistogram(m, faceAspectHist);
+//    dumpHistogram(faceAspectHist, geometryStream);
+//    geometryStream << ",";
 
     /* */
     //   geometryStream << "TOTAL_BENDING,MIN_BENDING,MAX_BENDING,MEAN_BENDING,P25BENDING,P50BENDING,P75BENDING,P90BENDING,P95BENDING,";
@@ -442,10 +464,15 @@ static void computeModelStatsCSV(PolyMesh & m, std::string & m_id, QTextStream &
 
     /* */
     //   geometryStream << "TOTAL_EDGELEN,MIN_EDGELEN,MAX_EDGELEN,MEAN_EDGELEN,P25EDGELEN,P50EDGELEN,P75EDGELEN,P90EDGELEN,P95EDGELEN,";
-    Histogram vertEdgeLenHist;
-    vcg::PolygonalAlgorithm<PolyMesh>::InitQualityVertEdgeLenght(m);
-    vcg::tri::Stat<PolyMesh>::ComputePerVertexQualityHistogram(m, vertEdgeLenHist);
-    dumpHistogram(vertEdgeLenHist, geometryStream);
+	Histogram vertEdgeLenHist, vertEdgeLenDevHist;
+	vcg::PolygonalAlgorithm<PolyMesh>::InitQualityVertEdgeLenght(m);
+	vcg::tri::Stat<PolyMesh>::ComputePerVertexQualityHistogram(m, vertEdgeLenHist);
+
+	double avg = vertEdgeLenHist.Avg();
+	for (size_t i = 0; i < size_t(m.VN()); ++i)
+		m.vert[i].Q() = (std::fabs(m.vert[i].Q() - avg) / avg) * 100.;
+
+	dumpHistogram(vertEdgeLenDevHist, geometryStream);
     geometryStream << ",";
 
     /* */
@@ -486,6 +513,8 @@ int main(int argc, char * argv[])
 		return 1;
 	}
 
+	matplotlibcpp::backend("WXAgg");
+
 #ifdef GENERATE_CSV
     QFile topologyFile("./topology.csv");
     QFile geometryFile("./geometry.csv");
@@ -504,7 +533,7 @@ int main(int argc, char * argv[])
     geometryStream << "ID,TOTAL_AREA,MIN_AREA,MAX_AREA,MEAN_AREA,P25AREA,P50AREA,P75AREA,P90AREA,P95AREA,";
     geometryStream << "TOTAL_ANGLEDEV,MIN_ANGLEDEV,MAX_ANGLEDEV,MEAN_ANGLEDEV,P25ANGLEDEV,P50ANGLEDEV,P75ANGLEDEV,P90ANGLEDEV,P95ANGLEDEV,";
     geometryStream << "TOTAL_FLATNESS,MIN_FLATNESS,MAX_FLATNESS,MEAN_FLATNESS,P25FLATNESS,P50FLATNESS,P75FLATNESS,P90FLATNESS,P95FLATNESS,";
-    geometryStream << "TOTAL_TEMPLATE,MIN_TEMPLATE,MAX_TEMPLATE,MEAN_TEMPLATE,P25TEMPLATE,P50TEMPLATE,P75TEMPLATE,P90TEMPLATE,P95TEMPLATE,";
+//    geometryStream << "TOTAL_TEMPLATE,MIN_TEMPLATE,MAX_TEMPLATE,MEAN_TEMPLATE,P25TEMPLATE,P50TEMPLATE,P75TEMPLATE,P90TEMPLATE,P95TEMPLATE,";
     geometryStream << "TOTAL_BENDING,MIN_BENDING,MAX_BENDING,MEAN_BENDING,P25BENDING,P50BENDING,P75BENDING,P90BENDING,P95BENDING,";
     geometryStream << "TOTAL_TORSION,MIN_TORSION,MAX_TORSION,MEAN_TORSION,P25TORSION,P50TORSION,P75TORSION,P90TORSION,P95TORSION,";
     geometryStream << "TOTAL_EDGELEN,MIN_EDGELEN,MAX_EDGELEN,MEAN_EDGELEN,P25EDGELEN,P50EDGELEN,P75EDGELEN,P90EDGELEN,P95EDGELEN,";
@@ -526,6 +555,11 @@ int main(int argc, char * argv[])
         dir.setCurrent(it.fileInfo().dir().path());
         std::cout << dir.currentPath().toStdString() << std::endl;
 
+//		if (dir.exists("edgeLenHistogram.png") && dir.exists("flatnessHistogram.png") && dir.exists("voroAreaHistogram.png") && dir.exists("torsionHistogram.png"))
+//		{
+//			dir.setCurrent(basePath);
+//			continue;
+//		}
 
 		nlohmann::json json;
 //		std::string dataDirName = QDir::toNativeSeparators(dir.absolutePath() + QDir::separator() + outDirName + QDir::separator()).toStdString();
@@ -552,8 +586,12 @@ int main(int argc, char * argv[])
 		dir.setCurrent(basePath);
 	}
 
-//	topologyFile.close();
-//	geometryFile.close();
+
+#ifdef GENERATE_CSV
+	topologyFile.close();
+	geometryFile.close();
+#endif
+
 
 	return 0;
 }
