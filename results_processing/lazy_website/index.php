@@ -65,6 +65,11 @@ animation-direction: alternate;
 	border: 0;
 	margin: 5px;
 }
+
+.thumb{
+	display:block;
+	width: auto;
+}
 .panel{
 	width: 780px;
 	height: 100%;
@@ -127,6 +132,49 @@ body{
 	height: 100%;
 }
 
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  padding-top: 100px; /* Location of the box */  
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content */
+.plotContent {
+  background-color: #fefefe;
+  margin: auto;
+  padding: 5px;
+  border: 1px solid #888;
+  width: 70%;
+}
+
+img.modalHisto{
+	width:100%;
+	height:auto;
+}
+
+/* The Close Button */
+.close {
+  color: #aaaaaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+}
+
 <?php
 $dir = dirname(__FILE__);
 $files = array_filter(glob('*'), 'is_dir');
@@ -138,8 +186,7 @@ foreach ($files as $file) {
 	{
 		unset($files, $fiels[n]);
 		continue;
-	}
-	
+	}	
 	//$name =  str_replace(   ".jpg" , "", $file);
 	//$search =  str_replace(   "-" , "+", $name,);
 	//$search =  str_replace(   " " , "+", $search);
@@ -155,15 +202,20 @@ $files = array_values($files);
 </style>
 </head>
 <body>
+
+<div id="plotBox" class="modal">
+  <div class="plotContent">
+    <span class="close" onclick="closeModal()">&times;</span>
+	<img id="modalPlot" loading="lazy" class="modalHisto" src="">
+  </div>
+
+</div>
 <div class="panel">
 <?php
 foreach ($files as $key => $value)
 {
-	print "	<img class='t a$key' onclick='show($key)' width='170px' height='170px' loading='lazy' src='$value/$value.obj.jpg'>".PHP_EOL;
-}
-// for ($x = 0; $x < $n; $x++) {
-	// print "	<img class='t a$x' onclick='show($x)' width='170px' height='170px' loading='lazy' src='$files[$x]/$files[$x].obj.jpg'>".PHP_EOL;
-// }
+	print "	<img class='t a$key' onclick='show($key)'  loading='lazy' src='./thumbnails/{$value}_rem_p0_0_quadrangulation_smooth.obj.jpg'>".PHP_EOL;
+}	
 ?>
 </div>
 <div id="show">
@@ -181,10 +233,10 @@ foreach ($files as $key => $value)
 	</div>
 <!-- <div class="histoarea"> -->
 	<div id="histocontainer">
-		<img id="edgeLen" loading="lazy" class="histo" title="Edge Length distribution" src="bimba/edgeLenHistogram.png">
-		<img id="flatness" loading="lazy" class="histo" title="Flatness distribution" src="bimba/flatnessHistogram.png">
-		<img id="torsion" loading="lazy" class="histo" title="Torsion distribution" src="bimba/torsionHistogram.png">
-		<img id="voroArea" loading="lazy" class="histo" title="Voronoi Area distribution" src="bimba/voroAreaHistogram.png">
+		<img id="edgeLen" loading="lazy" class="histo" title="Edge Length distribution" onclick="openModal(this)" src="bimba/edgeLenHistogram.png">
+		<img id="flatness" loading="lazy" class="histo" title="Flatness distribution" onclick="openModal(this)"  src="bimba/flatnessHistogram.png">
+		<img id="angleDev" loading="lazy" class="histo" title="Angle Deviation distribution" onclick="openModal(this)" src="bimba/angleDevHistogram.png">
+		<img id="voroArea" loading="lazy" class="histo" title="Voronoi Area distribution" onclick="openModal(this)"  src="bimba/voroAreaHistogram.png">
 	</div>
 </div>
 </body>
@@ -217,7 +269,7 @@ var files = [
 		sel.classList.add("sel");
 		d.className = "";
 		d.classList.add("a"+a);
-		histo = ["edgeLen","flatness","torsion","voroArea"];
+		histo = ["edgeLen","flatness","angleDev","voroArea"];
 		for (var i=0; i<4; i++) {
 			el = document.getElementById(histo[i]);
 			el.src = files[a]+"/"+histo[i]+"Histogram.png";
@@ -231,5 +283,32 @@ var files = [
 	}
 	toggle = function(){ if (b) d.classList.add("b"); else d.classList.remove("b"); b=!b; }
 	setInterval( toggle ,1000);
+
+
+	// Get the modal box
+	var modal = document.getElementById("plotBox");
+	//get the modal plot img
+	var modalPlot = document.getElementById("modalPlot");
+	// Get the <span> element that closes the modal
+	var span = document.getElementsByClassName("close")[0];
+
+	// When the user clicks the button, open the modal 
+	openModal = function(whom) {
+		modalPlot.src = whom.src;
+		modal.style.display = "block";
+	}
+
+	// When the user clicks on <span> (x), close the modal
+	closeModal = function() {
+		modal.style.display = "none";
+	}
+
+	// When the user clicks anywhere outside of the modal, close it
+	window.onclick = function(event) {
+		if (event.target == modal) {
+			modal.style.display = "none";
+		}
+	}
+
 	</script>
 	</html>
