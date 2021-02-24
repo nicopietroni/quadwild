@@ -40,7 +40,7 @@ GRBQuadExpr getGurobiCostTermContinuous(GRBModel& model, const ILPMethod& method
 GRBLinExpr getGurobiAbsInteger(GRBModel& model, const GRBLinExpr& value);
 GRBLinExpr getGurobiAbsContinuous(GRBModel& model, const GRBLinExpr& value);
 
-void solveILP(
+inline void solveILP(
         const ChartData& chartData,
         const std::vector<double>& chartEdgeLength,
         const ILPMethod& method,

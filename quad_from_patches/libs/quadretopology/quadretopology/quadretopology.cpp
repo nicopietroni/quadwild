@@ -544,7 +544,7 @@ inline std::vector<double> computeChartEdgeLength(
     return avgLengths;
 }
 
-void findSubdivisions(
+inline void findSubdivisions(
         const ChartData& chartData,
         const std::vector<double>& chartEdgeLength,
         const Parameters& parameters,
@@ -577,7 +577,7 @@ void findSubdivisions(
         ilpResults);
 }
 
-void findSubdivisions(
+inline void findSubdivisions(
         const ChartData& chartData,
         const std::vector<double>& chartEdgeLength,
         const ILPMethod& method,
