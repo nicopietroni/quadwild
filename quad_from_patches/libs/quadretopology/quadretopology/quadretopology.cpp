@@ -11,7 +11,7 @@
 
 #include <vcg/complex/algorithms/polygonal_algorithms.h>
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
 #include <igl/writeOBJ.h>
 #endif
 
@@ -963,14 +963,14 @@ void quadrangulate(
         std::vector<std::vector<size_t>> patchSides;
         QuadRetopology::internal::computePattern(l, patchV, patchF, patchMesh, patchBorders, patchCorners, patchSides);
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
         igl::writeOBJ(std::string("results/") + std::to_string(cId) + std::string("_patch.obj"), patchV, patchF);
 #endif
 
         assert(chartSides.size() == patchCorners.size());
         assert(chartSides.size() == patchSides.size());
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
         igl::writeOBJ(std::string("results/") + std::to_string(cId) + std::string("_chart.obj"), chartV, chartF);
 #endif
 
@@ -981,7 +981,7 @@ void quadrangulate(
         Eigen::MatrixXi quadrangulationF;
         QuadRetopology::internal::computeQuadrangulation(chartV, chartF, patchV, patchF, chartSideVertices, chartSideLength, chartSideSubdivision, patchSides, uvMapV, uvMapF, quadrangulationV, quadrangulationF);
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
         Eigen::MatrixXd uvMesh(uvMapV.rows(), 3);
         for (int i = 0; i < uvMapV.rows(); i++) {
             uvMesh(i, 0) = uvMapV(i, 0);
@@ -998,7 +998,7 @@ void quadrangulate(
         PolyMeshType quadrangulatedChartMesh;
         QuadRetopology::internal::eigenToVCG(quadrangulationV, quadrangulationF, quadrangulatedChartMesh, 4);
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
         igl::writeOBJ(std::string("results/") + std::to_string(cId) + std::string("_quadrangulation.obj"), quadrangulationV, quadrangulationF);
 #endif
 
@@ -1139,7 +1139,7 @@ void quadrangulate(
         }
     }
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
     vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_1_original.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
@@ -1182,7 +1182,7 @@ void quadrangulate(
     }
 
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
     vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_2_cleaned.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
@@ -1284,7 +1284,7 @@ void quadrangulate(
     vcg::tri::UpdateFlags<PolyMeshType>::FaceBorderFromFF(quadrangulation);
     vcg::tri::UpdateFlags<PolyMeshType>::VertexBorderFromFaceAdj(quadrangulation);
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
     vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_3_recompacted.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
@@ -1316,7 +1316,7 @@ void quadrangulate(
         quadrangulation.vert[i].P()=closestPT;
     }
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
     vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_4_reprojected.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
@@ -1332,7 +1332,7 @@ void quadrangulate(
         vcg::PolygonalAlgorithm<PolyMeshType>::template LaplacianReproject<TriangleMeshType>(quadrangulation, newSurface, quadrangulationFixedSmoothingIterations, 0.7, 0.7, true);
     }
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
     vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_5_smoothed_fixed.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
@@ -1353,7 +1353,7 @@ void quadrangulate(
     vcg::tri::UpdateNormal<PolyMeshType>::PerVertexNormalized(quadrangulation);
     vcg::tri::UpdateBounding<PolyMeshType>::Box(quadrangulation);
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
     vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_6_final.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 }
@@ -1417,7 +1417,7 @@ void computeResult(
     vcg::tri::Append<PolyMeshType, PolyMeshType>::Mesh(tmpMesh, preservedMesh);
     vcg::tri::Append<PolyMeshType, PolyMeshType>::Mesh(tmpMesh, quadrangulation);
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
     vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_1_original.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
@@ -1454,7 +1454,7 @@ void computeResult(
         std::cout << "Merged " << numDuplicateVertices << " duplicate vertices." << std::endl;
     }
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
     vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_2_merged.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
@@ -1480,7 +1480,7 @@ void computeResult(
         std::cout << "Removed " << numUnreferencedVertices << " unreferenced vertices after duplicate vertex removal." << std::endl;
     }
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
     vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_3_cleaned.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
@@ -1493,7 +1493,7 @@ void computeResult(
     vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(tmpMesh);
     vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(tmpMesh);
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
     vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_4_reoriented.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
@@ -1528,48 +1528,27 @@ void computeResult(
         }
     }
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
     vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(result, "results/result_5_recompacted.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
-    vcg::tri::UpdateNormal<TriangleMeshType>::PerFaceNormalized(targetBoolean);
-    vcg::tri::UpdateNormal<TriangleMeshType>::PerVertexNormalized(targetBoolean);
-    vcg::tri::UpdateBounding<TriangleMeshType>::Box(targetBoolean);
+    if (!targetBoolean.face.empty()) {
+        vcg::tri::UpdateNormal<TriangleMeshType>::PerFaceNormalized(targetBoolean);
+        vcg::tri::UpdateNormal<TriangleMeshType>::PerVertexNormalized(targetBoolean);
+        vcg::tri::UpdateBounding<TriangleMeshType>::Box(targetBoolean);
 
-    if (result.face.size() == 0)
-        return;
+        if (result.face.size() == 0)
+            return;
 
-    vcg::tri::UpdateSelection<PolyMeshType>::VertexClear(result);
-    vcg::tri::UpdateSelection<PolyMeshType>::FaceClear(result);
-    for (const size_t& vId : smoothingVertices) {
-        result.vert[vId].SetS();
-    }
+        vcg::tri::UpdateSelection<PolyMeshType>::VertexClear(result);
+        vcg::tri::UpdateSelection<PolyMeshType>::FaceClear(result);
+        for (const size_t& vId : smoothingVertices) {
+            result.vert[vId].SetS();
+        }
 
-    vcg::GridStaticPtr<typename TriangleMeshType::FaceType,typename TriangleMeshType::FaceType::ScalarType> Grid;
-    Grid.Set(targetBoolean.face.begin(),targetBoolean.face.end());
-
-    //Reproject
-    vcg::tri::UpdateBounding<PolyMeshType>::Box(result);
-    typename TriangleMeshType::ScalarType maxD=result.bbox.Diag();
-    typename TriangleMeshType::ScalarType minD=0;
-
-    for (const size_t& vId : smoothingVertices) {
-        typename TriangleMeshType::CoordType closestPT;
-        typename TriangleMeshType::FaceType *f=
-                vcg::tri::GetClosestFaceBase<TriangleMeshType>(
-                    targetBoolean,
-                    Grid,
-                    result.vert[vId].P(),
-                    maxD,minD,
-                    closestPT);
-
-        result.vert[vId].P()=closestPT;
-    }
-
-    for (int it = 0; it < resultSmoothingIterations; it++) {
-        typename PolyMeshType::ScalarType maxDistance = internal::averageEdgeLength(result) * resultSmoothingNRing;
-
-        internal::LaplacianGeodesicSmoothing(result, resultSmoothingIterations, maxDistance, 0.7);
+        vcg::GridStaticPtr<typename TriangleMeshType::FaceType,typename TriangleMeshType::FaceType::ScalarType> Grid;
+        Grid.Set(targetBoolean.face.begin(),targetBoolean.face.end());
 
         //Reproject
         vcg::tri::UpdateBounding<PolyMeshType>::Box(result);
@@ -1588,17 +1567,41 @@ void computeResult(
 
             result.vert[vId].P()=closestPT;
         }
+
+        for (int it = 0; it < resultSmoothingIterations; it++) {
+            typename PolyMeshType::ScalarType maxDistance = internal::averageEdgeLength(result) * resultSmoothingNRing;
+
+            internal::LaplacianGeodesicSmoothing(result, resultSmoothingIterations, maxDistance, 0.7);
+
+            //Reproject
+            vcg::tri::UpdateBounding<PolyMeshType>::Box(result);
+            typename TriangleMeshType::ScalarType maxD=result.bbox.Diag();
+            typename TriangleMeshType::ScalarType minD=0;
+
+            for (const size_t& vId : smoothingVertices) {
+                typename TriangleMeshType::CoordType closestPT;
+                typename TriangleMeshType::FaceType *f=
+                        vcg::tri::GetClosestFaceBase<TriangleMeshType>(
+                            targetBoolean,
+                            Grid,
+                            result.vert[vId].P(),
+                            maxD,minD,
+                            closestPT);
+
+                result.vert[vId].P()=closestPT;
+            }
+        }
+
+        typename PolyMeshType::ScalarType maxDistance = internal::averageEdgeLength(result) * resultSmoothingLaplacianNRing;
+
+        internal::LaplacianGeodesicSmoothing(result, resultSmoothingLaplacianIterations, maxDistance, 0.8);
+
+        vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(result);
+        vcg::tri::UpdateNormal<PolyMeshType>::PerVertexNormalized(result);
+        vcg::tri::UpdateBounding<PolyMeshType>::Box(result);
     }
 
-    typename PolyMeshType::ScalarType maxDistance = internal::averageEdgeLength(result) * resultSmoothingLaplacianNRing;
-
-    internal::LaplacianGeodesicSmoothing(result, resultSmoothingLaplacianIterations, maxDistance, 0.8);
-
-    vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(result);
-    vcg::tri::UpdateNormal<PolyMeshType>::PerVertexNormalized(result);
-    vcg::tri::UpdateBounding<PolyMeshType>::Box(result);
-
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
     vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(result, "results/result_6_final.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 }

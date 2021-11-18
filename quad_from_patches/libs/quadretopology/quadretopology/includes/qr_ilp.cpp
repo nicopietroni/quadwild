@@ -764,8 +764,8 @@ inline void solveILP(
             }
 
 #ifndef GUROBI_NON_VERBOSE
-            cout << "Support obj: " << supportObj.getValue() << endl;
-            cout << "Obj: " << obj.getValue() << endl;
+            cout << "Support obj: " << supportObj.getValue() << std::endl;
+            cout << "Obj: " << obj.getValue() << std::endl;
 #endif
             gap = model.get(GRB_DoubleAttr_MIPGap);
 
@@ -804,8 +804,8 @@ inline void solveILP(
             }
 
         } catch(GRBException e) {
-            cout << "Error code = " << e.getErrorCode() << endl;
-            cout << e.getMessage() << endl;
+            cout << "Error code = " << e.getErrorCode() << std::endl;
+            cout << e.getMessage() << std::endl;
 
             status = ILPStatus::INFEASIBLE;
         }

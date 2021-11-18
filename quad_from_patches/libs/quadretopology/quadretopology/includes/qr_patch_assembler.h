@@ -225,7 +225,7 @@ class PatchSplitter
             std::cout<<"Tested "<<tested<<std::endl;
         }
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
         vcg::tri::io::ExporterOBJ<MeshType>::Save(patchMesh,"results/tracer_mesh_trace.obj",vcg::tri::io::Mask::IOM_VERTFLAGS);
 #endif
     }
@@ -396,7 +396,7 @@ class PatchSplitter
             patchMesh.vert[i].SetS();
         }
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
         vcg::tri::io::ExporterOBJ<MeshType>::Save(patchMesh,"results/tracer_mesh.obj",
                                                   vcg::tri::io::Mask::IOM_FACECOLOR|
                                                   vcg::tri::io::Mask::IOM_VERTFLAGS);
@@ -414,7 +414,7 @@ class PatchSplitter
             patchMesh.vert[i].SetS();
         }
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
         vcg::tri::io::ExporterOBJ<MeshType>::Save(patchMesh,"results/tracer_mesh_flag1.obj",vcg::tri::io::Mask::IOM_VERTFLAGS);
 #endif
     }
@@ -431,7 +431,7 @@ class PatchSplitter
             patchMesh.vert[i].SetS();
         }
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
         vcg::tri::io::ExporterOBJ<MeshType>::Save(patchMesh,"results/tracer_mesh_flag2.obj",vcg::tri::io::Mask::IOM_VERTFLAGS);
 #endif
     }
@@ -1213,7 +1213,7 @@ private:
 //           std::cout<<"Col "<<col[0]<<" "<<col[1]<<" "<<col[2]<<std::endl;
 //        }
 
-//#ifdef SAVE_MESHES_FOR_DEBUG
+//#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
 //        vcg::tri::io::ExporterOBJ<MeshType>::Save(mesh,"results/colored.obj",vcg::tri::io::Mask::IOM_VERTCOLOR);
 //#endif
         //exit(0);
@@ -1238,7 +1238,7 @@ private:
         updateAllMeshAttributes(mesh);
 
 
-//#ifdef SAVE_MESHES_FOR_DEBUG
+//#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
 //        vcg::tri::io::ExporterOBJ<MeshType>::Save(mesh,"remeshed.obj", vcg::tri::io::Mask::IOM_NONE);
 //#endif
 //        exit(0);
@@ -1530,7 +1530,7 @@ private:
         SParam.curv_thr=0;
         SParam.SmoothM=SMNPoly;
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
         //vcg::tri::io::ExporterOBJ<MeshType>::Save(mesh,"results/tracer_field.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
 
@@ -2505,7 +2505,7 @@ private:
             //        MeshType currMesh;
             //        GetPatchMesh(i,currMesh);
 
-//#ifdef SAVE_MESHES_FOR_DEBUG
+//#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
             //vcg::tri::io::ExporterOBJ<MeshType>::Save(currMesh,"results/tracer_patch2.obj", vcg::tri::io::Mask::IOM_NONE);
 //#endif
         }
@@ -2785,7 +2785,7 @@ private:
                 for (size_t j=0;j<Corners.back().size();j++)
                     std::cout<<"Corners "<<Corners.back()[j]<<std::endl;
 
-#ifdef SAVE_MESHES_FOR_DEBUG
+#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
                 vcg::tri::io::ExporterOBJ<MeshType>::Save(*Patches[i].PatchMesh,"results/tracer_patch.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
                 assert(0);
@@ -2809,7 +2809,7 @@ private:
         //updateAllMeshAttributes()
         std::vector<int> ret=QuadRetopology::internal::splitFacesInTriangles(SwapQuad);
 
-//#ifdef SAVE_MESHES_FOR_DEBUG
+//#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
         //vcg::tri::io::ExporterOBJ<QuadMeshType>::Save(SwapQuad,"results/tracer_SwapQuad.obj", vcg::tri::io::Mask::IOM_NONE);
 //#endif
 
@@ -2823,7 +2823,7 @@ private:
         vcg::tri::Clean<MeshType>::MergeCloseVertex(TotalMesh,0.000001);
         updateAllMeshAttributes(TotalMesh);
 
-//#ifdef SAVE_MESHES_FOR_DEBUG
+//#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
         //vcg::tri::io::ExporterOBJ<MeshType>::Save(TotalMesh,"results/tracer_total.obj", vcg::tri::io::Mask::IOM_NONE);
 //#endif
 
@@ -2850,7 +2850,7 @@ private:
         vcg::tri::Append<MeshType,MeshType>::Mesh(NewHoles,TotalMesh,true);
         updateAllMeshAttributes(NewHoles);
 
-//#ifdef SAVE_MESHES_FOR_DEBUG
+//#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
         //vcg::tri::io::ExporterOBJ<MeshType>::Save(NewHoles,"results/tracer_holes.obj", vcg::tri::io::Mask::IOM_NONE);
 //#endif
 
