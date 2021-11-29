@@ -23,8 +23,7 @@ class PolyVertex : public vcg::Vertex<MyPolyTypes,
         vcg::vertex::Qualityf,
         vcg::vertex::BitFlags,
         vcg::vertex::VFAdj,
-        vcg::vertex::CurvatureDirf,
-        vcg::vertex::TexCoord2f>{};
+        vcg::vertex::CurvatureDirf>{};
 
 class PolyFace : public vcg::Face<
         MyPolyTypes,
@@ -38,8 +37,7 @@ class PolyFace : public vcg::Face<
         vcg::face::PFFAdj,
         vcg::face::PVFAdj,
         vcg::face::CurvatureDirf,
-        vcg::face::Mark,
-        vcg::face::WedgeTexCoord2f> {};
+        vcg::face::Mark> {};
 
 class PolyEdge : public vcg::Edge<
         MyPolyTypes,
@@ -80,8 +78,7 @@ class TriangleFace : public vcg::Face<
         vcg::face::FFAdj,
         vcg::face::VFAdj,
         vcg::face::CurvatureDirf,
-        vcg::face::Mark,
-        vcg::face::WedgeTexCoord2f> {};
+        vcg::face::Mark> {};
 
 class TriangleMesh : public vcg::tri::TriMesh<
         std::vector<TriangleVertex>,

@@ -84,12 +84,14 @@ LIBS += -lGLU
 INCLUDEPATH += $$GLEWPATH/include
 SOURCES += $$GLEWPATH/src/glew.c
 
-#comiso
-LIBS += -L$$COMISOPATH/build/Build/lib/CoMISo/ -lCoMISo
-INCLUDEPATH += $$COMISOPATH/..
+contains(DEFINES, COMISO_FIELD) {
+    #comiso
+    LIBS += -L$$COMISOPATH/build/Build/lib/CoMISo/ -lCoMISo
+    INCLUDEPATH += $$COMISOPATH/..
 
-#gmm (we have to use comiso gmm)
-INCLUDEPATH += $$GMMPATH/include
+    #gmm (we have to use comiso gmm)
+    INCLUDEPATH += $$GMMPATH/include
+}
 
 # Mac specific Config required to avoid to make application bundles
 macx{

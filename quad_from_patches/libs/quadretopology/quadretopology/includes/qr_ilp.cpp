@@ -76,8 +76,8 @@ inline void solveILP(
     do {
         std::cout << std::endl << std::endl << " --- OPTIMIZATION: iteration " << it << " ----" << std::endl;
         try {
-            vector<bool> isFixed(chartData.subsides.size(), false);
-            vector<bool> isComputable(chartData.subsides.size(), true);
+            std::vector<bool> isFixed(chartData.subsides.size(), false);
+            std::vector<bool> isComputable(chartData.subsides.size(), true);
             for (size_t subsideId = 0; subsideId < chartData.subsides.size(); ++subsideId) {
                 if (ilpResults[subsideId] == ILP_IGNORE) {
                     isComputable[subsideId] = false;

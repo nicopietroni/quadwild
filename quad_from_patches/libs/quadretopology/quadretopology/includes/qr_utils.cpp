@@ -466,7 +466,10 @@ void LaplacianGeodesicSmoothing(
     std::vector<double> DampS(poly_m.vert.size());
     for (size_t i = 0; i < poly_m.vert.size(); i++) {
         if (!poly_m.vert[i].IsD()) {
-            if (poly_m.vert[i].Q() < maxDistance) {
+            if (poly_m.vert[i].IsS()) {
+                DampS[i] = minDumpS;
+            }
+            else if (poly_m.vert[i].Q() < maxDistance) {
                 smoothedVertices.push_back(i);
                 DampS[i] = poly_m.vert[i].Q() / maxDistance;
                 assert(DampS[i] >= 0 && DampS[i] <= 1);

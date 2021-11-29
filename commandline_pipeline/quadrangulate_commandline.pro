@@ -89,12 +89,14 @@ win32{ # Awful problem with windows..
 #INCLUDEPATH += $$GLEWPATH/include
 #SOURCES += $$GLEWPATH/src/glew.c
 
-#comiso
-LIBS += -L$$COMISOPATH/build/Build/lib/CoMISo/ -lCoMISo
-INCLUDEPATH += $$COMISOPATH/..
+contains(DEFINES, COMISO_FIELD) {
+    #comiso
+    LIBS += -L$$COMISOPATH/build/Build/lib/CoMISo/ -lCoMISo
+    INCLUDEPATH += $$COMISOPATH/..
 
-#gmm (we have to use comiso gmm)
-INCLUDEPATH += $$GMMPATH/include
+    #gmm (we have to use comiso gmm)
+    INCLUDEPATH += $$GMMPATH/include
+}
 
 #libigl
 INCLUDEPATH += $$LIBIGLPATH/include
@@ -105,22 +107,8 @@ INCLUDEPATH += $$BOOST_PATH
 
 #Gurobi
 INCLUDEPATH += $$GUROBI_PATH/include
-LIBS += -L$$GUROBI_PATH/lib -lgurobi_g++4.2 -lgurobi90
+LIBS += -L$$GUROBI_PATH/lib -lgurobi_g++5.2 -lgurobi90
 DEFINES += GUROBI_DEFINED
 
 
 SOURCES += $$VCGLIBPATH/wrap/ply/plylib.cpp
-
-
-# Mac specific Config required to avoid to make application bundles
-macx{
-#    CONFIG -= app_bundle
-#    LIBS += $$ANTTWEAKBARPATH/lib/libAntTweakBar.dylib
-    QMAKE_POST_LINK +="cp -P ../../../code/lib/AntTweakBar1.16/lib/libAntTweakBar.dylib . ; "
-#    QMAKE_POST_LINK +="install_name_tool -change ../lib/libAntTweakBar.dylib ./libAntTweakBar.dylib $$TARGET ; "
-    QMAKE_POST_LINK +="install_name_tool -change libCoMISo.dylib $$COMISOPATH/build/Build/lib/CoMISo/libCoMISo.dylib $$TARGET ;"
-    DEPENDPATH += .
-}
-
-
-
