@@ -6,8 +6,8 @@ include($$QUADRETOPOLOGY_PATH/quadretopology.pri)
 #HEADERS =
 #    parafashion.h
 
-SOURCES = \
-    quadrangulate_commandline.cpp \
+SOURCES += \
+    quadrangulate_commandline.cpp
 
 ############################ TARGET ############################
 
@@ -117,7 +117,7 @@ macx{
 #    CONFIG -= app_bundle
 #    LIBS += $$ANTTWEAKBARPATH/lib/libAntTweakBar.dylib
     QMAKE_POST_LINK +="cp -P ../../../code/lib/AntTweakBar1.16/lib/libAntTweakBar.dylib . ; "
-    QMAKE_POST_LINK +="install_name_tool -change ../lib/libAntTweakBar.dylib ./libAntTweakBar.dylib $$TARGET ; "
+#    QMAKE_POST_LINK +="install_name_tool -change ../lib/libAntTweakBar.dylib ./libAntTweakBar.dylib $$TARGET ; "
     QMAKE_POST_LINK +="install_name_tool -change libCoMISo.dylib $$COMISOPATH/build/Build/lib/CoMISo/libCoMISo.dylib $$TARGET ;"
     DEPENDPATH += .
 }
