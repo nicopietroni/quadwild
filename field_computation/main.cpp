@@ -207,40 +207,74 @@ int main(int argc, char *argv[])
         fprintf(stderr, "AntTweakBar initialization failed: %s\n", TwGetLastError());
         return 1;
     }
+
+    //load default config
+
+    loadConfigFile("basic_setup.txt");
     assert(argc>1);
     pathM=std::string(argv[1]);
-    loadConfigFile("basic_setup.txt");
-
-    std::cout << pathM << std::endl;
-
-    if ((argc>2)&&(std::string(argv[2])==std::string("batch")))
-        do_batch=true;
-    else
+    for (size_t i=2;i<argc;i++)
     {
-        if (argc>2)
+        if(std::string(argv[i])==std::string("batch"))
         {
-            std::string pathTest=std::string(argv[2]);
-            int position=pathTest.find(".sharp");
+            do_batch=true;
+            continue;
+        }
 
-            if (position!=-1)
-            {
-                pathS=pathTest;
-                has_features=true;
-            }
-            position=pathTest.find(".fl");
-            if (position!=-1)
-            {
-                pathS=pathTest;
-                has_features_fl=true;
-            }
+        std::string pathTest=std::string(argv[i]);
+        int position=pathTest.find(".sharp");
+        if (position!=-1)
+        {
+            pathS=pathTest;
+            has_features=true;
+            continue;
+        }
+        position=pathTest.find(".fl");
+        if (position!=-1)
+        {
+            pathS=pathTest;
+            has_features_fl=true;
+            continue;
+        }
+        position=pathTest.find(".txt");
+        if (position!=-1)
+        {
+           loadConfigFile(pathTest.c_str());
+           continue;
         }
     }
+    //    loadConfigFile("basic_setup.txt");
 
-    if ((has_features || has_features_fl)&&(argc>3))
-    {
-        if (std::string(argv[3])==std::string("batch"))
-            do_batch=true;
-    }
+    //    std::cout << pathM << std::endl;
+
+    //    if ((argc>2)&&(std::string(argv[2])==std::string("batch")))
+    //        do_batch=true;
+    //    else
+    //    {
+    //        if (argc>2)
+    //        {
+    //            std::string pathTest=std::string(argv[2]);
+    //            int position=pathTest.find(".sharp");
+
+    //            if (position!=-1)
+    //            {
+    //                pathS=pathTest;
+    //                has_features=true;
+    //            }
+    //            position=pathTest.find(".fl");
+    //            if (position!=-1)
+    //            {
+    //                pathS=pathTest;
+    //                has_features_fl=true;
+    //            }
+    //        }
+    //    }
+
+    //    if ((has_features || has_features_fl)&&(argc>3))
+    //    {
+    //        if (std::string(argv[3])==std::string("batch"))
+    //            do_batch=true;
+    //    }
     GLWidget window;
 
     window.show();

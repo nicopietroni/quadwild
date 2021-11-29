@@ -45,9 +45,10 @@
 
 #include <math.h>
 #include "glwidget.h"
-
+#include "mesh_manager.h"
 #include <wrap/igl/smooth_field.h>
-#include <triangle_mesh_type.h>
+#include "triangle_mesh_type.h"
+#include "poly_mesh_type.h"
 #include <wrap/qt/trackball.h>
 #include <wrap/gl/picking.h>
 #include <wrap/qt/anttweakbarMapper.h>
@@ -59,6 +60,13 @@
 #include <wrap/gl/gl_field.h>
 #include <AutoRemesher.h>
 #include <vcg/complex/algorithms/hole.h>
+#include "mesh_field_smoother.h"
+#include "gl_utils.h"
+
+#ifdef MIQ_QUADRANGULATE
+#include <wrap/igl/miq_parametrization.h>
+#include <vcg/complex/algorithms/quadrangulator.h>
+#endif
 
 std::string pathM="";
 std::string pathS="";
@@ -67,18 +75,21 @@ vcg::Trackball track;//the active manipulator
 
 bool drawfield=false;
 
-MyTriMesh tri_mesh;
+FieldTriMesh tri_mesh;
 
-//MyTriMesh remeshed_mesh;
-//MyTriMesh original_mesh;
+#ifdef MIQ_QUADRANGULATE
+PMesh quad_mesh;
+bool quadrangulated=false;
+vcg::tri::MiQParametrizer<FieldTriMesh>::MIQParameters MiqP;
+#endif
 
 TwBar *barQuad;
 
-vcg::GlTrimesh<MyTriMesh> glWrap;
-vcg::GLField<MyTriMesh> glField;
+vcg::GlTrimesh<FieldTriMesh> glWrap;
+vcg::GLField<FieldTriMesh> glField;
 
-typedef typename MyTriMesh::ScalarType ScalarType;
-typedef typename MyTriMesh::CoordType CoordType;
+typedef typename FieldTriMesh::ScalarType ScalarType;
+typedef typename FieldTriMesh::CoordType CoordType;
 
 int Iterations;
 ScalarType EdgeStep;
@@ -87,14 +98,15 @@ ScalarType SharpFactor=6;
 ScalarType alpha=0.3;
 //ScalarType sharp_feature_thr=45;
 
+
 int xMouse,yMouse;
 
-vcg::GridStaticPtr<MyTriMesh::FaceType,MyTriMesh::ScalarType> Gr;
+vcg::GridStaticPtr<FieldTriMesh::FaceType,FieldTriMesh::ScalarType> Gr;
 
-typedef FieldSmoother<MyTriMesh> FieldSmootherType;
+typedef vcg::tri::FieldSmoother<FieldTriMesh> FieldSmootherType;
 FieldSmootherType::SmoothParam FieldParam;
 
-AutoRemesher<MyTriMesh>::Params RemPar;
+AutoRemesher<FieldTriMesh>::Params RemPar;
 bool do_batch=false;
 bool has_features=false;
 bool has_features_fl=false;
@@ -104,17 +116,193 @@ bool do_remesh=true;
 int remesher_iterations=15;
 ScalarType remesher_aspect_ratio=0.3;
 int remesher_termination_delta=10000;
-
+bool surf_dist_check=true;
 ScalarType sharp_feature_thr=35;
 int feature_erode_dilate=4;
+
+//MeshPrepocess<FieldTriMesh> MP(tri_mesh);
 
 void InitSharp()
 {
     assert(!(has_features || has_features_fl));
     tri_mesh.UpdateDataStructures();
     tri_mesh.InitSharpFeatures(sharp_feature_thr);
+    //MP.InitSharpFeatures(sharp_feature_thr);
 }
 
+
+//void DoAutoRemesh()
+//{
+//    RemPar.iterations   = remesher_iterations;
+//    RemPar.targetAspect = remesher_aspect_ratio;
+//    RemPar.targetDeltaFN= remesher_termination_delta;
+//    RemPar.creaseAngle  = sharp_feature_thr;
+//    RemPar.erodeDilate  = feature_erode_dilate;
+//    RemPar.userSelectedCreases = true;
+//    RemPar.surfDistCheck = true;
+
+//    auto t1 = std::chrono::high_resolution_clock::now();
+//    std::cout << "cleaning the mesh..." << std::endl;
+//    std::shared_ptr<FieldTriMesh> clean = AutoRemesher<FieldTriMesh>::CleanMesh(tri_mesh, false);
+//    auto t2 = std::chrono::high_resolution_clock::now();
+//    std::cout << "Cleaning time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
+
+//    t1 = std::chrono::high_resolution_clock::now();
+//    clean->UpdateDataStructures();
+
+////    MP.InitSharpFeatures(sharp_feature_thr);
+////    MP.ErodeDilate(feature_erode_dilate);
+//    clean->InitSharpFeatures(sharp_feature_thr);
+//    clean->ErodeDilate(feature_erode_dilate);
+
+//    t2 = std::chrono::high_resolution_clock::now();
+//    std::cout << "Sharp Features time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
+
+//    t1 = std::chrono::high_resolution_clock::now();
+//    std::shared_ptr<FieldTriMesh> ret=AutoRemesher<FieldTriMesh>::Remesh(*clean,RemPar);
+//    t2 = std::chrono::high_resolution_clock::now();
+//    std::cout << "Remesh time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
+//    AutoRemesher<FieldTriMesh>::SplitNonManifold(*ret);
+
+//    tri_mesh.Clear();
+//    vcg::tri::Append<FieldTriMesh,FieldTriMesh>::Mesh(tri_mesh,(*ret));
+//    vcg::tri::Clean<FieldTriMesh>::RemoveUnreferencedVertex(tri_mesh);
+//    vcg::tri::Allocator<FieldTriMesh>::CompactEveryVector(tri_mesh);
+//    tri_mesh.UpdateDataStructures();
+//    //MeshPrepocess<FieldTriMesh>::AutoRemesh(tri_mesh,RemPar);
+//    Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
+//}
+
+//void DoAutoRemesh()
+//{
+//    RemPar.iterations   = remesher_iterations;
+//    RemPar.targetAspect = remesher_aspect_ratio;
+//    RemPar.targetDeltaFN= remesher_termination_delta;
+//    RemPar.creaseAngle  = sharp_feature_thr;
+//    RemPar.erodeDilate  = feature_erode_dilate;
+//    RemPar.userSelectedCreases = true;
+//    RemPar.surfDistCheck = false;
+
+//    auto t1 = std::chrono::high_resolution_clock::now();
+//    std::cout << "cleaning the mesh..." << std::endl;
+//    std::shared_ptr<FieldTriMesh> clean = AutoRemesher<FieldTriMesh>::CleanMesh(tri_mesh, false);
+//    auto t2 = std::chrono::high_resolution_clock::now();
+//    std::cout << "Cleaning time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
+
+//    t1 = std::chrono::high_resolution_clock::now();
+//    clean->UpdateDataStructures();
+
+////    clean->InitSharpFeatures(sharp_feature_thr);
+////    clean->ErodeDilate(feature_erode_dilate);
+
+//    t2 = std::chrono::high_resolution_clock::now();
+//    std::cout << "Sharp Features time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
+
+//    t1 = std::chrono::high_resolution_clock::now();
+//    std::shared_ptr<FieldTriMesh> ret=AutoRemesher<FieldTriMesh>::Remesh(*clean,RemPar);
+//    t2 = std::chrono::high_resolution_clock::now();
+//    std::cout << "Remesh time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
+//    AutoRemesher<FieldTriMesh>::SplitNonManifold(*ret);
+
+//    tri_mesh.Clear();
+//    vcg::tri::Append<FieldTriMesh,FieldTriMesh>::Mesh(tri_mesh,(*ret));
+//    vcg::tri::Clean<FieldTriMesh>::RemoveUnreferencedVertex(tri_mesh);
+//    vcg::tri::Allocator<FieldTriMesh>::CompactEveryVector(tri_mesh);
+//    tri_mesh.UpdateDataStructures();
+
+//    tri_mesh.InitSharpFeatures(sharp_feature_thr);
+//    tri_mesh.ErodeDilate(feature_erode_dilate);
+
+//    //MeshPrepocess<FieldTriMesh>::AutoRemesh(tri_mesh,RemPar);
+//    Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
+//}
+
+
+//void DoAutoRemesh()
+//{
+//    RemPar.iterations   = remesher_iterations;
+//    RemPar.targetAspect = remesher_aspect_ratio;
+//    RemPar.targetDeltaFN= remesher_termination_delta;
+//    RemPar.creaseAngle  = sharp_feature_thr;
+//    RemPar.erodeDilate  = feature_erode_dilate;
+//    RemPar.userSelectedCreases = true;
+//    RemPar.surfDistCheck = false;
+
+//    auto t1 = std::chrono::high_resolution_clock::now();
+//    std::cout << "cleaning the mesh..." << std::endl;
+//    std::shared_ptr<FieldTriMesh> clean = AutoRemesher<FieldTriMesh>::CleanMesh(tri_mesh, false);
+//    auto t2 = std::chrono::high_resolution_clock::now();
+//    std::cout << "Cleaning time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
+
+//    t1 = std::chrono::high_resolution_clock::now();
+//    clean->UpdateDataStructures();
+
+////    clean->InitSharpFeatures(sharp_feature_thr);
+////    clean->ErodeDilate(feature_erode_dilate);
+
+//    t2 = std::chrono::high_resolution_clock::now();
+//    std::cout << "Sharp Features time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
+
+//    t1 = std::chrono::high_resolution_clock::now();
+//    std::shared_ptr<FieldTriMesh> ret=AutoRemesher<FieldTriMesh>::Remesh(*clean,RemPar);
+//    t2 = std::chrono::high_resolution_clock::now();
+//    std::cout << "Remesh time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
+//    AutoRemesher<FieldTriMesh>::SplitNonManifold(*ret);
+
+//    tri_mesh.Clear();
+//    vcg::tri::Append<FieldTriMesh,FieldTriMesh>::Mesh(tri_mesh,(*ret));
+//    vcg::tri::Clean<FieldTriMesh>::RemoveUnreferencedVertex(tri_mesh);
+//    vcg::tri::Allocator<FieldTriMesh>::CompactEveryVector(tri_mesh);
+//    tri_mesh.UpdateDataStructures();
+
+//    tri_mesh.InitSharpFeatures(sharp_feature_thr);
+//    tri_mesh.ErodeDilate(feature_erode_dilate);
+
+//    //MeshPrepocess<FieldTriMesh>::AutoRemesh(tri_mesh,RemPar);
+//    Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
+//}
+
+void SaveAllData()
+{
+    MeshPrepocess<FieldTriMesh>::SaveAllData(tri_mesh,pathM);
+//    std::string projM=pathM;
+//    size_t indexExt=projM.find_last_of(".");
+//    projM=projM.substr(0,indexExt);
+//    std::string meshName=projM+std::string("_rem.obj");
+//    std::string fieldName=projM+std::string("_rem.rosy");
+//    std::string sharpName=projM+std::string("_rem.sharp");
+//    std::cout<<"Saving Mesh TO:"<<meshName.c_str()<<std::endl;
+//    std::cout<<"Saving Field TO:"<<fieldName.c_str()<<std::endl;
+//    std::cout<<"Saving Sharp TO:"<<sharpName.c_str()<<std::endl;
+//    tri_mesh.SaveTriMesh(meshName.c_str());
+//    tri_mesh.SaveField(fieldName.c_str());
+//    tri_mesh.SaveSharpFeatures(sharpName.c_str());
+
+
+////    std::string orFaceName=projM+std::string("_rem_origf.txt");
+////    std::cout<<"Saving Field TO:"<<orFaceName.c_str()<<std::endl;
+////    tri_mesh.SaveOrigFace(orFaceName.c_str());
+
+//    //MP.SaveSharpFeatures(sharpName.c_str());
+
+//    //tri_mesh.SaveTriMesh()
+}
+
+void DoBatchProcess ()
+{
+    typename MeshPrepocess<FieldTriMesh>::BatchParam BPar;
+    BPar.DoRemesh=do_remesh;
+    BPar.feature_erode_dilate=feature_erode_dilate;
+    BPar.remesher_aspect_ratio=remesher_aspect_ratio;
+    BPar.remesher_iterations=remesher_iterations;
+    BPar.remesher_termination_delta=remesher_termination_delta;
+    BPar.SharpFactor=SharpFactor;
+    BPar.sharp_feature_thr=sharp_feature_thr;
+    BPar.surf_dist_check=surf_dist_check;
+    BPar.UpdateSharp=(!(has_features || has_features_fl));
+    MeshPrepocess<FieldTriMesh>::BatchProcess(tri_mesh,BPar,FieldParam);
+    drawfield=true;
+}
 
 void DoAutoRemesh()
 {
@@ -123,61 +311,29 @@ void DoAutoRemesh()
     RemPar.targetDeltaFN= remesher_termination_delta;
     RemPar.creaseAngle  = sharp_feature_thr;
     RemPar.erodeDilate  = feature_erode_dilate;
-    RemPar.userSelectedCreases = true;
-    RemPar.surfDistCheck = true;
 
-    auto t1 = std::chrono::high_resolution_clock::now();
-    std::cout << "cleaning the mesh..." << std::endl;
-    std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh, false);
-    auto t2 = std::chrono::high_resolution_clock::now();
-    std::cout << "Cleaning time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
+    //RemPar.userSelectedCreases = true;
+    RemPar.surfDistCheck = surf_dist_check;
 
-    t1 = std::chrono::high_resolution_clock::now();
-    clean->UpdateDataStructures();
-    clean->InitSharpFeatures(sharp_feature_thr);
-    clean->ErodeDilate(feature_erode_dilate);
+    AutoRemesher<FieldTriMesh>::RemeshAdapt(tri_mesh,RemPar);
+    //AutoRemesher<FieldTriMesh>::RemeshAdapt(tri_mesh,RemPar);
+
+    tri_mesh.InitEdgeType();
+    tri_mesh.InitFeatureCoordsTable();
+//    tri_mesh.InitSharpFeatures(sharp_feature_thr);
 //    tri_mesh.ErodeDilate(feature_erode_dilate);
-    t2 = std::chrono::high_resolution_clock::now();
-    std::cout << "Sharp Features time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
 
-    t1 = std::chrono::high_resolution_clock::now();
-    std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
-    t2 = std::chrono::high_resolution_clock::now();
-    std::cout << "Remesh time: " << std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count() << std::endl;
-    AutoRemesher<MyTriMesh>::SplitNonManifold(*ret);
-
-    tri_mesh.Clear();
-    vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
-    vcg::tri::Clean<MyTriMesh>::RemoveUnreferencedVertex(tri_mesh);
-    vcg::tri::Allocator<MyTriMesh>::CompactEveryVector(tri_mesh);
-    tri_mesh.UpdateDataStructures();
+    //MeshPrepocess<FieldTriMesh>::AutoRemesh(tri_mesh,RemPar);
     Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
 }
 
+void TW_CALL CleanMesh(void *)
+ {
+   MeshPrepocess<FieldTriMesh>::SolveGeometricArtifacts(tri_mesh);
+ }
+
 void TW_CALL AutoRemesh(void *)
 {
-
-//   tri_mesh.UpdateDataStructures();
-////   vcg::tri::IsotropicRemeshing<MyTriMesh>::Params par;
-////   par.minLength=tri_mesh.bbox.Diag()*0.005;
-////   par.maxLength=tri_mesh.bbox.Diag()*0.01;
-////   vcg::tri::IsotropicRemeshing<MyTriMesh>::Do(tri_mesh,par);
-
-//   RemPar.iterations   = remesher_iterations;
-//   RemPar.targetAspect = remesher_aspect_ratio;
-//   RemPar.targetDeltaFN= remesher_termination_delta;
-//   RemPar.userSelectedCreases = true;
-//   RemPar.surfDistCheck = true;
-
-//   std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh,true);
-
-//   std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
-//   tri_mesh.Clear();
-//   vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
-//   vcg::tri::Clean<MyTriMesh>::RemoveUnreferencedVertex(tri_mesh);
-//   vcg::tri::Allocator<MyTriMesh>::CompactEveryVector(tri_mesh);
-//   tri_mesh.UpdateDataStructures();
-//   Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
     DoAutoRemesh();
 }
 
@@ -188,48 +344,77 @@ void TW_CALL InitSharpFeatures(void *)
 
 void TW_CALL RefineIfNeeded(void *)
 {
-    tri_mesh.RefineIfNeeded();
+   // tri_mesh.RefineIfNeeded();
+    MeshPrepocess<FieldTriMesh>::RefineIfNeeded(tri_mesh);
+    //MP.RefineIfNeeded();
     Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
+}
+
+void TW_CALL BatchProcess(void *)
+{
+    DoBatchProcess();
 }
 
 void TW_CALL SmoothField(void *)
 {
-    tri_mesh.SplitFolds();
-    tri_mesh.RemoveFolds();
-    tri_mesh.RemoveSmallComponents();
-    //vcg::tri::io::ExporterPLY<MyTriMesh>::Save(tri_mesh,"test0.ply");
-    tri_mesh.SmoothField(FieldParam);
-    //vcg::tri::io::ExporterPLY<MyTriMesh>::Save(tri_mesh,"test1.ply");
+//    //tri_mesh.SplitFolds();
+//    MeshPrepocess<FieldTriMesh>::SplitFolds(tri_mesh);
+//    //tri_mesh.RemoveFolds();
+//    MeshPrepocess<FieldTriMesh>::RemoveFolds(tri_mesh);
+//    //tri_mesh.RemoveSmallComponents();
+//    MeshPrepocess<FieldTriMesh>::RemoveSmallComponents(tri_mesh);
+//    MP.SplitFolds();
+//    MP.RemoveFolds();
+//    MP.RemoveSmallComponents();
+
+    //vcg::tri::io::ExporterPLY<FieldTriMesh>::Save(tri_mesh,"test0.ply");
+    //tri_mesh.SmoothField(FieldParam);
+    MeshFieldSmoother<FieldTriMesh>::SmoothField(tri_mesh,FieldParam);
+    //vcg::tri::io::ExporterPLY<FieldTriMesh>::Save(tri_mesh,"test1.ply");
     drawfield=true;
 
     //Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
 }
 
-void SaveAllData()
+
+
+#ifdef MIQ_QUADRANGULATE
+void TW_CALL MiqQuadrangulate(void *)
 {
-    std::string projM=pathM;
-    size_t indexExt=projM.find_last_of(".");
-    projM=projM.substr(0,indexExt);
-    std::string meshName=projM+std::string("_rem.obj");
-    std::string fieldName=projM+std::string("_rem.rosy");
-    std::string sharpName=projM+std::string("_rem.sharp");
-    std::cout<<"Saving Mesh TO:"<<meshName.c_str()<<std::endl;
-    std::cout<<"Saving Field TO:"<<fieldName.c_str()<<std::endl;
-    std::cout<<"Saving Sharp TO:"<<sharpName.c_str()<<std::endl;
-    tri_mesh.SaveTriMesh(meshName.c_str());
-    tri_mesh.SaveField(fieldName.c_str());
-    tri_mesh.SaveSharpFeatures(sharpName.c_str());
-    //tri_mesh.SaveTriMesh()
+
+    vcg::tri::MiQParametrizer<FieldTriMesh>::MIQParametrize(tri_mesh,MiqP);//,MaxFeature);
+    vcg::tri::Quadrangulator<FieldTriMesh,PMesh> Quadr;
+
+    std::cout<<"Quadrangulating"<<std::endl;
+    FieldTriMesh splitted_mesh;
+    vcg::tri::Append<FieldTriMesh,FieldTriMesh>::Mesh(splitted_mesh,tri_mesh);
+    std::vector< std::vector< short int> > AxisUV;
+
+    Quadr.Quadrangulate(splitted_mesh,quad_mesh,AxisUV,false);
+    quadrangulated=true;
+    quad_mesh.UpdateAttributes();
+    vcg::tri::Allocator<PMesh>::CompactEveryVector(quad_mesh);
+    std::cout<<"Num Faces: "<<quad_mesh.face.size()<<std::endl;
+    vcg::tri::io::ExporterOBJ<PMesh>::Save(quad_mesh,"quadrangulated.obj",vcg::tri::io::Mask::IOM_BITPOLYGONAL);
 }
+#endif
+
+
 
 void TW_CALL SaveData(void *)
 {
     SaveAllData();
 }
 
+void TW_CALL AutoSetupField(void *)
+{
+    MeshFieldSmoother<FieldTriMesh>::AutoSetupParam(tri_mesh,FieldParam);
+}
+
 void TW_CALL ErodeDilateFeatureStep(void *)
 {
-	tri_mesh.ErodeDilate(feature_erode_dilate);
+    tri_mesh.ErodeDilate(feature_erode_dilate);
+    //MP.ErodeDilate(feature_erode_dilate);
 }
 
 void SetFieldBarSizePosition(QWidget *w)
@@ -251,6 +436,9 @@ void InitFieldBar(QWidget *w)
 
 	TwAddVarRW(barQuad,"sharp_feature_thr",TW_TYPE_DOUBLE, &sharp_feature_thr," label='Sharp Degree'");
     TwAddVarRW(barQuad,"LimitConcave",TW_TYPE_DOUBLE, &tri_mesh.LimitConcave," label='Limit Concave'");
+    //TwAddVarRW(barQuad,"LimitConcave",TW_TYPE_DOUBLE, &MP.LimitConcave," label='Limit Concave'");
+
+    TwAddButton(barQuad,"CleanMesh",CleanMesh,0,"label='CleanMesh'");
 
     TwAddButton(barQuad,"SetSharp",InitSharpFeatures,0,"label='InitSharp'");
 
@@ -266,60 +454,88 @@ void InitFieldBar(QWidget *w)
     TwAddVarRW(barQuad,"HardCT",TW_TYPE_DOUBLE, &FieldParam.curv_thr," label='Hard Curv Thr'");
     TwAddVarRW(barQuad,"CurvRing",TW_TYPE_INT32,&FieldParam.curvRing,"label='Curvature Ring'");
 
-    TwEnumVal smoothmodes[2] = {
+    TwEnumVal smoothmodes[3] = {
         {vcg::tri::SMMiq,"MIQ"},
-        {vcg::tri::SMNPoly,"NPoly"}
+        {vcg::tri::SMNPoly,"NPoly"},
+        {vcg::tri::SMIterative,"Ite"}
     };
-    TwType smoothMode = TwDefineEnum("SmoothMode", smoothmodes, 2);
+    TwType smoothMode = TwDefineEnum("SmoothMode", smoothmodes, 3);
     TwAddVarRW(barQuad, "Smooth Mode", smoothMode, &FieldParam.SmoothM," label='Smooth Mode' ");
+
+
+    TwAddButton(barQuad,"AutoSetup",AutoSetupField,0,"label='Auto Setup Field'");
 
     TwAddButton(barQuad,"ComputeField",SmoothField,0,"label='Compute Field'");
 
+    TwAddButton(barQuad,"BatchProcess",BatchProcess,0,"label='Batch Process'");
+
     TwAddButton(barQuad,"SaveData",SaveData,0,"label='Save Data'");
+
+#ifdef MIQ_QUADRANGULATE
+    TwAddSeparator(barQuad,"","");
+    TwAddVarRW(barQuad,"Gradient",TW_TYPE_DOUBLE, &MiqP.gradient," label='Gradient'");
+    TwAddVarRW(barQuad,"Direct Round",TW_TYPE_BOOLCPP, &MiqP.directRound," label='Direct Round'");
+    TwAddVarRW(barQuad,"Round Singularities",TW_TYPE_BOOLCPP, &MiqP.round_singularities," label='Round Singularities'");
+    TwAddVarRW(barQuad,"IsotropyVsAlign",TW_TYPE_DOUBLE, &MiqP.miqAnisotropy," label='Isotropy Vs Align'");
+    TwAddVarRW(barQuad,"Align Sharp",TW_TYPE_BOOLCPP, & MiqP.crease_as_feature," label='Align Sharp'");
+    TwAddButton(barQuad,"Quadrangulate",MiqQuadrangulate,0,"label='Miq Quadrangulate'");
+#endif
 
 }
 
 //void BatchProcess ()
 //{
-//        //SHARP FEATURE
-//	RemPar.iterations   = remesher_iterations;
-//	RemPar.targetAspect = remesher_aspect_ratio;
-//	RemPar.targetDeltaFN= remesher_termination_delta;
-//	RemPar.userSelectedCreases = true;
-//	RemPar.surfDistCheck = true;
+////    vcg::tri::Hole<FieldTriMesh>::EarCuttingFill<vcg::tri::TrivialEar<FieldTriMesh> >(tri_mesh,6);
+//    bool Oriented,Orientable;
+//    vcg::tri::Clean<FieldTriMesh>::OrientCoherentlyMesh(tri_mesh,Oriented,Orientable);
+//    if (!Orientable)
+//        std::cout<<"WARNING MESH NON ORIENTABLE"<<std::endl;
 
-//	std::cout << "[fieldComputation] Mesh cleaning..." << std::endl;
-//	std::shared_ptr<MyTriMesh> clean = AutoRemesher<MyTriMesh>::CleanMesh(tri_mesh, false);
+////    size_t numDup=MeshPrepocess<FieldTriMesh>::NumDuplicatedV(tri_mesh);//tri_mesh.NumDuplicatedV();
+////    if (numDup>0)std::cout<<"WARNING DUPLICATED VERTICES BEFORE AUTO REMESH!"<<std::endl;
 
-//	std::cout << "[fieldComputation] Feature Extraction..." << std::endl;
-//	clean->UpdateDataStructures();
-//	clean->InitSharpFeatures(sharp_feature_thr);
-//	clean->ErodeDilate(feature_erode_dilate);
+//    if (do_remesh)
+//        DoAutoRemesh();
 
-//	//REMESH
-//	std::cout << "[fieldComputation] Initial Remeshing..." << std::endl;
-//	std::shared_ptr<MyTriMesh> ret=AutoRemesher<MyTriMesh>::Remesh(*clean,RemPar);
-//	{
-//	    	std::string projM=pathM;
-//    		size_t indexExt=projM.find_last_of(".");
-//    		projM=projM.substr(0,indexExt);
-//		std::string meshName=projM+std::string("_remeshed.obj");
-//		ret->SaveTriMesh(meshName.c_str());
-//	}
+//    vcg::tri::Clean<FieldTriMesh>::OrientCoherentlyMesh(tri_mesh,Oriented,Orientable);
+//    if (!Orientable)
+//        std::cout<<"WARNING MESH NON ORIENTABLE"<<std::endl;
 
-//	AutoRemesher<MyTriMesh>::SplitNonManifold(*ret);
+//    for (size_t i=0;i<tri_mesh.face.size();i++)
+//        tri_mesh.face[i].IndexOriginal=i;
 
-//    tri_mesh.Clear();
-//    vcg::tri::Append<MyTriMesh,MyTriMesh>::Mesh(tri_mesh,(*ret));
-//    tri_mesh.UpdateDataStructures();
-    
-//    //REFINE IF NEEDED
-//    tri_mesh.InitSharpFeatures(sharp_feature_thr);
-//    tri_mesh.ErodeDilate(feature_erode_dilate);
-//    tri_mesh.RefineIfNeeded();
+//    //tri_mesh.SolveGeometricIssues();
+//    MeshPrepocess<FieldTriMesh>::SolveGeometricIssues(tri_mesh);
+//    //MP.SolveGeometricIssues();
+
+
+//	std::string projM=pathM;
+//    size_t indexExt=projM.find_last_of(".");
+//    projM=projM.substr(0,indexExt);
+//    std::string meshName=projM+std::string("_remeshed.obj");
+//    std::cout<<"Saving remeshed Mesh TO:"<<meshName.c_str()<<std::endl;
+//    tri_mesh.SaveTriMesh(meshName.c_str());
+
+//    vcg::tri::Allocator<FieldTriMesh>::CompactEveryVector(tri_mesh);
+
+//    if (!(has_features || has_features_fl))
+//    {
+//        InitSharp();
+//        tri_mesh.ErodeDilate(feature_erode_dilate);
+//        //MP.ErodeDilate(feature_erode_dilate);
+//    }
+
+//    //tri_mesh.RefineIfNeeded();
+//    MeshPrepocess<FieldTriMesh>::RefineIfNeeded(tri_mesh);
+//    //tri_mesh.SolveGeometricIssues();
+//    MeshPrepocess<FieldTriMesh>::SolveGeometricIssues(tri_mesh);
+//    //MP.RefineIfNeeded();
+//    //MP.SolveGeometricIssues();
 
 //    //FIELD SMOOTH
 //    bool UseNPoly=tri_mesh.SufficientFeatures(SharpFactor);
+//    ScalarType SharpL=tri_mesh.SharpLenght();
+//    std::cout<<"Sharp Lenght 0: "<<SharpL<<std::endl;
 //    if (UseNPoly)
 //    {
 //        std::cout<<"Using NPoly"<<std::endl;
@@ -329,119 +545,72 @@ void InitFieldBar(QWidget *w)
 //    {
 //        std::cout<<"Using Comiso"<<std::endl;
 //        FieldParam.SmoothM=SMMiq;
-//        FieldParam.alpha_curv=0.2;
+//        FieldParam.alpha_curv=0.3;
 //    }
 
-//    std::cout << "[fieldComputation] Smooth Field Computation..." << std::endl;
-//    tri_mesh.SmoothField(FieldParam);
+//    std::string projM=pathM;
+//    size_t indexExt=projM.find_last_of(".");
+//    projM=projM.substr(0,indexExt);
+//    std::string meshName=projM+std::string("_rem.obj");
+//    std::string sharpName=projM+std::string("_rem.sharp");
+//    std::cout<<"Saving Mesh TO:"<<meshName.c_str()<<std::endl;
+//    std::cout<<"Saving Sharp TO:"<<sharpName.c_str()<<std::endl;
 
-//    //SAVE
+//    std::cout << "[fieldComputation] Smooth Field Computation..." << std::endl;
+//    //tri_mesh.SplitFolds();
+//    MeshPrepocess<FieldTriMesh>::SplitFolds(tri_mesh);
+
+//    SharpL=tri_mesh.SharpLenght();
+//    //SharpL=MP.SharpLenght();
+//    std::cout<<"Sharp Lenght 0.0: "<<SharpL<<std::endl;
+//    //tri_mesh.RemoveFolds();
+//    MeshPrepocess<FieldTriMesh>::RemoveFolds(tri_mesh);
+
+//    SharpL=tri_mesh.SharpLenght();
+//    //SharpL=MP.SharpLenght();
+//    std::cout<<"Sharp Lenght 0.1: "<<SharpL<<std::endl;
+//    //tri_mesh.SolveGeometricIssues();
+//    MeshPrepocess<FieldTriMesh>::SolveGeometricIssues(tri_mesh);
+//    //MP.SolveGeometricIssues();
+
+//    SharpL=tri_mesh.SharpLenght();
+//    //SharpL=MP.SharpLenght();
+//    std::cout<<"Sharp Lenght 0.2: "<<SharpL<<std::endl;
+//    //tri_mesh.RemoveSmallComponents();
+//    MeshPrepocess<FieldTriMesh>::RemoveSmallComponents(tri_mesh);
+//    //MP.RemoveSmallComponents();
+//    SharpL=tri_mesh.SharpLenght();
+//    //SharpL=MP.SharpLenght();
+//    std::cout<<"Sharp Lenght 0.3: "<<SharpL<<std::endl;
+
+//    SharpL=tri_mesh.SharpLenght();
+//    //SharpL=MP.SharpLenght();
+//    std::cout<<"Sharp Lenght 1: "<<SharpL<<std::endl;
+//    //tri_mesh.SmoothField(FieldParam);
+//    MeshFieldSmoother<FieldTriMesh>::SmoothField(tri_mesh,FieldParam);
+
+//    SharpL=tri_mesh.SharpLenght();
+//    //SharpL=MP.SharpLenght();
+//    std::cout<<"Sharp Lenght 2: "<<SharpL<<std::endl;
+
+//    std::string fieldName=projM+std::string("_rem.rosy");
+//    std::cout<<"Saving Field TO:"<<fieldName.c_str()<<std::endl;
+
+//    tri_mesh.SaveTriMesh(meshName.c_str());
+//    tri_mesh.SaveSharpFeatures(sharpName.c_str());
+//    //MP.SaveSharpFeatures(sharpName.c_str());
+//    tri_mesh.SaveField(fieldName.c_str());
+
+//    std::string orFaceName=projM+std::string("_rem_origf.txt");
+//    std::cout<<"Saving Field TO:"<<orFaceName.c_str()<<std::endl;
+//    tri_mesh.SaveOrigFace(orFaceName.c_str());
+//    drawfield=true;
+////    //SAVE
 //    SaveAllData();
 //}
 
-void BatchProcess ()
-{
-//    vcg::tri::Hole<MyTriMesh>::EarCuttingFill<vcg::tri::TrivialEar<MyTriMesh> >(tri_mesh,6);
-    bool Oriented,Orientable;
-    vcg::tri::Clean<MyTriMesh>::OrientCoherentlyMesh(tri_mesh,Oriented,Orientable);
-    if (!Orientable)
-        std::cout<<"WARNING MESH NON ORIENTABLE"<<std::endl;
 
-    size_t numDup=tri_mesh.NumDuplicatedV();
-    if (numDup>0)std::cout<<"WARNING DUPLICATED VERTICES BEFORE AUTO REMESH!"<<std::endl;
-    if (do_remesh)
-        DoAutoRemesh();
 
-    vcg::tri::Clean<MyTriMesh>::OrientCoherentlyMesh(tri_mesh,Oriented,Orientable);
-    if (!Orientable)
-        std::cout<<"WARNING MESH NON ORIENTABLE"<<std::endl;
-
-    for (size_t i=0;i<tri_mesh.face.size();i++)
-        tri_mesh.face[i].IndexOriginal=i;
-
-    tri_mesh.SolveGeometricIssues();
-//    numDup=tri_mesh.NumDuplicatedV();
-//    if (numDup>0)std::cout<<"WARNING DUPLICATED VERTICES AFTER AUTO REMESH!"<<std::endl;
-//    tri_mesh.RemoveDuplicatedV();
-    {
-	std::string projM=pathM;
-    	size_t indexExt=projM.find_last_of(".");
-    	projM=projM.substr(0,indexExt);
-    	std::string meshName=projM+std::string("_remeshed.obj");
-    	std::cout<<"Saving remeshed Mesh TO:"<<meshName.c_str()<<std::endl;
-    	tri_mesh.SaveTriMesh(meshName.c_str());
-    }
-
-    //vcg::tri::Clean<MyTriMesh>::RemoveSmallConnectedComponentsSize(tri_mesh,10);
-    vcg::tri::Allocator<MyTriMesh>::CompactEveryVector(tri_mesh);
-
-    if (!(has_features || has_features_fl))
-    {
-        InitSharp();
-        tri_mesh.ErodeDilate(feature_erode_dilate);
-    }
-
-    tri_mesh.RefineIfNeeded();
-    tri_mesh.SolveGeometricIssues();
-    //FIELD SMOOTH
-    bool UseNPoly=tri_mesh.SufficientFeatures(SharpFactor);
-    ScalarType SharpL=tri_mesh.SharpLenght();
-    std::cout<<"Sharp Lenght 0: "<<SharpL<<std::endl;
-    if (UseNPoly)
-    {
-        std::cout<<"Using NPoly"<<std::endl;
-        FieldParam.SmoothM=SMNPoly;
-    }
-    else
-    {
-        std::cout<<"Using Comiso"<<std::endl;
-        FieldParam.SmoothM=SMMiq;
-        FieldParam.alpha_curv=0.3;
-    }
-
-    std::string projM=pathM;
-    size_t indexExt=projM.find_last_of(".");
-    projM=projM.substr(0,indexExt);
-    std::string meshName=projM+std::string("_rem.obj");
-    std::string sharpName=projM+std::string("_rem.sharp");
-    std::cout<<"Saving Mesh TO:"<<meshName.c_str()<<std::endl;
-    std::cout<<"Saving Sharp TO:"<<sharpName.c_str()<<std::endl;
-
-    std::cout << "[fieldComputation] Smooth Field Computation..." << std::endl;
-    tri_mesh.SplitFolds();
-    SharpL=tri_mesh.SharpLenght();
-    std::cout<<"Sharp Lenght 0.0: "<<SharpL<<std::endl;
-    tri_mesh.RemoveFolds();
-    SharpL=tri_mesh.SharpLenght();
-    std::cout<<"Sharp Lenght 0.1: "<<SharpL<<std::endl;
-    tri_mesh.SolveGeometricIssues();
-    SharpL=tri_mesh.SharpLenght();
-    std::cout<<"Sharp Lenght 0.2: "<<SharpL<<std::endl;
-    tri_mesh.RemoveSmallComponents();
-    SharpL=tri_mesh.SharpLenght();
-    std::cout<<"Sharp Lenght 0.3: "<<SharpL<<std::endl;
-
-    SharpL=tri_mesh.SharpLenght();
-    std::cout<<"Sharp Lenght 1: "<<SharpL<<std::endl;
-    tri_mesh.SmoothField(FieldParam);
-
-    SharpL=tri_mesh.SharpLenght();
-    std::cout<<"Sharp Lenght 2: "<<SharpL<<std::endl;
-
-    std::string fieldName=projM+std::string("_rem.rosy");
-    std::cout<<"Saving Field TO:"<<fieldName.c_str()<<std::endl;
-
-    tri_mesh.SaveTriMesh(meshName.c_str());
-    tri_mesh.SaveSharpFeatures(sharpName.c_str());
-    tri_mesh.SaveField(fieldName.c_str());
-
-    std::string orFaceName=projM+std::string("_rem_origf.txt");
-    std::cout<<"Saving Field TO:"<<orFaceName.c_str()<<std::endl;
-    tri_mesh.SaveOrigFace(orFaceName.c_str());
-
-    //SAVE
-    //SaveAllData();
-}
 
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
@@ -450,6 +619,7 @@ GLWidget::GLWidget(QWidget *parent)
     bool AllQuad=false;
     bool Loaded=tri_mesh.LoadTriMesh(pathM,AllQuad);
     FieldParam.alpha_curv=alpha;
+    FieldParam.curv_thr=0.8;
 
     if (!Loaded)
     {
@@ -468,10 +638,12 @@ GLWidget::GLWidget(QWidget *parent)
     tri_mesh.UpdateDataStructures();
 
     tri_mesh.LimitConcave=0;
+    //MP.LimitConcave=0;
     if (has_features)
     {
         std::cout<<"*** Loading SHARP FEATURES ***"<<std::endl;
         bool HasRead=tri_mesh.LoadSharpFeatures(pathS);
+        //bool HasRead=MP.LoadSharpFeatures(pathS);
         assert(HasRead);
     }
 
@@ -479,20 +651,34 @@ GLWidget::GLWidget(QWidget *parent)
     {
         std::cout<<"*** Loading SHARP FEATURES FL***"<<std::endl;
         bool HasRead=tri_mesh.LoadSharpFeaturesFL(pathS);
+        //bool HasRead=MP.LoadSharpFeaturesFL(pathS);
         assert(HasRead);
     }
 
-    if ((do_batch)&&(!has_features))
+//    if ((do_batch)&&(!has_features))
+//    {
+////        bool SufficientFeatures=mesh.SufficientFeatures(SharpFactor);
+////        if (SufficientFeatures)
+
+//        DoBatchProcess();
+//        SaveAllData();
+//        exit(0);
+//    }
+//    if ((do_batch)&&(has_features))
+//    {
+//        //tri_mesh.PrintSharpInfo();
+//        DoBatchProcess();
+//        SaveAllData();
+//        exit(0);
+//    }
+    if (do_batch)
     {
-        BatchProcess();
+
+        DoBatchProcess();
+        SaveAllData();
         exit(0);
     }
-    if ((do_batch)&&(has_features))
-    {
-        //tri_mesh.PrintSharpInfo();
-        BatchProcess();
-        exit(0);
-    }
+
     //remeshed_mesh.UpdateDataStructures();
     Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
 }
@@ -555,37 +741,47 @@ void GLWidget::paintGL ()
     {
         vcg::glScale(2.0f/tri_mesh.bbox.Diag());
         glTranslate(-tri_mesh.bbox.Center());
-        tri_mesh.GLDrawSharpEdges();
-        //glWrap.Draw(vcg::GLW::DMFlatWire,vcg::GLW::CMNone,vcg::GLW::TMNone);
-        glWrap.Draw(vcg::GLW::DMSmooth,vcg::GLW::CMNone,vcg::GLW::TMNone);
+        //tri_mesh.GLDrawSharpEdges();
+        GLDrawSharpEdges(tri_mesh);
+        //MP.GLDrawSharpEdges();
+        glWrap.Draw(vcg::GLW::DMFlatWire,vcg::GLW::CMPerFace,vcg::GLW::TMNone);
+        //glWrap.Draw(vcg::GLW::DMSmooth,vcg::GLW::CMNone,vcg::GLW::TMNone);
     }
+
+#ifdef MIQ_QUADRANGULATE
+    if (quadrangulated)
+    {
+        quad_mesh.GLDraw();
+    }
+#endif
 
     if (drawfield)
     {
-        vcg::GLField<MyTriMesh>::GLDrawFaceField(tri_mesh,false,false,0.007);
-        vcg::GLField<MyTriMesh>::GLDrawSingularity(tri_mesh);
+        vcg::GLField<FieldTriMesh>::GLDrawFaceField(tri_mesh,false,false,0.007);
+        vcg::GLField<FieldTriMesh>::GLDrawSingularity(tri_mesh);
     }
 
     if(hasToPick)
     {
         hasToPick=false;
-        typename MyTriMesh::CoordType pp;
-        if(vcg::Pick<typename MyTriMesh::CoordType>(xMouse,yMouse,pp))
+        typename FieldTriMesh::CoordType pp;
+        if(vcg::Pick<typename FieldTriMesh::CoordType>(xMouse,yMouse,pp))
         {
-            typename MyTriMesh::CoordType closPt,bary;
-            typename MyTriMesh::ScalarType minD;
-            typename MyTriMesh::FaceType *f=vcg::tri::GetClosestFaceBase(tri_mesh,Gr,pp,tri_mesh.bbox.Diag(),minD,closPt);
+            typename FieldTriMesh::CoordType closPt,bary;
+            typename FieldTriMesh::ScalarType minD;
+            typename FieldTriMesh::FaceType *f=vcg::tri::GetClosestFaceBase(tri_mesh,Gr,pp,tri_mesh.bbox.Diag(),minD,closPt);
             vcg::InterpolationParameters(*f,closPt,bary);
             size_t EdgeI=1;
             if ((bary.Y()<bary.X())&&(bary.Y()<bary.Z()))EdgeI=2;
             if ((bary.Z()<bary.X())&&(bary.Z()<bary.Y()))EdgeI=0;
 
-//            MyTriMesh::FaceType *fOpp=f->FFp(EdgeI);
+//            FieldTriMesh::FaceType *fOpp=f->FFp(EdgeI);
 //            int eOpp=f->FFi(EdgeI);
 
             if (f->IsFaceEdgeS(EdgeI))
             {
                 tri_mesh.ClearSharp((*f),EdgeI);
+                //MP.ClearSharp((*f),EdgeI);
 //                {
 //                f->ClearFaceEdgeS(EdgeI);
 //                if (fOpp!=f)
@@ -594,6 +790,7 @@ void GLWidget::paintGL ()
             {
 
                 tri_mesh.SetSharp((*f),EdgeI);
+                //MP.SetSharp((*f),EdgeI);
 //                f->SetFaceEdgeS(EdgeI);
 //                if (fOpp!=f)
 //                    fOpp->SetFaceEdgeS(eOpp);

@@ -2,6 +2,6 @@ do_remesh 1
 remesh_iterations 15
 remesh_target_aspect_ratio 0.35
 remesh_termination_delta 10000
-sharp_feature_thr 35
+sharp_feature_thr -1
 sharp_feature_erode_dilate 4
 alpha 0.3

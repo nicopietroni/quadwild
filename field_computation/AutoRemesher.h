@@ -7,7 +7,6 @@
 #include <vcg/complex/algorithms/isotropic_remeshing.h>
 
 #include <vcg/complex/append.h>
-
 #include <vcg/space/index/grid_static_ptr.h>
 #include <vcg/complex/algorithms/closest.h>
 #include <vcg/complex/algorithms/local_optimization/tri_edge_collapse.h>
@@ -32,6 +31,7 @@ class AutoRemesher {
     {
         vcg::tri::ForEachFace(m, [] (FaceType & f) {
             f.Q() = vcg::QualityRadii(f.cP(0), f.cP(1), f.cP(2));
+            //std::cout<<"Q:"<<f.Q()<<std::endl;
         });
 
         vcg::Histogram<ScalarType> hist;
@@ -40,13 +40,15 @@ class AutoRemesher {
         //		    return hist.MinV();
         return hist.Percentile(perc);
     }
+public:
 
-    static void collapseSurvivingMicroEdges(Mesh & m, const ScalarType qualityThr = 0.001, const ScalarType edgeRatio = 0.025, const int maxIter = 2)
+    static bool collapseSurvivingMicroEdges(Mesh & m, const ScalarType qualityThr = 0.001, const ScalarType edgeRatio = 0.025, const int maxIter = 2)
     {
         typedef vcg::tri::BasicVertexPair<VertexType> VertexPair;
         typedef vcg::tri::EdgeCollapser<Mesh, VertexPair> Collapser;
         typedef typename vcg::face::Pos<FaceType> PosType;
 
+        bool done=false;
         int count = 0; int iter = 0;
         do
         {
@@ -77,215 +79,100 @@ class AutoRemesher {
                             }
                         }
 
-//                        if (minEdgeLength <= maxEdgeLength * edgeRatio)
-//                        {
-                            PosType pi(&*fi, minEdge);
-                            VertexPair  bp = VertexPair(fi->V0(minEdge), fi->V1(minEdge));
-                            CoordType mp = (fi->cP0(minEdge) + fi->cP1(minEdge))/2.f;
+                        //                        if (minEdgeLength <= maxEdgeLength * edgeRatio)
+                        //                        {
+                        PosType pi(&*fi, minEdge);
 
-                            if(Collapser::LinkConditions(bp))
-                            {
-                                Collapser::Do(m, bp, mp, true);
-                            }
-//                        }
+                        //                        //select the vertices
+                        //                        (*fi).V(0)->SetS();
+                        //                        (*fi).V(1)->SetS();
+                        //                        (*fi).V(2)->SetS();
+                        //                        (*fi).FFp(minEdge)->V(0)->SetS();
+                        //                        (*fi).FFp(minEdge)->V(1)->SetS();
+                        //                        (*fi).FFp(minEdge)->V(2)->SetS();
+
+                        VertexPair  bp = VertexPair(fi->V0(minEdge), fi->V1(minEdge));
+                        CoordType mp = (fi->cP0(minEdge) + fi->cP1(minEdge))/2.f;
+
+                        if(Collapser::LinkConditions(bp))
+                        {
+                            Collapser::Do(m, bp, mp, true);
+                            done=true;
+                        }
+                        //                        }
                     }
                 }
         } while (count > 0 && ++iter < maxIter);
+        return done;
     }
-
-
-    static void removeColinearFaces(Mesh & m, const ScalarType colinearThr = 0.001)
+private:
+    static void MakeEdgeSelConsistent(Mesh & m)
     {
-        vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-
-        Mesh projectMesh;
-        vcg::tri::Append<Mesh, Mesh>::MeshCopy(projectMesh, m);
-        vcg::tri::UpdateBounding<Mesh>::Box(projectMesh);
-        vcg::tri::UpdateNormal<Mesh>::PerVertexNormalizedPerFace(projectMesh);
-        StaticGrid grid;
-        grid.Set(projectMesh.face.begin(), projectMesh.face.end());
-
-
-        int count = 0;
-        int iter = 0;
-        do
-        {
-            vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-            vcg::tri::UnMarkAll(m);
-
-            count = 0;
-            for (size_t i = 0; i < size_t(m.FN()); ++i)
+        for (size_t i=0;i<m.face.size();i++)
+            for (size_t j=0;j<3;j++)
             {
-                FaceType & f = m.face[i];
-
-                ScalarType quality = vcg::QualityRadii(f.cP(0), f.cP(1), f.cP(2));
-
-                if (quality <= colinearThr)
+                if (m.face[i].IsFaceEdgeS(j))
                 {
-                    //find longest edge
-                    double edges[3];
-                    edges[0] = vcg::Distance(f.cP(0), f.cP(1));
-                    edges[1] = vcg::Distance(f.cP(1), f.cP(2));
-                    edges[2] = vcg::Distance(f.cP(2), f.cP(0));
-
-                    ScalarType smallestEdge = std::min(edges[0], std::min(edges[1], edges[2]));
-                    int longestIdx = std::find(edges, edges+3, std::max(std::max(edges[0], edges[1]), edges[2])) - (edges);
-
-                    if (vcg::tri::IsMarked(m, f.V2(longestIdx)))
-                        continue;
-
-
-                    auto f1 = f.cFFp(longestIdx);
-                    vcg::tri::Mark(m,f.V2(longestIdx));
-                    if (!vcg::face::IsBorder(f, longestIdx) && vcg::face::IsManifold(f, longestIdx) && vcg::face::checkFlipEdgeNotManifold<FaceType>(f, longestIdx))  {
-
-                        // Check if EdgeFlipping improves quality
-                        FacePointer g = f.FFp(longestIdx); int k = f.FFi(longestIdx);
-                        vcg::Triangle3<ScalarType> t1(f.P(longestIdx), f.P1(longestIdx), f.P2(longestIdx)), t2(g->P(k), g->P1(k), g->P2(k)),
-                                t3(f.P(longestIdx), g->P2(k), f.P2(longestIdx)), t4(g->P(k), f.P2(longestIdx), g->P2(k));
-
-                        auto n1 = vcg::TriangleNormal(t1);
-                        auto n2 = vcg::TriangleNormal(t2);
-                        auto n3 = vcg::TriangleNormal(t3);
-                        auto n4 = vcg::TriangleNormal(t4);
-
-                        auto biggestSmallest = vcg::DoubleArea(t1) > vcg::DoubleArea(t2) ? std::make_pair(t1, t2) : std::make_pair(t2, t1);
-                        auto areaRatio = vcg::DoubleArea(biggestSmallest.first) / vcg::DoubleArea(biggestSmallest.second);
-
-                        bool normalCheck = true;
-                        //                        if (n1.Norm() > 0.001 && n2.Norm() > 0.001)
-                        {
-                            auto referenceNormal = vcg::NormalizedTriangleNormal(biggestSmallest.first);
-
-                            normalCheck &= vcg::NormalizedTriangleNormal(t3) * referenceNormal >= 0.95;
-                            normalCheck &= vcg::NormalizedTriangleNormal(t4) * referenceNormal >= 0.95;
-                        }
-
-                        bool areaCheck = false;
-                        if (areaRatio > 1000)
-                        {
-                            areaCheck |= vcg::DoubleArea(t3) / vcg::DoubleArea(biggestSmallest.second) > 1000 && vcg::DoubleArea(t4) / vcg::DoubleArea(biggestSmallest.second) > 1000;
-                        }
-
-                        if ((normalCheck) && (areaCheck || std::min( QualityFace(t1), QualityFace(t2) ) <= std::min( QualityFace(t3), QualityFace(t4))))
-                        {
-                            ScalarType dist;
-                            CoordType closest;
-                            auto fp0 = vcg::tri::GetClosestFaceBase(projectMesh, grid, vcg::Barycenter(t3), smallestEdge/4., dist, closest);
-                            if (fp0 == NULL)
-                                continue;
-
-                            auto fp1 = vcg::tri::GetClosestFaceBase(projectMesh, grid, vcg::Barycenter(t4), smallestEdge/4., dist, closest);
-                            if (fp1 == NULL)
-                                continue;
-
-                            vcg::face::FlipEdgeNotManifold<FaceType>(f, longestIdx);
-                            ++count;
-                        }
-                    }
+                    if (vcg::face::IsBorder(m.face[i],j))continue;
+                    FaceType *f1=m.face[i].FFp(j);
+                    int EdgeI=m.face[i].FFi(j);
+                    f1->SetFaceEdgeS(EdgeI);
                 }
             }
-        } while (count && ++iter < 75);
     }
 
-    static void specialTreatment(Mesh & m, Mesh & project, typename vcg::tri::IsotropicRemeshing<Mesh>::Params & para)
+    static void SelectAllBoundaryV(Mesh & m)
     {
-        std::cerr << "[REMESH] Mesh requires special treatment" << std::endl;
-        std::cerr << "[REMESH] Special Treatment. Faces: " << m.FN() << " Initial quality: " << computeAR(m) << std::endl;
-
-        vcg::tri::UpdateFlags<Mesh>::Clear(m);
-        CleanMesh(m);
-
-        vcg::tri::UpdateSelection<Mesh>::FaceClear(m);
-        vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-        vcg::tri::UpdateNormal<Mesh>::PerFaceNormalized(m);
-        vcg::tri::ForEachFace(m, [] (FaceType & f) {
-            float QQ = 0;
-            if (f.Q() <= 0.15)
-                f.SetS();
-            else
+        for (size_t i=0;i<m.face.size();i++)
+            for (size_t j=0;j<3;j++)
             {
-                for (int j = 0; j < 3; j++)
+                if (vcg::face::IsBorder(m.face[i],j)){
+                    m.face[i].V0(j)->SetS();
+                    m.face[i].V1(j)->SetS();
+                    continue;
+                }
+
+                if (m.face[i].IsFaceEdgeS(j))
                 {
-                    auto adjf = f.FFp(j);
-                    float nangle = vcg::AngleN((*adjf).cN(), f.cN());
-                    if (nangle > 130)
-                    {
-                        f.SetS();
-                        break;
-                    }
+                    m.face[i].V0(j)->SetS();
+                    m.face[i].V1(j)->SetS();
+                    FaceType *f1=m.face[i].FFp(j);
+                    int EdgeI=m.face[i].FFi(j);
+                    f1->SetFaceEdgeS(EdgeI);
                 }
             }
-        });
-
-        vcg::tri::UpdateSelection<Mesh>::FaceDilate(m);
-
-        para.iter = 10;
-        para.selectedOnly = true;
-
-        para.aspectRatioThr = 0.05;
-        para.cleanFlag = false;
-
-        ScalarType edgeL = para.maxLength;
-
-        para.SetTargetLen(edgeL * 0.75);
-        para.maxSurfDist = m.bbox.Diag() / 100.;
-
-        para.userSelectedCreases = false;
-        para.SetFeatureAngleDeg(50);
-
-        vcg::tri::Smooth<Mesh>::VertexCoordPlanarLaplacian(m, 20, vcg::math::ToRad(0.5), true);
-        vcg::tri::IsotropicRemeshing<Mesh>::Do(m, para);
-
-        vcg::tri::UpdateFlags<Mesh>::Clear(m);
-
-        para.iter= 10;
-        para.SetTargetLen(edgeL * 1.5);
-        para.cleanFlag = true;
-        para.userSelectedCreases = false;
-        para.selectedOnly = false;
-        para.maxSurfDist = m.bbox.Diag()/500.;
-        para.SetFeatureAngleDeg(30);
-
-        vcg::tri::IsotropicRemeshing<Mesh>::Do(m, para);
-
-        std::cerr << "[REMESH] Special Treatment. Faces: " << m.FN() << " Post-Treatment quality: " << computeAR(m) << std::endl;
     }
+
 public:
 
     typedef struct Params {
-
         int iterations = 15;
-
         ScalarType targetAspect = 0.35;
         int targetDeltaFN = 5000;
-
         int initialApproximateFN = 20000;
-
         ScalarType creaseAngle = 25.;
-
-        bool userSelectedCreases = true;
+        //bool userSelectedCreases = true;
         bool surfDistCheck = true;
-
         int erodeDilate = 0;
-
         ScalarType minAdaptiveMult = 0.3;
         ScalarType maxAdaptiveMult = 3;
         ScalarType minAspectRatioThr = 0.05;
         ScalarType targetEdgeLen = 0;
-
-
     } Params;
 
-    static size_t openNonManifoldEdges(Mesh & m, const ScalarType moveThreshold)
+    static size_t openNonManifoldEdges(Mesh & m, const ScalarType moveThreshold,
+                                       bool debugMesg=false)
     {
 
         vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
         vcg::tri::UpdateTopology<Mesh>::VertexFace(m);
         vcg::tri::UpdateFlags<Mesh>::VertexClearV(m);
 
-        std::cout << "Opening non-manifold edges...";
-        std::cout << "mesh starts with " << vcg::tri::Clean<Mesh>::CountNonManifoldEdgeFF(m) << std::endl;
+        if (debugMesg)
+        {
+            std::cout << "Opening non-manifold edges...";
+            std::cout << "mesh starts with " << vcg::tri::Clean<Mesh>::CountNonManifoldEdgeFF(m) << std::endl;
+        }
 
         typedef typename vcg::face::Pos<FaceType> PosType;
 
@@ -379,216 +266,393 @@ public:
         return map.size();
     }
 
-    static void SplitNonManifold (Mesh & m)
-    {
-        int splitV = 0, openings = 0;
-        do
-        {
-            vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
-            splitV = vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(m, 0.0001);
-            openings = openNonManifoldEdges(m, 0.0001);
-            std::cout << "Opened " << openings << " non manifold edges" << std::endl;
-        } while (splitV > 0 || openings > 0);
 
-        vcg::tri::Clean<Mesh>::RemoveUnreferencedVertex(m);
-        vcg::tri::Allocator<Mesh>::CompactEveryVector(m);
+//    static ScalarType ExpectedEdgeL(const Mesh & m,
+//                                    size_t TargetSph=2000,
+//                                    size_t MinFaces=15000)
+//    {
+//        ScalarType Vol=m.Volume();
+//        ScalarType A=m.Area();
+//        ScalarType FaceA=A/TargetSph;
+//        //radius and volume of a sphere
+//        ScalarType KScale=(Vol/A)*(3/(m.bbox.Diag()/3.4));
+//        //ScalarType KScale=(A*(m.bbox.Diag()/3.4))/(3*Vol);
+//        ScalarType IdealA=FaceA*KScale;
+//        ScalarType IdealL0=sqrt(IdealA*2.309);
+//        ScalarType IdealL1=sqrt((A*2.309)/MinFaces);
+//        std::cout<<"KScale"<<KScale<<std::endl;
+//        //exit(0);
+//        return std::max(IdealL0,IdealL1);
+//    }
+
+    static ScalarType ExpectedEdgeL(const Mesh & m,
+                                    size_t TargetSph=2000,
+                                    size_t MinFaces=10000)
+    {
+        ScalarType Vol=m.Volume();
+        ScalarType A=m.Area();
+        ScalarType FaceA=A/TargetSph;
+        //radius and volume of a sphere
+        ScalarType Sphericity=(pow(M_PI,1.0/3.0)*pow((6.0*Vol),2.0/3.0))/A;
+        ScalarType KScale=pow(Sphericity,2);
+        //ScalarType KScale=(A*(m.bbox.Diag()/3.4))/(3*Vol);
+        //ScalarType KScale=(pow(A,1.5))/(3*Vol);
+        ScalarType IdealA=FaceA*KScale;
+        ScalarType IdealL0=sqrt(IdealA*2.309);
+        ScalarType IdealL1=sqrt((A*2.309)/MinFaces);
+        std::cout<<"KScale "<<KScale<<std::endl;
+        //exit(0);
+        return std::min(IdealL0,IdealL1);
+        //return IdealL0;
     }
 
-    static std::shared_ptr<Mesh> CleanMesh(Mesh & m, const bool & splitNonManifold = false)
+    //remove sharp features that have been removed after remesher or clean that were still marked
+    static void UpdateCoherentSharp(Mesh & m, Params & par)
     {
-        std::shared_ptr<Mesh> ret = std::make_shared<Mesh>();
-        vcg::tri::Append<Mesh, Mesh>::MeshCopy(*ret, m);
-        vcg::tri::UpdateTopology<Mesh>::FaceFace(*ret);
+        if (par.creaseAngle<=0)return;
+        m.UpdateDataStructures();
+        //std::set<std::pair<CoordType,CoordType> > Features;
+        for (size_t i=0;i<m.face.size();i++)
+            for (size_t j=0;j<3;j++)
+            {
+                if (!m.face[i].IsFaceEdgeS(j))continue;
 
-        int i = 0; int removed = 0;
-        do
-        {
-            removed = vcg::tri::Clean<Mesh>::SplitNonManifoldVertex(*ret, 0.0001);
-            std::cout << "removed " << removed << " non manifold vertices..." << std::endl;
-        }
-        while (removed > 0 && i < 50);
+                ScalarType angle = DihedralAngleRad(m.face[i],j);
+                if(fabs(angle)<vcg::math::ToRad(par.creaseAngle))
+                {
+                    if (vcg::face::IsBorder(m.face[i],j))continue;
+                    m.face[i].ClearFaceEdgeS(j);
+                    m.face[i].FFp(j)->ClearFaceEdgeS(m.face[i].FFi(j));
+                }
+            }
 
-        std::cout << "Removed " << vcg::tri::Clean<Mesh>::RemoveDuplicateFace(*ret) << " duplicate faces..." << std::endl;
-        std::cout << "Removed " << vcg::tri::Clean<Mesh>::RemoveUnreferencedVertex(*ret) << " unreferenced vertices..." << std::endl;
-        vcg::tri::Allocator<Mesh>::CompactEveryVector(*ret);
+        m.InitFeatureCoordsTable();
+        //MeshPrepocess<Mesh>::InitSharpFeatures(mesh,BPar.sharp_feature_thr,BPar.feature_erode_dilate);
 
-        vcg::tri::UpdateTopology<Mesh>::FaceFace(*ret);
-
-        std::cout << "[AutoRemeshCleaner] Removing colinear faces by flip..." << std::endl;
-        removeColinearFaces(*ret);
-
-        std::cout << "Removed " << vcg::tri::Clean<Mesh>::RemoveZeroAreaFace(*ret) << " zero area faces..." << std::endl;
-        vcg::tri::Clean<Mesh>::RemoveUnreferencedVertex(*ret);
-        vcg::tri::Allocator<Mesh>::CompactEveryVector(*ret);
-
-
-        if (splitNonManifold)
-            SplitNonManifold(*ret);
-
-
-        vcg::tri::UpdateTopology<Mesh>::FaceFace(*ret);
-
-        std::cout << "[AutoRemeshCleaner] Attempting to coherently orient faces..." << std::endl;
-        bool oriented = false, orientable = false;
-        vcg::tri::Clean<Mesh>::OrientCoherentlyMesh(*ret, oriented, orientable);
-
-        std::cout << "[AutoRemeshCleaner] Orientable:" << orientable << std::endl;
-        std::cout << "[AutoRemeshCleaner] Oriented:"   << oriented << std::endl;
-
-        return ret;
     }
 
     //for big meshes disabling par.surfDistCheck provides big perf improvements, sacrificing result accuracy
-    static std::shared_ptr<Mesh> Remesh (Mesh & m, Params & par)
+    //static std::shared_ptr<Mesh> Remesh (Mesh & m, Params & par)
+    static void RemeshAdapt(Mesh & m, Params & par)
     {
-        std::shared_ptr<Mesh> ret = std::make_shared<Mesh>();
 
         vcg::tri::UpdateBounding<Mesh>::Box(m);
         vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
 
         typename vcg::tri::IsotropicRemeshing<Mesh>::Params para;
         para.iter = par.iterations;
-        para.SetFeatureAngleDeg(par.creaseAngle);
+        //para.SetFeatureAngleDeg(par.creaseAngle);
+
         para.splitFlag    = true;
         para.swapFlag     = true;
         para.collapseFlag = true;
-        para.smoothFlag   = false;
+        para.smoothFlag   = true;
         para.projectFlag  = true;
         para.selectedOnly = false;
         para.adapt=false;
         para.aspectRatioThr = 0.3;
-        para.cleanFlag = false;
+        para.cleanFlag = true;
 
         para.minAdaptiveMult = par.minAdaptiveMult;
         para.maxAdaptiveMult = par.maxAdaptiveMult;
 
         para.maxSurfDist = m.bbox.Diag() / 2500.;
         para.surfDistCheck = m.FN() < 400000 ? par.surfDistCheck : false;
-        para.userSelectedCreases = true;//par.userSelectedCreases;
+        para.userSelectedCreases = true;
 
-//        ScalarType prevFN = m.FN();
-//        ScalarType deltaFN = m.FN();
 
-//        ScalarType aspect = 0;
-//        ScalarType edgeLow  = 0;
-        ScalarType edgeL = std::sqrt(2.309 * vcg::tri::Stat<Mesh>::ComputeMeshArea(m) / par.initialApproximateFN);//m.bbox.Diag() * 0.025;//std::sqrt(vcg::tri::Stat<Mesh>::ComputeMeshArea(m) * 2 / par.initialApproximateFN);
+
+        ScalarType edgeL = ExpectedEdgeL(m);//,par.initialApproximateFN);//std::sqrt(2.309 * vcg::tri::Stat<Mesh>::ComputeMeshArea(m) / par.initialApproximateFN);//m.bbox.Diag() * 0.025;//std::sqrt(vcg::tri::Stat<Mesh>::ComputeMeshArea(m) * 2 / par.initialApproximateFN);
 
         if (par.targetEdgeLen == 0)
             par.targetEdgeLen = edgeL;
 
-//        ScalarType edgeHigh = edgeL * 2.;
-
         para.SetTargetLen(par.targetEdgeLen);
 
-        vcg::tri::Append<Mesh, Mesh>::MeshCopy(*ret, m);
 
-        ret->UpdateDataStructures();
-        ret->InitSharpFeatures(par.creaseAngle);
-        ret->ErodeDilate(par.erodeDilate);
-
-        vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
-        std::cout << "Iter: "<<  0 << " faces: " << ret->FN() << " quality: " <<  computeAR(*ret) << std::endl;
+        std::cout << "Before Remeshing - faces: " << m.FN() << " quality: " <<  computeAR(m) << std::endl;
+        vcg::tri::IsotropicRemeshing<Mesh>::Do(m, para);
+        std::cout << "After Iter 0 - faces: " << m.FN() << " quality: " <<  computeAR(m) << std::endl;
 
 
-        //const ScalarType thr = 0.01;
-        collapseSurvivingMicroEdges(*ret, 0.01);
+        const ScalarType thr = 0.01;
 
-        ret->UpdateDataStructures();
-        ret->InitSharpFeatures(par.creaseAngle);
-        ret->ErodeDilate(par.erodeDilate);
+        //vcg::tri::UpdateSelection<Mesh>::VertexClear(m);
+        collapseSurvivingMicroEdges(m,thr);
 
-        //para.SetTargetLen(par.targetEdgeLen * 0.85);
+        UpdateCoherentSharp(m,par);
+
         para.adapt = true;
         para.smoothFlag   = true;
         para.maxSurfDist = m.bbox.Diag() / 2500.;
 
-        vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
-        auto quality = computeAR(*ret);
-        std::cout << "Iter: "<<  1 << " faces: " << ret->FN() << " quality: " << quality << std::endl;
+        vcg::tri::IsotropicRemeshing<Mesh>::Do(m, para);
 
-//        //then do a final step fixing the features
-//        vcg::tri::UpdateSelection<Mesh>::VertexClear(*ret);
-//        vcg::tri::UpdateSelection<Mesh>::FaceClear(*ret);
-//        vcg::tri::ForEachFace(*ret, [&] (FaceType & f) {
-//                            for (int i = 0; i < 3; ++i)
-//                            {
-//                                bool IsSh=(vcg::face::IsBorder(f,i)||
-//                                           f.IsFaceEdgeS(i));
-//                                if (!IsSh)continue;
-//                                f.V0(i)->SetS();
-//                                f.V1(i)->SetS();
-//                            }
-//                   });
-//        vcg::tri::UpdateSelection<Mesh>::FaceFromVertexLoose(*ret);
-//        vcg::tri::UpdateSelection<Mesh>::FaceInvert(*ret);
-//        //vcg::tri::UpdateSelection<Mesh>::FaceErode(*ret);
-//        vcg::tri::UpdateSelection<Mesh>::VertexClear(*ret);
-//        para.smoothFlag   = true;
-//        para.selectedOnly = true;
-//        para.adapt=true;
-//        vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
+        m.UpdateDataStructures();
 
-////        if (quality < 0.1)
-////        {
-//            ret->UpdateDataStructures();
-//            ret->InitSharpFeatures(par.creaseAngle);
-//            ret->ErodeDilate(par.erodeDilate);
+        std::cout << "After Iter 1 - faces: " << m.FN() << " quality: " <<  computeAR(m) << std::endl;
 
-//            int count = 0;
-//            vcg::tri::ForEachFace(*ret, [&] (FaceType & f) {
+//        MakeEdgeSelConsistent(m);
+//        SelectAllBoundaryV(m);
+//        typename Local_Param_Smooth<Mesh>::UVSmoothParam UVP;
+//        UVP.FixSel=true;
 
-//                if (f.cQ() < par.minAspectRatioThr)
-//                {
-//                    ++count;
-//                    for (int i = 0; i < 3; ++i)
-//                    {
-//                        f.ClearFaceEdgeS(i);
-//                        if (vcg::face::IsBorder(f,i))continue;
-//                        f.FFp(i)->ClearFaceEdgeS(f.FFi(i));
-//                    }
-//                }
-//            });
+//        Local_Param_Smooth<Mesh>::Smooth(m,UVP);
+//        m.UpdateDataStructures();
+//        std::cout << "After Iter 2 - faces: " << m.FN() << " quality: " <<  computeAR(m) << std::endl;
 
-//            std::cout << count << " faces were relieved of crease edges due to poor quality" << std::endl;
-//            para.SetTargetLen(par.targetEdgeLen * 0.7);
-//            para.adapt = true;
-//            para.maxSurfDist = m.bbox.Diag() / 500.;
-//            vcg::tri::IsotropicRemeshing<Mesh>::Do(*ret, para);
-//            auto quality1 = computeAR(*ret);
-//            std::cout << "Iter: "<<  3 << " faces: " << ret->FN() << " quality: " << quality1 << std::endl;
-////        }
-
-
-        std::cerr << "[REMESH] RemeshedFaces:" << ret->FN() << std::endl;
-        std::cerr << "[REMESH] RemeshedAspect:" << computeAR(*ret) << std::endl;
-
-        const ScalarType thr = 0.01;
-        collapseSurvivingMicroEdges(*ret, thr);
-
-        vcg::tri::UpdateSelection<Mesh>::FaceClear(*ret);
-        vcg::tri::UpdateTopology<Mesh>::FaceFace(*ret);
-
-        vcg::tri::ForEachFace(*ret, [&] (FaceType & f) {
-            if (!f.IsD() && vcg::QualityRadii(f.cP(0), f.cP(1), f.cP(2)) <= 0.01)
-                f.SetS();
-        });
-
-        int zeroArea = 0;
-        do
-        {
-            zeroArea = vcg::tri::Clean<Mesh>::RemoveZeroAreaFace(*ret);
-            std::cout << "removed " << zeroArea << " zero area faces " << std::endl;
-        }
-        while(zeroArea != 0);
-
-        vcg::tri::UpdateSelection<Mesh>::FaceDilate(*ret);
-        //		vcg::tri::UpdateSelection<Mesh>::FaceDilate(*ret);
-        //		vcg::tri::Smooth<Mesh>::VertexCoordLaplacian(*ret, 15, true);
-
-        vcg::tri::Allocator<Mesh>::CompactEveryVector(*ret);
-        std::cout << "[REMESH] remeshing ends.." << std::endl;
-        return ret;
     }
+
+
+    //    static int SelectToRemesh(Mesh & m,ScalarType minR=0.2,size_t dilate=3)
+    //    {
+    //        vcg::tri::UpdateSelection<Mesh>::FaceClear(m);
+    //        for (size_t i=0;i<m.face.size();i++)
+    //        {
+    //            m.face[i].Q() = vcg::QualityRadii(m.face[i].cP(0),
+    //                                              m.face[i].cP(1),
+    //                                              m.face[i].cP(2));
+    //            if (m.face[i].Q()<minR)
+    //                m.face[i].SetS();
+    //       }
+    ////        //then check the borders
+    ////        vcg::tri::UpdateSelection<Mesh>::VertexClear(m);
+    ////        for (size_t i=0;i<m.face.size();i++)
+    ////            for (size_t j=0;j<3;j++)
+    ////            {
+    ////                if (!m.face[i].IsFaceEdgeS(j))continue;
+    ////                m.face[i].V0(j)->SetS();
+    ////                m.face[i].V1(j)->SetS();
+    ////            }
+    ////        for (size_t i=0;i<m.face.size();i++)
+    ////            for (size_t j=0;j<3;j++)
+    ////            {
+    ////                if (m.face[i].IsFaceEdgeS(j))continue;
+    ////                if (!m.face[i].V0(j)->IsS())continue;
+    ////                if (!m.face[i].V1(j)->IsS())continue;
+    ////                m.face[i].SetS();
+    ////            }
+
+    //        vcg::tri::UpdateSelection<Mesh>::VertexClear(m);
+    //        for (size_t s=0;s<dilate;s++)
+    //        {
+    //            vcg::tri::UpdateSelection<Mesh>::VertexFromFaceLoose(m);
+    //            vcg::tri::UpdateSelection<Mesh>::FaceFromVertexLoose(m);
+    //        }
+
+    //        int numS=0;
+    //        for (size_t i=0;i<m.face.size();i++)
+    //            if (m.face[i].IsS())numS++;
+    //        return (numS);
+    //    }
+
+    static int NumBadTris(Mesh & m,ScalarType minR=0.2,size_t dilate=3)
+    {
+        int numS=0;
+        for (size_t i=0;i<m.face.size();i++)
+        {
+            m.face[i].Q() = vcg::QualityRadii(m.face[i].cP(0),
+                                              m.face[i].cP(1),
+                                              m.face[i].cP(2));
+            if (m.face[i].Q()<minR)
+                numS++;
+        }
+        return (numS);
+    }
+
+    //    static void Remesh2(Mesh & m, Params & par)
+    //    {
+
+    //        vcg::tri::UpdateBounding<Mesh>::Box(m);
+    //        vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
+
+    //        typename vcg::tri::IsotropicRemeshing<Mesh>::Params para;
+    //        para.iter = par.iterations;
+    //        //para.SetFeatureAngleDeg(par.creaseAngle);
+
+    //        para.splitFlag    = true;
+    //        para.swapFlag     = true;
+    //        para.collapseFlag = true;
+    //        para.smoothFlag   = false;
+    //        para.projectFlag  = false;
+    //        para.selectedOnly = false;
+    //        para.adapt=false;
+    //        para.aspectRatioThr = 0.3;
+    //        para.cleanFlag = true;
+    //        para.minAdaptiveMult = par.minAdaptiveMult;
+    //        para.maxAdaptiveMult = par.maxAdaptiveMult;
+
+    //        para.maxSurfDist = m.bbox.Diag() / 2500.;
+    //        para.surfDistCheck = m.FN() < 400000 ? par.surfDistCheck : false;
+    //        para.userSelectedCreases = true;
+
+    //        ScalarType edgeL = ExpectedEdgeL(m);
+
+    //        //if (par.targetEdgeLen == 0)
+    //        par.targetEdgeLen = edgeL;
+
+    //        para.SetTargetLen(par.targetEdgeLen);
+
+    //        std::cout << "Before Remeshing - faces: " << m.FN() << " quality: " <<  computeAR(m) << std::endl;
+    //        vcg::tri::IsotropicRemeshing<Mesh>::Do(m, para);
+    //        std::cout << "After Iter 0 - faces: " << m.FN() << " quality: " <<  computeAR(m) << std::endl;
+
+
+    //        MakeEdgeSelConsistent(m);
+    //        SelectAllBoundaryV(m);
+    //        typename Local_Param_Smooth<Mesh>::UVSmoothParam UVP;
+    //        UVP.FixSel=true;
+
+    //        Local_Param_Smooth<Mesh>::Smooth(m,UVP);
+
+
+    //        //const ScalarType thr = 0.01;
+    //        collapseSurvivingMicroEdges(m, 0.01);
+
+    //        m.UpdateDataStructures();
+
+    //        int MaxS=3;
+    //        int currS=0;
+    //        int NumSel0=0;
+    //        int NumSel1=0;
+    //        do{
+    //            //             MakeEdgeSelConsistent(m);
+    //            //             SelectAllBoundaryV(m);
+    //            //             typename Local_Param_Smooth<Mesh>::UVSmoothParam UVP;
+    //            //             UVP.FixSel=true;
+
+    //            //Local_Param_Smooth<Mesh>::Smooth(m,UVP);
+
+    //            NumSel0=NumBadTris(m);
+    //            std::cout << "Not Nice 0: " <<  NumSel0 << " Faces"<<std::endl;
+
+
+    //            if (NumSel0>0)
+    //            {
+    //                par.targetEdgeLen*=0.75;
+    //                para.SetTargetLen(par.targetEdgeLen);
+    //                para.maxSurfDist = m.bbox.Diag() / 2500.;
+    //                //para.selectedOnly=true;
+    //                para.adapt=true;
+    //                para.smoothFlag= true;
+    //                vcg::tri::IsotropicRemeshing<Mesh>::Do(m, para);
+    //                collapseSurvivingMicroEdges(m, 0.01);
+    //                m.UpdateDataStructures();
+    //            }
+
+    //            NumSel1=NumBadTris(m);
+    //            std::cout << "Not Nice 1: " <<  NumSel1 << " Faces"<<std::endl;
+    //            currS++;
+
+    //        }while ((NumSel1<NumSel0) && (currS<MaxS));
+    //        //        std::cout << "Performed: " <<  currS << " Steps"<<std::endl;
+    //        std::cout << "After Iter Adapt - faces: " << m.FN() << " quality: " <<  computeAR(m) << std::endl;
+
+    //    }
+
+    //    //for big meshes disabling par.surfDistCheck provides big perf improvements, sacrificing result accuracy
+    //    static void Remesh (Mesh & m, Params & par)
+    //    {
+
+    //        m.UpdateDataStructures();
+
+    ////        vcg::tri::UpdateBounding<Mesh>::Box(m);
+    ////        vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
+
+    //        typename vcg::tri::IsotropicRemeshing<Mesh>::Params para;
+    //        para.iter = par.iterations;
+    //        para.SetFeatureAngleDeg(par.creaseAngle);
+    //        para.splitFlag    = true;
+    //        para.swapFlag     = true;
+    //        para.collapseFlag = true;
+    //        para.smoothFlag   = false;
+    //        para.projectFlag  = true;
+    //        para.selectedOnly = false;
+    //        para.adapt=false;
+    //        para.aspectRatioThr = 0.3;
+    //        para.cleanFlag = false;
+
+    //        para.minAdaptiveMult = par.minAdaptiveMult;
+    //        para.maxAdaptiveMult = par.maxAdaptiveMult;
+
+    //        para.maxSurfDist = m.bbox.Diag() / 2500.;
+    //        para.surfDistCheck = m.FN() < 400000 ? par.surfDistCheck : false;
+    //        para.userSelectedCreases = true;//par.userSelectedCreases;
+
+    ////        ScalarType prevFN = m.FN();
+    ////        ScalarType deltaFN = m.FN();
+
+    ////        ScalarType aspect = 0;
+    ////        ScalarType edgeLow  = 0;
+    //        ScalarType edgeL = std::sqrt(2.309 * vcg::tri::Stat<Mesh>::ComputeMeshArea(m) / par.initialApproximateFN);//m.bbox.Diag() * 0.025;//std::sqrt(vcg::tri::Stat<Mesh>::ComputeMeshArea(m) * 2 / par.initialApproximateFN);
+
+    //        if (par.targetEdgeLen == 0)
+    //            par.targetEdgeLen = edgeL;
+
+    ////        ScalarType edgeHigh = edgeL * 2.;
+
+    ////        para.SetTargetLen(par.targetEdgeLen);
+
+    ////        vcg::tri::Append<Mesh, Mesh>::MeshCopy(*ret, m);
+
+    ////        ret->UpdateDataStructures();
+
+    ////        ret->InitSharpFeatures(par.creaseAngle);
+    ////        ret->ErodeDilate(par.erodeDilate);
+
+
+    //        vcg::tri::IsotropicRemeshing<Mesh>::Do(m, para);
+    //        std::cout << "Iter: "<<  0 << " faces: " <<m.FN() << " quality: " <<  computeAR(m) << std::endl;
+
+
+    //        //const ScalarType thr = 0.01;
+    //        collapseSurvivingMicroEdges(m, 0.01);
+
+    ////        ret->UpdateDataStructures();
+    ////        ret->InitSharpFeatures(par.creaseAngle);
+    ////        ret->ErodeDilate(par.erodeDilate);
+    ////        MP.InitSharpFeatures(par.creaseAngle);
+    ////        MP.ErodeDilate(par.erodeDilate);
+
+    //        //para.SetTargetLen(par.targetEdgeLen * 0.85);
+    //        para.adapt = true;
+    //        para.smoothFlag   = true;
+    //        para.maxSurfDist = m.bbox.Diag() / 2500.;
+
+    //        vcg::tri::IsotropicRemeshing<Mesh>::Do(m, para);
+    //        auto quality = computeAR(m);
+    //        std::cout << "Iter: "<<  1 << " faces: " << m.FN() << " quality: " << quality << std::endl;
+
+    //        std::cerr << "[REMESH] RemeshedFaces:" << m.FN() << std::endl;
+    //        std::cerr << "[REMESH] RemeshedAspect:" << computeAR(m) << std::endl;
+
+    //        const ScalarType thr = 0.01;
+    //        collapseSurvivingMicroEdges(m, thr);
+
+    //        vcg::tri::UpdateSelection<Mesh>::FaceClear(m);
+    //        vcg::tri::UpdateTopology<Mesh>::FaceFace(m);
+
+    //        vcg::tri::ForEachFace(m, [&] (FaceType & f) {
+    //            if (!f.IsD() && vcg::QualityRadii(f.cP(0), f.cP(1), f.cP(2)) <= 0.01)
+    //                f.SetS();
+    //        });
+
+    //        int zeroArea = 0;
+    //        do
+    //        {
+    //            zeroArea = vcg::tri::Clean<Mesh>::RemoveZeroAreaFace(m);
+    //            std::cout << "removed " << zeroArea << " zero area faces " << std::endl;
+    //        }
+    //        while(zeroArea != 0);
+
+    //        vcg::tri::UpdateSelection<Mesh>::FaceDilate(m);
+    //        //		vcg::tri::UpdateSelection<Mesh>::FaceDilate(*ret);
+    //        //		vcg::tri::Smooth<Mesh>::VertexCoordLaplacian(*ret, 15, true);
+
+    //        vcg::tri::Allocator<Mesh>::CompactEveryVector(m);
+    //        std::cout << "[REMESH] remeshing ends.." << std::endl;
+    //        //return ret;
+    //    }
 };
 
 #endif // AUTOREMESHER_H
