@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
     }
     mesh.LoadSharpFeatures(pathS);
     TriangleMesh SharpMesh;
-    mesh.GenerateEdgeSelMesh(SharpMesh);
+    mesh.GenerateEdgeSelMesh(SharpMesh,0.02);
     std::string pathSharpMesh=pathProject;
     pathSharpMesh.append("_sharp_mesh.ply");
     vcg::tri::io::ExporterPLY<TriangleMesh>::Save(SharpMesh,pathSharpMesh.c_str(),
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
     patch_mesh.ColorByPartition();
 
     TriangleMesh BorderPatchMesh;
-    patch_mesh.GenerateEdgeSelMesh(BorderPatchMesh);
+    patch_mesh.GenerateEdgeSelMesh(BorderPatchMesh,0.02);
     std::string pathBorderPatchMesh=pathProject;
     pathBorderPatchMesh.append("_borderpatch_mesh.ply");
     vcg::tri::io::ExporterPLY<TriangleMesh>::Save(BorderPatchMesh,pathBorderPatchMesh.c_str(),

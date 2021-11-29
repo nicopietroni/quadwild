@@ -213,7 +213,7 @@ public:
     }
 
     void GenerateFieldMesh(TriangleMesh &FieldMesh,
-                           ScalarType scale=0.002)
+                           ScalarType scale=0.01)
     {
         FieldMesh.Clear();
         ScalarType sizeF=bbox.Diag()*scale;
