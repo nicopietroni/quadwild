@@ -30,7 +30,7 @@ size_t Time_Collapse_Step2=0;
 size_t Time_Collapse_Step3=0;
 size_t Time_Collapse_Step4=0;
 
-#include "GL_vert_field_graph.h"
+//#include "GL_vert_field_graph.h"
 #include "vertex_emitter.h"
 #include "patch_manager.h"
 #include "metamesh.h"
@@ -113,7 +113,7 @@ size_t Time_Collapse_Step4=0;
 //enum TraceType{TraceDirect,DijkstraReceivers,TraceLoop};
 enum PatchType{LowCorners,HighCorners,NonDisk,
                HasEmitter,MaxCClarkability,NonMatchValence,
-               IsOK};//MoreSing,IsOK};
+               NoQualityMatch,IsOK};//MoreSing,IsOK};
 
 
 template <class MeshType>
@@ -199,11 +199,11 @@ bool IsSelectedMeshPos(const vcg::face::Pos<FaceType> &Pos)
 {
     FaceType *f=Pos.F();
     int e=Pos.E();
-    f->IsFaceEdgeS(e);
+    return(f->IsFaceEdgeS(e));
 }
 
 template <class FaceType>
-bool SelectMeshPos(vcg::face::Pos<FaceType> &Pos)
+void SelectMeshPos(vcg::face::Pos<FaceType> &Pos)
 {
     FaceType *f=Pos.F();
     int e=Pos.E();
@@ -226,11 +226,11 @@ bool SelectMeshPatchBorders(const VertexFieldGraph<MeshType> &VFGraph,
     typedef typename MeshType::FaceType FaceType;
     typedef typename vcg::face::Pos<FaceType> PosType;
     //std::set<std::pair<size_t,size_t> > BorderPatches;
-    int t0=clock();
+    //int t0=clock();
     vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(VFGraph.Mesh());
     vcg::tri::UpdateFlags<MeshType>::FaceClearF(VFGraph.Mesh());
 
-    int t1=clock();
+    //int t1=clock();
     //first add borders
     for (size_t i=0;i<VFGraph.Mesh().face.size();i++)
         for (size_t j=0;j<3;j++)
@@ -239,7 +239,7 @@ bool SelectMeshPatchBorders(const VertexFieldGraph<MeshType> &VFGraph,
             VFGraph.Mesh().face[i].SetFaceEdgeS(j);
             VFGraph.Mesh().face[i].SetF(j);
         }
-    int t2=clock();
+    //int t2=clock();
     //std::unordered_set<std::pair<size_t,size_t> > BorderEdges;
     for (size_t i=0;i<TraceSet.size();i++)
     {
@@ -252,7 +252,7 @@ bool SelectMeshPatchBorders(const VertexFieldGraph<MeshType> &VFGraph,
             SelectMeshPos(NodePos[j]);
         }
     }
-    int t3=clock();
+    //int t3=clock();
     //        std::cout<<"Update "<<std::endl;
     //        std::cout<<"T0: "<<t1-t0<<std::endl;
     //        std::cout<<"T1: "<<t2-t1<<std::endl;
@@ -315,9 +315,9 @@ void GetEdgeDirVertMap(const VertexFieldGraph<MeshType> &VFGraph,
                        std::map<EdgeVert,size_t> &EdgeDirVert)
 {
     //EdgeDirVert.clear();
-    int t0=clock();
+    //int t0=clock();
     EdgeDirVert=VFGraph.EdgeBorderDir;
-    int t1=clock();
+    //int t1=clock();
     //timeCopyMap+=t1-t0;
     //for each edge set the direction per vertex
     //std::cout<<"Num added Traces"<<TraceSet.size()<<std::endl;
@@ -373,7 +373,7 @@ void GetEdgeDirVertMap(const VertexFieldGraph<MeshType> &VFGraph,
             EdgeDirVert[EdgeKey1]=((DirV1+2)%4);//put the inverse cause look internally the interval
 
         }
-        int t2=clock();
+        //int t2=clock();
         //                std::cout<<"Edge Map"<<std::endl;
         //                std::cout<<"T0: "<<t1-t0<<std::endl;
         //                std::cout<<"T1: "<<t2-t1<<std::endl;
@@ -577,20 +577,20 @@ void FindPartitionsCorners(const VertexFieldGraph<MeshType> &VFGraph,
     PartitionCorners.clear();
     PartitionCorners.resize(Partitions.size());
 
-    int t0=clock();
+    //int t0=clock();
     //for each edge set the direction per vertex
     std::map<EdgeVert,size_t> EdgeDirVert;
     //std::unordered_map<EdgeVert,size_t,EdgeVertKeyHasher> EdgeDirVert;
     GetEdgeDirVertMap(VFGraph,TraceSet,EdgeDirVert);
 
-    int t1=clock();
+    //int t1=clock();
     //    //then find per partition per edge angle
     //    std::map<std::pair<size_t,size_t>,ScalarType> PartitionVertAngle;
     //    FindTraceAngles(VFGraph,Partitions,PartitionVertAngle);
 
     vcg::tri::UpdateQuality<MeshType>::FaceConstant(VFGraph.Mesh(),-1);
 
-    int t2=clock();
+    //int t2=clock();
 
     //first initialize the quality of each face with the partition
     for (size_t i=0;i<Partitions.size();i++)
@@ -603,7 +603,7 @@ void FindPartitionsCorners(const VertexFieldGraph<MeshType> &VFGraph,
         }
     }
 
-    int t3=clock();
+    //int t3=clock();
     //then store per vertex
     //then go over all partitions
     for (size_t i=0;i<Partitions.size();i++)
@@ -653,7 +653,7 @@ void FindPartitionsCorners(const VertexFieldGraph<MeshType> &VFGraph,
         it = std::unique (PartitionCorners[i].begin(),PartitionCorners[i].end());
         PartitionCorners[i].resize( std::distance(PartitionCorners[i].begin(),it) );
     }
-    int t4=clock();
+    //int t4=clock();
 
     //    std::cout<<"t0:"<<t1-t0<<std::endl;
     //    std::cout<<"t1:"<<t2-t1<<std::endl;
@@ -803,7 +803,7 @@ void ColorMeshByExpValence(MeshType &mesh,
         {
             //            if (PartitionCorners[i].size()==ExpVal)
             //                CurrCol=vcg::Color4b::Green;
-            if ((PartitionCorners[i].size()!=ExpVal)&&(!OnCorner))
+            if (((int)PartitionCorners[i].size()!=ExpVal)&&(!OnCorner))
                 CurrCol=vcg::Color4b::Red;
             else
                 CurrCol=vcg::Color4b::Green;
@@ -868,8 +868,8 @@ void ColorMeshByTopology(MeshType &mesh,
 template <class MeshType>
 bool TraceDirectPath(VertexFieldGraph<MeshType> &VFGraph,
                      const size_t StartingNode,
-                     std::vector<size_t> &PathN,
-                     bool DebugMsg=false)
+                     std::vector<size_t> &PathN)
+                     //,bool DebugMsg=false)
 {
     //deselect source seletion in case is also a receiver
     bool restoreSel=false;
@@ -878,7 +878,7 @@ bool TraceDirectPath(VertexFieldGraph<MeshType> &VFGraph,
         VFGraph.DeSelect(StartingNode);
         restoreSel=true;
     }
-    bool Traced=VertexFieldQuery<MeshType>::TraceToSelected(VFGraph,StartingNode,PathN,DebugMsg);
+    bool Traced=VertexFieldQuery<MeshType>::TraceToSelected(VFGraph,StartingNode,PathN);
     if (restoreSel)
         VFGraph.Select(StartingNode);
 
@@ -957,14 +957,32 @@ void GetFarthestCoupleVertx(MeshType &mesh,
         }
 }
 
-
 template <class MeshType>
+class EmptyMeshQuality
+{
+    typedef typename MeshType::VertexType VertexType;
+    typedef typename MeshType::ScalarType  ScalarType;
+    typedef typename MeshType::FacePointer FacePointer;
+
+public:
+    EmptyMeshQuality(){}
+
+    ScalarType operator()(MeshType &m) const
+    {(void)m;return 0;}
+};
+
+template <class TriMeshType,class PatchQualityFunctor=EmptyMeshQuality<TriMeshType> >
 class PatchTracer
 {
+public:
+    typedef PatchTracer<TriMeshType,PatchQualityFunctor> MyTracerType;
+    typedef TriMeshType MeshType;
     typedef typename MeshType::CoordType CoordType;
     typedef typename MeshType::ScalarType ScalarType;
     typedef typename MeshType::FaceType FaceType;
     typedef typename MeshType::VertexType VertexType;
+
+private:
 
     VertexFieldGraph<MeshType> &VFGraph;
 
@@ -982,6 +1000,9 @@ public:
     ScalarType sample_ratio;
     ScalarType CClarkability;
     bool match_valence;
+    bool check_quality_functor;
+    ScalarType maxQThr;
+    ScalarType minQThr;
     //ScalarType max_patch_area;
     size_t MinVal;
     size_t MaxVal;
@@ -1303,13 +1324,19 @@ public:
         }
 
         if (filter_border)
-            VertexFieldQuery<MeshType>::SamplePoissonNodesBorderFiltering(VFGraph,sampleNum,StartingNodes,minNumHard);
+        {
+            VertexFieldQuery<MeshType>::SamplePoissonNodesBorderFiltering(VFGraph,sampleNum,StartingNodes,minNumHard,DebugMsg);
+        }
         else
-            VertexFieldQuery<MeshType>::SamplePoissonNodes(VFGraph,sampleNum,StartingNodes,minNumHard);
-
+        {
+            VertexFieldQuery<MeshType>::SamplePoissonNodes(VFGraph,sampleNum,StartingNodes,minNumHard,DebugMsg);
+        }
         //then check each connected component has samples
-        std::cout<<" TARGET "<<sampleNum *2 <<" NODES "<<std::endl;
-        std::cout<<" SAMPLED INITIAL "<<StartingNodes.size()<<" NODES "<<std::endl;
+        if (DebugMsg)
+        {
+            std::cout<<" TARGET "<<sampleNum *2 <<" NODES "<<std::endl;
+            std::cout<<" SAMPLED INITIAL "<<StartingNodes.size()<<" NODES "<<std::endl;
+        }
 
         for (size_t i=0;i<StartingNodes.size();i++)
         {
@@ -1345,7 +1372,8 @@ private:
             if (VertType[i]==TVFlat)
             {
                 size_t Emitter,Receiver;
-                VertexEmitter<MeshType>::ComputeFlatEmitterReceivers(VFGraph,VertOrthoDir,VertFlatDir,i,Emitter,Receiver);
+                VertexEmitter<MeshType>::ComputeFlatEmitterReceivers(VFGraph,VertOrthoDir,i,Emitter,Receiver);
+                //VertexEmitter<MeshType>::ComputeFlatEmitterReceivers(VFGraph,VertOrthoDir,VertFlatDir,i,Emitter,Receiver);
                 assert(Emitter!=Receiver);
                 assert(NodeEmitterTypes[Emitter]==TVNone);
                 NodeEmitterTypes[Emitter]=TVFlat;
@@ -1370,7 +1398,8 @@ private:
             if (VertType[i]==TVNarrow)
             {
                 size_t Emitter,Receiver;
-                VertexEmitter<MeshType>::ComputeNarrowEmitterReceivers(VFGraph,VertOrthoDir,VertFlatDir,i,Emitter,Receiver);
+                //VertexEmitter<MeshType>::ComputeNarrowEmitterReceivers(VFGraph,VertOrthoDir,VertFlatDir,i,Emitter,Receiver);
+                VertexEmitter<MeshType>::ComputeNarrowEmitterReceivers(VFGraph,VertFlatDir,i,Emitter,Receiver);
                 assert(Emitter!=Receiver);
                 assert(NodeEmitterTypes[Emitter]==TVNone);
                 NodeEmitterTypes[Emitter]=TVNarrow;
@@ -1380,23 +1409,24 @@ private:
         }
 
         SampleLoopEmitters(false);
+
     }
 
-//        //remove the connection with singularities that are not concave
-//        //or narrow and we should not trace from them
-//        void InvalidateNonConcaveSing()
-//        {
-//            for (size_t i=0;i<VertType.size();i++)
-//            {
-//                if (VertType[i]!=TVFlat)continue;
-//                if (!VFGraph.IsSingVert[i])continue;
-//                //get all nodes associated
-//                std::vector<size_t> Nodes;
-//                VertexFieldGraph<MeshType>::IndexNodes(i,Nodes);
-//                for (size_t i=0;i<Nodes.size();i++)
-//                    VFGraph.RemoveConnections(Nodes[i]);
-//            }
-//        }
+    //        //remove the connection with singularities that are not concave
+    //        //or narrow and we should not trace from them
+    //        void InvalidateNonConcaveSing()
+    //        {
+    //            for (size_t i=0;i<VertType.size();i++)
+    //            {
+    //                if (VertType[i]!=TVFlat)continue;
+    //                if (!VFGraph.IsSingVert[i])continue;
+    //                //get all nodes associated
+    //                std::vector<size_t> Nodes;
+    //                VertexFieldGraph<MeshType>::IndexNodes(i,Nodes);
+    //                for (size_t i=0;i<Nodes.size();i++)
+    //                    VFGraph.RemoveConnections(Nodes[i]);
+    //            }
+    //        }
 
     //remove the connection with singularities that are not concave
     //or narrow and we should not trace from them
@@ -1539,23 +1569,36 @@ private:
     void InitInternalStructures()
     {
         //InitOrthoDirections();
-        std::cout<<"** STARTING INITIALIZATION **"<<std::endl;
+        if (DebugMsg)
+        {
+            std::cout<<"** STARTING INITIALIZATION **"<<std::endl;
+            std::cout<<"* Initializing Vertex Type"<<std::endl;
+        }
 
-        std::cout<<"* Initializing Vertex Type"<<std::endl;
         InitVertType();
 
-        std::cout<<"* Setting Emitters type"<<std::endl;
+        if (DebugMsg)
+            std::cout<<"* Setting Emitters type"<<std::endl;
+
+
         InitEmitters();
 
-        std::cout<<"* Invalidating Tangent Nodes"<<std::endl;
+        if (DebugMsg)
+            std::cout<<"* Invalidating Tangent Nodes"<<std::endl;
+
         InvalidateTangentNodes();
 
-        std::cout<<"* Invalidating Singularities"<<std::endl;
+        if (DebugMsg)
+            std::cout<<"* Invalidating Singularities"<<std::endl;
+
         InvalidateNonConcaveSing();
 
-        std::cout<<"* Setting Vertices needs"<<std::endl;
+        if (DebugMsg)
+            std::cout<<"* Setting Vertices needs"<<std::endl;
         InitVerticesNeeds();
-        std::cout<<"** INITIALIZATION DONE **"<<std::endl;
+
+        if (DebugMsg)
+            std::cout<<"** INITIALIZATION DONE **"<<std::endl;
 
     }
 
@@ -1587,7 +1630,7 @@ private:
             //            if (DebugMsg)
             //                std::cout<<"Updating Candidate "<<std::endl;
 
-            UpdateCandidate(VFGraph,Candidates[i],Drift,MaxNarrowWeight,DebugMsg);
+            UpdateCandidate(VFGraph,Candidates[i],Drift,MaxNarrowWeight);//,DebugMsg);
         }
         //finally erase the non traced ones
         CleanNonTracedCandidates();
@@ -1622,16 +1665,16 @@ private:
 
     void AddChoosen(CandidateTrace &CurrC)
     {
-//        MeshType outMesh;
-//        CandidateTrace TestC=CurrC;
-//        TestC.PathNodes.resize(4);
-//        TestC.IsLoop=false;
-//        PatchManager<MeshType>::MeshTrace(VFGraph,TestC,VFGraph.Mesh().bbox.Diag()*0.001,outMesh);
-//        vcg::tri::io::ExporterPLY<MeshType>::Save(outMesh,"test_trace.ply");
-//        vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"test_domain.ply");
+        //        MeshType outMesh;
+        //        CandidateTrace TestC=CurrC;
+        //        TestC.PathNodes.resize(4);
+        //        TestC.IsLoop=false;
+        //        PatchManager<MeshType>::MeshTrace(VFGraph,TestC,VFGraph.Mesh().bbox.Diag()*0.001,outMesh);
+        //        vcg::tri::io::ExporterPLY<MeshType>::Save(outMesh,"test_trace.ply");
+        //        vcg::tri::io::ExporterPLY<MeshType>::Save(VFGraph.Mesh(),"test_domain.ply");
 
 
-//        VertexFieldQuery<MeshType>::CutEarPath(VFGraph,CurrC.PathNodes,CurrC.IsLoop);
+        //        VertexFieldQuery<MeshType>::CutEarPath(VFGraph,CurrC.PathNodes,CurrC.IsLoop);
 
         ChoosenPaths.push_back(CurrC);
         assert(CurrC.PathNodes.size()>=2);
@@ -2722,7 +2765,7 @@ private:
         assert(Index<PartitionCorners.size());
         assert(Index<Partitions.size());
 
-        //REMOVE THE REST      
+        //REMOVE THE REST
         if (PatchInfos[Index].Genus!=1)
         {
             PartitionType[Index]=NonDisk;
@@ -2759,6 +2802,28 @@ private:
             return;
         }
 
+        if ((check_quality_functor)&&(PatchInfos[Index].QualityFunctorValue>0))
+        {
+           PartitionType[Index]=NoQualityMatch;
+           return;
+        }
+//        //optional QualityFunctor
+//        if (check_quality_functor)
+//        {
+//            PatchQualityFunctor PFunct;
+//            MeshType m;
+//            GetPatchMesh(Index,m);
+//            bool IsOKQ=PFunct(m);
+//            if (!IsOKQ)
+//            {
+//                PartitionType[Index]=NoQualityMatch;
+//                return;
+//            }
+//        }
+        //            std::cout<<"isOK"<<std::endl;
+        //        else
+        //            std::cout<<"NotOK"<<std::endl;
+
         PartitionType[Index]=IsOK;
     }
 
@@ -2772,12 +2837,39 @@ public:
         //InitEdgeL();
         //int t1=clock();
         //if the singularity have been used then ccability of valence 4 is not computed
+
+        //optional QualityFunctor
+
+
         PatchManager<MeshType>::GetPatchInfo(Mesh(),Partitions,PartitionCorners,VerticesNeeds,EdgeL,
                                              PatchInfos,avgEdge*CClarkability,match_valence);
+        //update quality functor
+        if (check_quality_functor)
+        {
+            PatchQualityFunctor PFunct;
+            for (size_t i=0;i<Partitions.size();i++)
+            {
+                MeshType m;
+                GetPatchMesh(i,m);
+                PatchInfos[i].QualityFunctorValue=PFunct(m);
+            }
+        }
         //int t2=clock();
         for (size_t i=0;i<Partitions.size();i++)
             UpdatePartitionType(i);
 
+//        if (check_quality_functor)
+//        {
+//            PatchQualityFunctor PFunct;
+//            MeshType m;
+//            GetPatchMesh(Index,m);
+//            bool IsOKQ=PFunct(m);
+//            if (!IsOKQ)
+//            {
+//                PartitionType[Index]=NoQualityMatch;
+//                return;
+//            }
+//        }
         //int t3=clock();
         //                std::cout<<"Time Init Lenghts "<<t1-t0<<std::endl;
         //                std::cout<<"Time Get PInfo "<<t2-t1<<std::endl;
@@ -2855,7 +2947,7 @@ public:
         {
             size_t IndexF=vcg::tri::Index(Mesh(),changedF[i].F());
             int indexPatch=FacePartitions[IndexF];
-            assert(indexPatch<Partitions.size());
+            assert(indexPatch<(int)Partitions.size());
             assert(indexPatch>=0);
             ChangedPartitions.insert(indexPatch);
         }
@@ -3151,7 +3243,7 @@ private:
 
     void UpdatePatchAround(const std::vector<vcg::face::Pos<FaceType> > &FacesPath)
     {
-        int t0=clock();
+        //int t0=clock();
         //get the indexes of faces
         std::vector<size_t> IdxFaces;
         for (size_t i=0;i<FacesPath.size();i++)
@@ -3161,12 +3253,12 @@ private:
         }
         //then retrieve partitions
         RetrievePatchesFromSelEdges(Mesh(),IdxFaces,Partitions);
-        int t1=clock();
+        //int t1=clock();
         //std::cout<<"Updating "<<Partitions.size()<<" part"<<std::endl;
 
         PatchManager<MeshType>::DerivePerFacePartition(Mesh(),Partitions,FacePartitions);
         //find corners
-        int t2=clock();
+        //int t2=clock();
         //        FindPartitionsCorners<MeshType>(VFGraph,VertType,ChoosenPaths,Partitions,PartitionCorners);
 
         FindCorners<MeshType>(EDirTable,VFGraph.Mesh(),Partitions,PartitionCorners);
@@ -3176,9 +3268,9 @@ private:
         //        assert(PartitionCorners==PartitionCorners2);
 
         //find type
-        int t3=clock();
+        //int t3=clock();
         InitPartitionsType();
-        int t4=clock();
+        //int t4=clock();
 
         //        std::cout<<"t0:"<<t1-t0<<std::endl;
         //        std::cout<<"t1:"<<t2-t1<<std::endl;
@@ -3188,7 +3280,7 @@ private:
 
     bool RemoveIfPossible(size_t IndexPath,bool debubg_msg=false)
     {
-        int t0=clock();
+        //int t0=clock();
         if (ChoosenPaths[IndexPath].PathNodes.size()==0)return false;
         if (ChoosenPaths[IndexPath].Unremovable){std::cout<<"Unremoveable"<<std::endl;return false;}
         //if it includes a concave or narrow then cannot remove
@@ -3203,9 +3295,9 @@ private:
         std::vector<vcg::face::Pos<FaceType> > FacesPath;
         VFGraph.GetNodesPos(ChoosenPaths[IndexPath].PathNodes,ChoosenPaths[IndexPath].IsLoop,FacesPath);
 
-        int t1=clock();
+        //int t1=clock();
         UpdatePatchAround(FacesPath);
-        int t2=clock();
+        //int t2=clock();
         //UpdatePartitionsFromChoosen(true);
         std::vector<PatchInfo<ScalarType> > PatchInfos0=PatchInfos;
         //std::vector<std::vector<size_t> > FacePatches0=Partitions;
@@ -3228,17 +3320,17 @@ private:
         //deselect
         Mesh().SelectPos(FacesPath,false);
 
-        int t3=clock();
+        //int t3=clock();
         //UpdatePartitionsFromChoosen(true);
         UpdatePatchAround(FacesPath);
-        int t4=clock();
+        //int t4=clock();
         std::vector<PatchInfo<ScalarType> > PatchInfos1=PatchInfos;
         //std::vector<std::vector<size_t> > FacePatches1=Partitions;
 
         for (size_t i=0;i<PatchInfos1.size();i++)
         {
-            if ((PatchInfos1[i].NumCorners<MIN_ADMITTIBLE)
-                    ||(PatchInfos1[i].NumCorners>MAX_ADMITTIBLE))
+            if ((PatchInfos1[i].NumCorners<(int)MIN_ADMITTIBLE)
+                    ||(PatchInfos1[i].NumCorners>(int)MAX_ADMITTIBLE))
             {
                 //restore
                 ChoosenPaths[IndexPath]=OldTr;
@@ -3249,13 +3341,13 @@ private:
         }
 
         bool CanRemove=true;
-        int t5=clock();
+        //int t5=clock();
         //std::vector<typename MeshType::ScalarType> QThresold;
         CanRemove=PatchManager<MeshType>::BetterConfiguration(PatchInfos0,PatchInfos1,MinVal,
                                                               MaxVal,CClarkability,avgEdge,
                                                               match_valence,debubg_msg);
 
-        int t6=clock();
+        //int t6=clock();
         if (!CanRemove)
         {
             //restore
@@ -3292,8 +3384,8 @@ private:
     bool RemoveIteration()
     {
         bool HasRemoved=false;
-        //if (DebugMsg)
-        std::cout<<"REMOVING ITERATION"<<std::endl;
+        if (DebugMsg)
+            std::cout<<"REMOVING ITERATION"<<std::endl;
 
         //InitEdgeL();
         for (int i=ChoosenPaths.size()-1;i>=0;i--)
@@ -3340,7 +3432,7 @@ private:
         }
         assert(StartI>=0);
         //std::cout<<"Size "<<ToSplit.PathNodes.size()<<std::endl;
-        assert(StartI<(size_t)ToSplit.PathNodes.size());
+        assert(StartI<(int)ToSplit.PathNodes.size());
         size_t numNodes=ToSplit.PathNodes.size();
         std::vector<std::vector<size_t> > SubPaths;
         SubPaths.resize(1);
@@ -3619,7 +3711,8 @@ public:
     void InitTraceableBorders()//size_t minsuBSteps=MIN_BORDER_SAMPLE,
     //size_t maxsuBSteps=MAX_BORDER_SAMPLE)
     {
-        std::cout<<"** INIT TRACEABLE BORDERS **"<<std::endl;
+        if (DebugMsg)
+            std::cout<<"** INIT TRACEABLE BORDERS **"<<std::endl;
 
         std::vector<size_t> ConcaveV;
         GetVertexType(TVConcave,ConcaveV);
@@ -3709,7 +3802,8 @@ public:
         }
         //        if (DebugMsg)
         //            std::cout<<"selected traceable borders"<<std::endl;
-        std::cout<<"** DONE **"<<std::endl;
+        if (DebugMsg)
+            std::cout<<"** DONE **"<<std::endl;
 
     }
 
@@ -3727,7 +3821,6 @@ public:
         MaxNarrowWeight=sqrt(TotArea(Mesh()))*MAX_NARROW_CONST*Drift;
         InitAvEdge();
         InitEdgeDirTable();
-
 
         UpdatePartitionsFromChoosen(true);
         ColorByPartitions();
@@ -3748,7 +3841,7 @@ public:
         //            //        }
     }
 
-    size_t CopyPathsFrom(PatchTracer<MeshType> &Ptr,
+    size_t CopyPathsFrom(MyTracerType &Ptr,
                          std::vector<size_t> &VertMap)
     {
         std::vector<std::vector<size_t> > CurrV;
@@ -3876,7 +3969,8 @@ public:
         return insertedPath;
     }
 
-    void CopyFrom(PatchTracer<MeshType> &Ptr,
+    template <class PatchTracerType>
+    void CopyFrom(PatchTracerType &Ptr,
                   std::vector<size_t> &VertMap,
                   size_t IndexPatch)
     {
@@ -4202,7 +4296,7 @@ public:
         {
             int IndexV=patchMesh.vert[i].Q();
             assert(IndexV>=0);
-            assert(IndexV<Mesh().vert.size());
+            assert(IndexV<(int)Mesh().vert.size());
             VertMap[IndexV]=i;
         }
 
@@ -4497,11 +4591,12 @@ public:
 
     size_t BatchRemovalMetaMesh(bool PreRemoveStep=true)//bool do_smooth=true)
     {
-        size_t t0,t1,t2;
+        size_t t0,t1;//t2;
         size_t Size0=ChoosenPaths.size();
         if (PreRemoveStep)
         {
-            std::cout<<"**Pre Removal Step**"<<std::endl;
+            if (DebugMsg)
+                std::cout<<"**Pre Removal Step**"<<std::endl;
             t0=clock();
             InitMetaMesh();
             t1=clock();
@@ -4517,7 +4612,9 @@ public:
 
         size_t Size2=ChoosenPaths.size();
 
-        std::cout<<"**Regular Removal Step**"<<std::endl;
+        if (DebugMsg)
+            std::cout<<"**Regular Removal Step**"<<std::endl;
+
         t0=clock();
         InitMetaMesh();
         t1=clock();
@@ -4527,7 +4624,9 @@ public:
 
         if (!PreRemoveStep)
         {
-            std::cout<<"**Regular Removal Step**"<<std::endl;
+            if (DebugMsg)
+                std::cout<<"**Regular Removal Step**"<<std::endl;
+
             SplitIntoSubPaths();
             t0=clock();
             InitMetaMesh();
@@ -4689,7 +4788,7 @@ public:
                 int ExpVal=PatchManager<MeshType>::ExpectedValence(Mesh(),Partitions[i],PartitionCorners[i],SingOnCorner);
                 if (ExpVal!=4)continue;
                 if (SingOnCorner)continue;
-                if (ExpVal>PartitionCorners[i].size())continue;
+                if (ExpVal>(int)PartitionCorners[i].size())continue;
                 if (PartitionCorners[i].size()!=4)
                 {
                     NeedFix++;
@@ -4697,8 +4796,8 @@ public:
                 }
             }
         }
-        //if (DebugMsg)
-        std::cout<<"FINAL Fixed "<<NeedFix<<std::endl;
+        if (DebugMsg)
+            std::cout<<"FINAL Fixed "<<NeedFix<<std::endl;
     }
 
 
@@ -4923,15 +5022,15 @@ public:
         std::vector<PatchType> UnsolvedType;
         GetUnsolvedPartitions(UnsolvedPartition,UnsolvedType,false);
         PatchManager<MeshType>::SelectFaces(Mesh(),UnsolvedPartition);
-//        for (size_t i=0;i<UnsolvedType.size();i++)
-//        {
-//            if (UnsolvedType[i]!=NonDisk)continue;
-//            PatchManager<MeshType>::SelectFaces(Mesh(),UnsolvedPartition[i]);
-//        }
+        //        for (size_t i=0;i<UnsolvedType.size();i++)
+        //        {
+        //            if (UnsolvedType[i]!=NonDisk)continue;
+        //            PatchManager<MeshType>::SelectFaces(Mesh(),UnsolvedPartition[i]);
+        //        }
         vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(problem_mesh);
 
         vcg::tri::Append<MeshType,MeshType>::Mesh(problem_mesh,Mesh(),true);
- //       vcg::tri::io::ExporterPLY<MeshType>::Save(problem_mesh,"test_problem.ply");
+        //       vcg::tri::io::ExporterPLY<MeshType>::Save(problem_mesh,"test_problem.ply");
         problem_mesh.UpdateAttributes();
     }
 
@@ -4947,18 +5046,18 @@ public:
         GetIsLoop(DiscardedCandidates,DiscardedIsLoop);
     }
 
-//    void CutEarPath()
-//    {
-//        PatchManager<MeshType>::SelectMeshPatchBorders(Mesh(),FacePartitions);
-//        //NEED TO SELECT PATCH END POINTS !!!
-//        for (size_t i=0;i<ChoosenPaths.size();i++)
-//        {
-//            VertexFieldQuery<MeshType>::CutEarPath(VFGraph,ChoosenPaths[i].PathNodes,ChoosenPaths[i].IsLoop);
-//        }
+    //    void CutEarPath()
+    //    {
+    //        PatchManager<MeshType>::SelectMeshPatchBorders(Mesh(),FacePartitions);
+    //        //NEED TO SELECT PATCH END POINTS !!!
+    //        for (size_t i=0;i<ChoosenPaths.size();i++)
+    //        {
+    //            VertexFieldQuery<MeshType>::CutEarPath(VFGraph,ChoosenPaths[i].PathNodes,ChoosenPaths[i].IsLoop);
+    //        }
 
-//        InitEdgeDirTable();
-//        InitEdgeL();
-//    }
+    //        InitEdgeDirTable();
+    //        InitEdgeL();
+    //    }
 
     void GetEdgeNodes(const size_t &IndexV0,const size_t &IndexV1,
                       size_t &IndexN0,size_t &IndexN1)const
@@ -5133,10 +5232,10 @@ public:
         EdgeL.clear();
     }
 
-    void GLDraweMetaMesh()
-    {
-        MMesh.GLDraw();
-    }
+//    void GLDraweMetaMesh()
+//    {
+//        MMesh.GLDraw();
+//    }
 
     void InitMetaMesh()
     {
@@ -5202,6 +5301,7 @@ public:
         //avoid_collapse_irregular=false;
         away_from_singular=true;
         match_valence=true;
+        check_quality_functor=false;
         //        max_lenght_distortion=-1;//1.2;
         //        max_lenght_variance=-1;//2;
         CClarkability=1;

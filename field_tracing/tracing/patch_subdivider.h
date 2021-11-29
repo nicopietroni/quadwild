@@ -30,7 +30,7 @@ public:
                     const vcg::face::Pos<FaceType> &ep)
     {
         VertexType *v0=ep.V();
-        VertexType *v1=ep.VFlip();
+        const VertexType *v1=ep.VFlip();
 
         CoordType Pos0=v0->P();
         CoordType Pos1=v1->P();
@@ -144,9 +144,9 @@ class PatchSplitter
         }
         assert(Index>=0);
 
-        VertexType *v0=mesh.face[Index].cV(0);
-        VertexType *v1=mesh.face[Index].cV(1);
-        VertexType *v2=mesh.face[Index].cV(2);
+        VertexType *v0=mesh.face[Index].V(0);
+        VertexType *v1=mesh.face[Index].V(1);
+        VertexType *v2=mesh.face[Index].V(2);
         size_t IndexV0=vcg::tri::Index(mesh,v0);
         size_t IndexV1=vcg::tri::Index(mesh,v1);
         size_t IndexV2=vcg::tri::Index(mesh,v2);

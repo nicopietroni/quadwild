@@ -45,7 +45,7 @@
 #include <QWindow>
 #include <QFileInfo>
 
-extern CMesh mesh;
+extern TraceMesh mesh;
 extern std::string pathM;
 extern std::string pathF;
 extern std::string pathS;

@@ -41,19 +41,22 @@
 #include "glwidget.h"
 #include <wrap/qt/trackball.h>
 #include <wrap/gl/picking.h>
+#include <wrap/gl/trimesh.h>
 #include <wrap/qt/anttweakbarMapper.h>
 #include <wrap/gl/gl_field.h>
 #include <QDir>
 #include "tracing/GL_vert_field_graph.h"
 #include "tracing/patch_tracer.h"
 #include "tracing/tracer_interface.h"
+#include "mesh_drawing.h"
+#include "tracing/GL_metamesh.h"
 //#include <vcg/complex/algorithms/parametrization/local_para_smooth.h>
 
 TwBar *bar;
 char * filename;/// filename of the mesh to load
-CMesh mesh,problematic_mesh;     /// the active mesh instance
-vcg::GlTrimesh<CMesh> glWrap;    /// the active mesh opengl wrapper
-vcg::GlTrimesh<CMesh> glWrapProblem;
+TraceMesh mesh,problematic_mesh;     /// the active mesh instance
+vcg::GlTrimesh<TraceMesh> glWrap;    /// the active mesh opengl wrapper
+vcg::GlTrimesh<TraceMesh> glWrapProblem;
 vcg::Trackball track;     /// the active manipulator
 GLW::DrawMode drawmode=GLW::DMFlatWire;     /// the current drawmode
 
@@ -84,6 +87,8 @@ bool drawMetaMesh=false;
 bool drawNarrowCandidates=false;
 
 //bool splitted=false;
+bool save_setup=false;
+bool save_csv=false;
 
 bool batch_process=false;
 bool has_features=false;
@@ -107,18 +112,19 @@ ProblematicNodes,UnsatisfiedNodes,
 ChoosenEmittersNode,ChoosenReceiversNode,
 TraceableFlatNode;
 
-VertexFieldGraph<CMesh> VGraph(mesh);
-GLVertGraph<CMesh> GLGraph(VGraph);
+VertexFieldGraph<TraceMesh> VGraph(mesh);
+GLVertGraph<TraceMesh> GLGraph(VGraph);
 
-PatchTracer<CMesh> PTr(VGraph);
+typedef PatchTracer<TraceMesh> TracerType;
+TracerType PTr(VGraph);
 
 std::vector<std::vector<size_t> > CurrCandidates;
 std::vector<bool> ChosenIsLoop;
 std::vector<std::vector<size_t> > ChosenCandidates;
 std::vector<bool> DiscardedIsLoop;
 std::vector<std::vector<size_t> > DiscardedCandidates;
-std::vector<typename CMesh::CoordType> PatchCornerPos;
-CMesh::ScalarType Drift=100;
+std::vector<typename TraceMesh::CoordType> PatchCornerPos;
+TraceMesh::ScalarType Drift=100;
 
 enum PatchColorMode{CMPatchNone, CMPatchCol, CMPatchValence,
                     CMPatchTopo,CMPatchLengthDist,CMPatchLenghtVar,
@@ -158,13 +164,13 @@ void SaveSetupFile(const std::string pathProject,
 
     //    float Driftf;
     //    fscanf(f,"Drift %f\n",&Driftf);
-    //    Drift=(CMesh::ScalarType)Driftf;
+    //    Drift=(TraceMesh::ScalarType)Driftf;
     //    std::cout<<"DRIFT "<<Drift<<std::endl;
     fprintf(f,"Drift %f\n",Drift);
 
     //    float SRatef;
     //    fscanf(f,"Srate %f\n",&SRatef);
-    //    PTr.sample_ratio=(CMesh::ScalarType)SRatef;
+    //    PTr.sample_ratio=(TraceMesh::ScalarType)SRatef;
     //    std::cout<<"SAMPLE RATE "<<PTr.sample_ratio<<std::endl;
     fprintf(f,"Srate %f\n",PTr.sample_ratio);
 
@@ -187,7 +193,7 @@ void SaveSetupFile(const std::string pathProject,
 
     //    float CCbility;
     //    fscanf(f,"CCability %f\n",&CCbility);
-    //    PTr.CClarkability=(CMesh::ScalarType)CCbility;
+    //    PTr.CClarkability=(TraceMesh::ScalarType)CCbility;
     //    std::cout<<"CCABILITY "<<PTr.CClarkability<<std::endl;
     fprintf(f,"CCability %f\n",PTr.CClarkability);
 
@@ -288,12 +294,12 @@ void LoadSetupFile(std::string path)
 
     float Driftf;
     fscanf(f,"Drift %f\n",&Driftf);
-    Drift=(CMesh::ScalarType)Driftf;
+    Drift=(TraceMesh::ScalarType)Driftf;
     std::cout<<"DRIFT "<<Drift<<std::endl;
 
     float SRatef;
     fscanf(f,"Srate %f\n",&SRatef);
-    PTr.sample_ratio=(CMesh::ScalarType)SRatef;
+    PTr.sample_ratio=(TraceMesh::ScalarType)SRatef;
     std::cout<<"SAMPLE RATE "<<PTr.sample_ratio<<std::endl;
 
     int IntVar=0;
@@ -309,7 +315,7 @@ void LoadSetupFile(std::string path)
 
     float CCbility;
     fscanf(f,"CCability %f\n",&CCbility);
-    PTr.CClarkability=(CMesh::ScalarType)CCbility;
+    PTr.CClarkability=(TraceMesh::ScalarType)CCbility;
     std::cout<<"CCABILITY "<<PTr.CClarkability<<std::endl;
 
     fscanf(f,"MatchVal %d\n",&IntVar);
@@ -418,7 +424,7 @@ void FindCurrentNum()
 void UpdatePatchColor()
 {
     if (CurrPatchMode==CMPatchNone)
-        vcg::tri::UpdateColor<CMesh>::PerFaceConstant(mesh,vcg::Color4b(192,192,192,255));
+        vcg::tri::UpdateColor<TraceMesh>::PerFaceConstant(mesh,vcg::Color4b(192,192,192,255));
     if (CurrPatchMode==CMPatchCol)
         PTr.ColorByPartitions();
     //PTr.ColorByPatchQuality();
@@ -518,12 +524,12 @@ void InitStructures()
 
 //void TW_CALL SmoothParam(void *)
 //{
-//    vcg::tri::Local_Param_Smooth<CMesh>::Smooth(mesh);
+//    vcg::tri::Local_Param_Smooth<TraceMesh>::Smooth(mesh);
 //}
 
 void TW_CALL InitGraph(void *)
 {
-    //    vcg::tri::Local_Param_Smooth<CMesh>::SmoothStep(mesh,0.5);
+    //    vcg::tri::Local_Param_Smooth<TraceMesh>::SmoothStep(mesh,0.5);
     InitStructures();
 
     drawField=false;
@@ -590,8 +596,8 @@ void TW_CALL BatchProcess(void *)
 void TW_CALL RecursiveProcess(void *)
 {
     InitStructures();
-    //RecursiveProcess<CMesh>(PTr,Drift);
-    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal,true,meta_mesh_collapse,force_split);//,interleave_smooth);
+    //RecursiveProcess<TraceMesh>(PTr,Drift);
+    RecursiveProcess<TracerType>(PTr,Drift, add_only_needed,final_removal,true,meta_mesh_collapse,force_split);//,interleave_smooth);
     CurrPatchMode=CMPatchCol;
     drawField=false;
     drawSharpF=false;
@@ -786,9 +792,9 @@ void  ProcessAllBatch()
     InitStructures();
     //std::cout<<"DE BOIA 4:"<<PTr.EDirTable.ConvexV.size()<<std::endl;
 
-    //RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal,);//,interleave_smooth);
-    RecursiveProcess<CMesh>(PTr,Drift, add_only_needed,final_removal,true,meta_mesh_collapse,force_split);
-    //RecursiveProcess<CMesh>(PTr,Drift,true,true,true);
+    //RecursiveProcess<TraceMesh>(PTr,Drift, add_only_needed,final_removal,);//,interleave_smooth);
+    RecursiveProcess<TracerType>(PTr,Drift, add_only_needed,final_removal,true,meta_mesh_collapse,force_split);
+    //RecursiveProcess<TraceMesh>(PTr,Drift,true,true,true);
     CurrPatchMode=CMPatchCol;
     //    PTr.BatchRemoval();
     //    PTr.FixValences();
@@ -799,8 +805,12 @@ void  ProcessAllBatch()
     UpdateVisualNodes();
     PTr.SmoothPatches();
     SaveAllData(PTr,pathProject,CurrNum,subdivide_when_save,has_original_faces);
-    SaveCSV(PTr,pathProject,CurrNum);
-    SaveSetupFile(pathProject,CurrNum);
+
+    if (save_csv)
+        SaveCSV(PTr,pathProject,CurrNum);
+
+    if (save_setup)
+        SaveSetupFile(pathProject,CurrNum);
 }
 
 void TW_CALL AllProcess(void *)
@@ -1010,17 +1020,17 @@ void GLWidget::paintGL ()
         if (drawField)
         {
             if (!drawProblematicsOnly)
-                vcg::GLField<CMesh>::GLDrawFaceField(mesh,false,false,0.005);
+                vcg::GLField<TraceMesh>::GLDrawFaceField(mesh,false,false,0.005);
             else
-                vcg::GLField<CMesh>::GLDrawFaceField(problematic_mesh,false,false,0.005);
+                vcg::GLField<TraceMesh>::GLDrawFaceField(problematic_mesh,false,false,0.005);
         }
 
         if (drawSing)
         {
             if (!drawProblematicsOnly)
-                vcg::GLField<CMesh>::GLDrawSingularity(mesh);
+                vcg::GLField<TraceMesh>::GLDrawSingularity(mesh);
             else
-                vcg::GLField<CMesh>::GLDrawFaceField(problematic_mesh,false,false,0.005);
+                vcg::GLField<TraceMesh>::GLDrawFaceField(problematic_mesh,false,false,0.005);
         }
 
         if (drawTwins)
@@ -1045,7 +1055,8 @@ void GLWidget::paintGL ()
         if (drawInvalidated)
             GLGraph.GLDrawNonActiveNodes(mesh.bbox.Diag()*0.001);
         if (drawSharpF)
-            mesh.GLDrawSharpEdges();
+            MeshDrawing<TraceMesh>::GLDrawSharpEdges(mesh);
+            //mesh.GLDrawSharpEdges();
         if (drawUnsatisfied)
             GLGraph.GLDrawNodes(UnsatisfiedNodes,mesh.bbox.Diag()*0.001,true,30);
 
@@ -1067,7 +1078,8 @@ void GLWidget::paintGL ()
         //GLGraph.GLDrawNodes(TraceableFlatNode,mesh.bbox.Diag()*0.002);
 
         if (drawMetaMesh)
-            PTr.GLDraweMetaMesh();
+            GLMetaMesh<TraceMesh>::GLDraw(PTr.MMesh);
+            //PTr.GLDraweMetaMesh();
         //GLGraph.GLDrawSingNodes(mesh.bbox.Diag()*0.002);
     }
 

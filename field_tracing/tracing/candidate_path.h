@@ -114,7 +114,7 @@ void GetPathPos(VertexFieldGraph<MeshType> &VFGraph,
                 const std::vector<CandidateTrace> &TraceSet,
                 std::vector<std::vector<vcg::face::Pos<typename MeshType::FaceType> > > &Paths)
 {
-    typedef typename MeshType::FaceType FaceType;
+    //typedef typename MeshType::FaceType FaceType;
 
     Paths.clear();
     Paths.resize(TraceSet.size());
@@ -152,8 +152,8 @@ template <class MeshType>
 bool UpdateCandidate(VertexFieldGraph<MeshType> &VFGraph,
                      CandidateTrace &ToUpdate,
                      const typename MeshType::ScalarType &Drift,
-                     const typename MeshType::ScalarType &MaxDijstraDist,
-                     bool DebugMsg)
+                     const typename MeshType::ScalarType &MaxDijstraDist)//,
+                     //bool DebugMsg)
 {
     assert(!ToUpdate.Updated);
     ToUpdate.Updated=true;
@@ -164,7 +164,7 @@ bool UpdateCandidate(VertexFieldGraph<MeshType> &VFGraph,
     if (ToUpdate.TracingMethod==TraceDirect)
     {
         std::vector<size_t> PathN;
-        bool hasTraced=TraceDirectPath(VFGraph,IndexN0,PathN,DebugMsg);
+        bool hasTraced=TraceDirectPath(VFGraph,IndexN0,PathN);//,DebugMsg);
         if (!hasTraced)return false;
         ToUpdate.PathNodes=PathN;
         ToUpdate.IsLoop=false;
@@ -188,6 +188,7 @@ bool UpdateCandidate(VertexFieldGraph<MeshType> &VFGraph,
         ToUpdate.IsLoop=true;
         return true;
     }
+    return false;
 }
 
 

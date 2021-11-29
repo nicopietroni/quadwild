@@ -15,12 +15,9 @@ class MetaMesh
     typedef typename MeshType::VertexType VertexType;
     typedef typename vcg::face::Pos<FaceType> PosType;
 
-    enum CEdgeMode{CMNone,CMRemovable,CMLenght,CMPathId};
+//    enum CEdgeMode{CMNone,CMRemovable,CMLenght,CMPathId};
 
-    ScalarType MaxL;
-    int MaxPath;
     std::set<size_t> AvoidPartitions;
-    MeshType *mesh;
 
     struct MetaVert
     {
@@ -49,9 +46,14 @@ class MetaMesh
         //std::vector<std::vector<vcg::Color4b> > EdgeCol;
     };
 
+public:
+    MeshType *mesh;
+    int MaxPath;
+    ScalarType MaxL;
     std::vector<MetaVert> MVert;
     std::vector<MetaFace> MFaces;
 
+private:
     std::vector<int> MetaToMeshVert;
     std::vector<int> MeshToMetaVert;
 
@@ -67,6 +69,8 @@ class MetaMesh
     {
         return (MFaces[indexMetaFace].V.size());
     }
+
+public:
 
     size_t NumSides(const size_t indexMetaFace)const
     {
@@ -87,6 +91,19 @@ class MetaMesh
         return Pos;
     }
 
+
+    void GetSideExtremes(const size_t indexMetaFace,
+                         const size_t indexSide,
+                         size_t &IndexV0,size_t &IndexV1)
+    {
+        std::vector<size_t> MetaEdgeI;
+        GetSideMetaEdges(indexMetaFace,indexSide,MetaEdgeI);
+        IndexV0=MetaEdgeI[0];
+        size_t numV=NumVerts(indexMetaFace);
+        IndexV1=(MetaEdgeI.back()+1)%numV;
+    }
+
+private:
     VertexType* MeshV(const size_t indexMetaFace,
                       const size_t &indexMetaVert)const
     {
@@ -227,7 +244,7 @@ class MetaMesh
     {
         for (size_t j=0;j<MFaces[IndexMetaF].PathId.size();j++)
         {
-            if (MFaces[IndexMetaF].PathId[j]!=IndexPath)continue;
+            if (MFaces[IndexMetaF].PathId[j]!=(int)IndexPath)continue;
             return j;
         }
         return -1;
@@ -238,7 +255,7 @@ class MetaMesh
     {
         int IndexE=WhichEdgeFaceHasPath(IndexMetaF,IndexPath);
         if (IndexE==-1)return -1;
-        assert(IndexE<NumVerts(IndexMetaF));
+        assert(IndexE<(int)NumVerts(IndexMetaF));
 
         return (WhichSide(IndexMetaF,IndexE));
     }
@@ -294,16 +311,6 @@ class MetaMesh
             MetaEdgeI.push_back(i);
     }
 
-    void GetSideExtremes(const size_t indexMetaFace,
-                         const size_t indexSide,
-                         size_t &IndexV0,size_t &IndexV1)
-    {
-        std::vector<size_t> MetaEdgeI;
-        GetSideMetaEdges(indexMetaFace,indexSide,MetaEdgeI);
-        IndexV0=MetaEdgeI[0];
-        size_t numV=NumVerts(indexMetaFace);
-        IndexV1=(MetaEdgeI.back()+1)%numV;
-    }
 
     void GetSideAdjacencyEdges(const size_t indexMetaFace,const size_t indexSide,
                                std::vector<std::pair<int,int> > &AdjF)const
@@ -335,7 +342,7 @@ class MetaMesh
             }
             else
             {
-                assert(IndexE<NumVerts(IndexF));
+                assert(IndexE<(int)NumVerts(IndexF));
                 size_t IndexSideE=WhichSide(IndexF,IndexE);
                 FaceSides.push_back(std::pair<int,int>(IndexF,IndexSideE));
             }
@@ -504,6 +511,7 @@ class MetaMesh
 
     size_t UnsolvedEmitters(const size_t indexMetaFace)
     {
+        (void)indexMetaFace;
         return 0;//HAS TO BE IMPLEMENTED
     }
 
@@ -522,8 +530,8 @@ class MetaMesh
         PInfo.ExpectedValence=MFaces[indexMetaFace].ExpectedVal;
         PInfo.NumSing=MFaces[indexMetaFace].NumSing;
 
-        if ((PInfo.NumCorners<MIN_ADMITTIBLE)||
-                (PInfo.NumCorners>MAX_ADMITTIBLE)||
+        if ((PInfo.NumCorners<(int)MIN_ADMITTIBLE)||
+                (PInfo.NumCorners>(int)MAX_ADMITTIBLE)||
                 (PInfo.Genus!=1)||
                 (PInfo.NumEmitters>0)||
                 (Thr<=0))
@@ -574,7 +582,13 @@ class MetaMesh
                         MFaces[IndexF].PathId[IndexE]=IndexPath;
                     else
                     {
-                        assert(MFaces[IndexF].PathId[IndexE]==IndexPath);
+                        if (MFaces[IndexF].PathId[IndexE]!=(int)IndexPath)
+                        {
+                        MFaces[IndexF].PathId[IndexE]=(int)IndexPath;
+                        std::cout<<"WARNING INCONSISTENT META MESH"<<std::endl;
+                        }
+                        //std::cout<<"WARNING INCONSISTENT META MESH"<<std::endl;
+                        //assert(MFaces[IndexF].PathId[IndexE]==(int)IndexPath);
                     }
                 }
             }
@@ -875,6 +889,18 @@ class MetaMesh
         return true;
     }
 
+public:
+
+    bool IsFieldCornerFaceV(const size_t IndexMetaF,
+                            const size_t IndexMetaV)
+    {
+        assert(IndexMetaV<NumVerts(IndexMetaF));
+        std::vector<size_t> EdgeDir;
+        GetEdgeDirOnV(IndexMetaF,IndexMetaV,EdgeDir);
+        return (HasOrthogonalCross(EdgeDir)||
+                HasNarrowCross(EdgeDir));
+    }
+
     bool IsRemovableEdgeVisual(const size_t IndexMetaF,
                                const size_t IndexEdge)const
     {
@@ -883,6 +909,26 @@ class MetaMesh
         return (IsRemovableSideVisual(IndexMetaF,IndexSide));
         return true;
     }
+
+
+    void GetEdgeDirOnV(const size_t IndexMetaF,
+                       const size_t IndexMetaV,
+                       std::vector<CoordType> &EdgeDir)
+    {
+        std::vector<size_t> IDir;
+        GetEdgeDirOnV(IndexMetaF,IndexMetaV,IDir);
+
+        VertexType *v= MeshV(IndexMetaF,IndexMetaV);
+        for (size_t i=0;i<IDir.size();i++)
+        {
+            assert(IDir[i]>=0);
+            assert(IDir[i]<4);
+            CoordType CrossDir=vcg::tri::CrossField<MeshType>::CrossVector(*v,(int)IDir[i]);
+            EdgeDir.push_back(CrossDir);
+        }
+    }
+
+private:
 
     bool IsRemovableEdge(const size_t IndexMetaF,
                          const size_t IndexEdge)const
@@ -910,267 +956,242 @@ class MetaMesh
         EdgeDir.push_back(Dir1);
     }
 
-    bool IsFieldCornerFaceV(const size_t IndexMetaF,
-                            const size_t IndexMetaV)
-    {
-        assert(IndexMetaV<NumVerts(IndexMetaF));
-        std::vector<size_t> EdgeDir;
-        GetEdgeDirOnV(IndexMetaF,IndexMetaV,EdgeDir);
-        return (HasOrthogonalCross(EdgeDir)||
-                HasNarrowCross(EdgeDir));
-    }
-
-    void GetEdgeDirOnV(const size_t IndexMetaF,
-                       const size_t IndexMetaV,
-                       std::vector<CoordType> &EdgeDir)
-    {
-        std::vector<size_t> IDir;
-        GetEdgeDirOnV(IndexMetaF,IndexMetaV,IDir);
-
-        VertexType *v= MeshV(IndexMetaF,IndexMetaV);
-        for (size_t i=0;i<IDir.size();i++)
-        {
-            assert(IDir[i]>=0);
-            assert(IDir[i]<4);
-            CoordType CrossDir=vcg::tri::CrossField<MeshType>::CrossVector(*v,(int)IDir[i]);
-            EdgeDir.push_back(CrossDir);
-        }
-    }
-
-    void GlDrawMetaVert(size_t IndexV)
-    {
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
-        glDisable(GL_LIGHTING);
-        glDepthRange(0,0.9995);
-
-        if (MVert[IndexV].FixedEnd)
-        {
-            glPointSize(20);
-            glColor(vcg::Color4b(255,0,0,255));
-        }
-        else
-        {
-            glPointSize(10);
-            glColor(vcg::Color4b(0,255,0,255));
-        }
-
-        CoordType Pos = MetaVertPos(IndexV);
-        glBegin(GL_POINTS);
-        vcg::glVertex(Pos);
-        glEnd();
-        glPopAttrib();
-    }
-
-    void GlDrawMetaFaceAdj(size_t IndexF)
-    {
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
-        glDisable(GL_LIGHTING);
-        glDepthRange(0,0.9995);
-
-        glLineWidth(5);
 
 
-        size_t sizeV=MFaces[IndexF].V.size();
+//    void GlDrawMetaVert(size_t IndexV)
+//    {
+//        glPushAttrib(GL_ALL_ATTRIB_BITS);
+//        glDisable(GL_LIGHTING);
+//        glDepthRange(0,0.9995);
 
-        CoordType Bary0=MFaces[IndexF].BaryF;
-        for (size_t i=0;i<sizeV;i++)
-        {
-            CoordType PosE0= MetaVertPos(MFaces[IndexF].V[i]);
-            CoordType PosE1= MetaVertPos(MFaces[IndexF].V[(i+1)%sizeV]);
-            CoordType AvgE=(PosE0+PosE1)/2;
-            int AdjF=MFaces[IndexF].AdjF[i].first;
+//        if (MVert[IndexV].FixedEnd)
+//        {
+//            glPointSize(20);
+//            glColor(vcg::Color4b(255,0,0,255));
+//        }
+//        else
+//        {
+//            glPointSize(10);
+//            glColor(vcg::Color4b(0,255,0,255));
+//        }
 
-            CoordType Pos0=Bary0*0.5+AvgE*0.5;
-            CoordType Pos1=AvgE;
-            CoordType Pos2=AvgE;
-            vcg::Color4b adj_col(255,0,255,255);
-            if (AdjF!=-1)
-            {
-                assert(MFaces[IndexF].AdjF[i].second!=-1);
-                int AdjF=MFaces[IndexF].AdjF[i].first;
-                //int AdjE=MFaces[IndexF].AdjF[i].second;
-                CoordType Bary1=MFaces[AdjF].BaryF;
-                Pos2=Bary1*0.5+AvgE*0.5;//Bary1;
-                adj_col=vcg::Color4b(0,0,255,255);
-            }
-            glColor(adj_col);
-            glBegin(GL_LINE_STRIP);
-            vcg::glVertex(Pos0);
-            vcg::glVertex(Pos1);
-            vcg::glVertex(Pos2);
-            glEnd();
-        }
-        glPopAttrib();
-    }
+//        CoordType Pos = MetaVertPos(IndexV);
+//        glBegin(GL_POINTS);
+//        vcg::glVertex(Pos);
+//        glEnd();
+//        glPopAttrib();
+//    }
 
-    void GlDrawMetaFaceVert(size_t IndexF)
-    {
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
-        glDisable(GL_LIGHTING);
-        glDepthRange(0,0.9995);
+//    void GlDrawMetaFaceAdj(size_t IndexF)
+//    {
+//        glPushAttrib(GL_ALL_ATTRIB_BITS);
+//        glDisable(GL_LIGHTING);
+//        glDepthRange(0,0.9995);
 
-        glPointSize(10);
-        glColor(vcg::Color4b(0,0,0,255));
-
-        size_t sizeV=MFaces[IndexF].V.size();
-
-        CoordType bary=MFaces[IndexF].BaryF;
-
-        glBegin(GL_POINTS);
-        for (size_t i=0;i<sizeV;i++)
-        {
-            if (!MFaces[IndexF].RealV[i])continue;
-            CoordType pos=MetaVertPos(MFaces[IndexF].V[i]);
-            pos=pos*0.8+bary*0.2;
-            vcg::glVertex(pos);
-        }
-        glEnd();
+//        glLineWidth(5);
 
 
-        glPopAttrib();
-    }
+//        size_t sizeV=MFaces[IndexF].V.size();
 
-    void GlDrawMetaFaceVertField(size_t IndexF)
-    {
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
-        glDisable(GL_LIGHTING);
-        glDepthRange(0,0.9995);
+//        CoordType Bary0=MFaces[IndexF].BaryF;
+//        for (size_t i=0;i<sizeV;i++)
+//        {
+//            CoordType PosE0= MetaVertPos(MFaces[IndexF].V[i]);
+//            CoordType PosE1= MetaVertPos(MFaces[IndexF].V[(i+1)%sizeV]);
+//            CoordType AvgE=(PosE0+PosE1)/2;
+//            int AdjF=MFaces[IndexF].AdjF[i].first;
+
+//            CoordType Pos0=Bary0*0.5+AvgE*0.5;
+//            CoordType Pos1=AvgE;
+//            CoordType Pos2=AvgE;
+//            vcg::Color4b adj_col(255,0,255,255);
+//            if (AdjF!=-1)
+//            {
+//                assert(MFaces[IndexF].AdjF[i].second!=-1);
+//                int AdjF=MFaces[IndexF].AdjF[i].first;
+//                //int AdjE=MFaces[IndexF].AdjF[i].second;
+//                CoordType Bary1=MFaces[AdjF].BaryF;
+//                Pos2=Bary1*0.5+AvgE*0.5;//Bary1;
+//                adj_col=vcg::Color4b(0,0,255,255);
+//            }
+//            glColor(adj_col);
+//            glBegin(GL_LINE_STRIP);
+//            vcg::glVertex(Pos0);
+//            vcg::glVertex(Pos1);
+//            vcg::glVertex(Pos2);
+//            glEnd();
+//        }
+//        glPopAttrib();
+//    }
+
+//    void GlDrawMetaFaceVert(size_t IndexF)
+//    {
+//        glPushAttrib(GL_ALL_ATTRIB_BITS);
+//        glDisable(GL_LIGHTING);
+//        glDepthRange(0,0.9995);
+
+//        glPointSize(10);
+//        glColor(vcg::Color4b(0,0,0,255));
+
+//        size_t sizeV=MFaces[IndexF].V.size();
+
+//        CoordType bary=MFaces[IndexF].BaryF;
+
+//        glBegin(GL_POINTS);
+//        for (size_t i=0;i<sizeV;i++)
+//        {
+//            if (!MFaces[IndexF].RealV[i])continue;
+//            CoordType pos=MetaVertPos(MFaces[IndexF].V[i]);
+//            pos=pos*0.8+bary*0.2;
+//            vcg::glVertex(pos);
+//        }
+//        glEnd();
 
 
-        size_t sizeV=MFaces[IndexF].V.size();
+//        glPopAttrib();
+//    }
 
-        CoordType bary=MFaces[IndexF].BaryF;
+//    void GlDrawMetaFaceVertField(size_t IndexF)
+//    {
+//        glPushAttrib(GL_ALL_ATTRIB_BITS);
+//        glDisable(GL_LIGHTING);
+//        glDepthRange(0,0.9995);
 
-        for (size_t i=0;i<sizeV;i++)
-        {
-            CoordType pos0=MetaVertPos(MFaces[IndexF].V[i]);
-            pos0=pos0*0.8+bary*0.2;
 
-            std::vector<CoordType> EdgeDir;
-            GetEdgeDirOnV(IndexF,i,EdgeDir);
-            assert(EdgeDir.size()==2);
-            ScalarType sizeD=(*mesh).bbox.Diag()*0.01;
-            CoordType pos1=pos0+EdgeDir[0]*sizeD;
-            CoordType pos2=pos0+EdgeDir[1]*sizeD;
-            if (IsFieldCornerFaceV(IndexF,i))
-            {
-               glLineWidth(10);
-               glColor(vcg::Color4b(255,255,0,255));
-            }
-            else
-            {
-               glLineWidth(5);
-               glColor(vcg::Color4b(200,200,200,255));
-            }
-            glBegin(GL_LINES);
-            vcg::glVertex(pos0);
-            vcg::glVertex(pos1);
-            vcg::glVertex(pos0);
-            vcg::glVertex(pos2);
-            glEnd();
-        }
+//        size_t sizeV=MFaces[IndexF].V.size();
+
+//        CoordType bary=MFaces[IndexF].BaryF;
+
+//        for (size_t i=0;i<sizeV;i++)
+//        {
+//            CoordType pos0=MetaVertPos(MFaces[IndexF].V[i]);
+//            pos0=pos0*0.8+bary*0.2;
+
+//            std::vector<CoordType> EdgeDir;
+//            GetEdgeDirOnV(IndexF,i,EdgeDir);
+//            assert(EdgeDir.size()==2);
+//            ScalarType sizeD=(*mesh).bbox.Diag()*0.01;
+//            CoordType pos1=pos0+EdgeDir[0]*sizeD;
+//            CoordType pos2=pos0+EdgeDir[1]*sizeD;
+//            if (IsFieldCornerFaceV(IndexF,i))
+//            {
+//               glLineWidth(10);
+//               glColor(vcg::Color4b(255,255,0,255));
+//            }
+//            else
+//            {
+//               glLineWidth(5);
+//               glColor(vcg::Color4b(200,200,200,255));
+//            }
+//            glBegin(GL_LINES);
+//            vcg::glVertex(pos0);
+//            vcg::glVertex(pos1);
+//            vcg::glVertex(pos0);
+//            vcg::glVertex(pos2);
+//            glEnd();
+//        }
 
 
 
-        glPopAttrib();
-    }
+//        glPopAttrib();
+//    }
 
-    void GlDrawMetaFaceSides(size_t IndexF)
-    {
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
-        glDisable(GL_LIGHTING);
-        glDepthRange(0,0.9995);
-        glDisable(GL_CULL_FACE);
-        //glLineWidth(5);
-
-
-        size_t sizeV=NumSides(IndexF);
-        int ExpVal=MFaces[IndexF].ExpectedVal;
-        if ((sizeV<3)||(sizeV>6))
-            glColor(vcg::Color4b(255,0,0,255));
-        if (sizeV==3)
-            glColor(vcg::Color4b(0,255,255,255));
-        if (sizeV==4)
-            glColor(vcg::Color4b(100,100,100,255));
-        if (sizeV==5)
-            glColor(vcg::Color4b(255,0,255,255));
-        if (sizeV==6)
-            glColor(vcg::Color4b(255,255,0,255));
-        if (ExpVal!=sizeV)
-            glColor(vcg::Color4b(255,0,0,255));
-
-        CoordType bary=MFaces[IndexF].BaryF;
-
-        //        for (size_t i=0;i<sizeV;i++)
-        //        {
-        //            size_t IndexV0,IndexV1;
-        //            GetSideExtremes(IndexF,i,IndexV0,IndexV1);
-
-        //            CoordType Pos0= MetaVertPos(MFaces[IndexF].V[IndexV0]);
-        //            Pos0=bary*0.75+Pos0*0.25;
-        //            CoordType Pos1= MetaVertPos(MFaces[IndexF].V[IndexV1]);
-        //            Pos1=bary*0.75+Pos1*0.25;
-        //            glBegin(GL_LINES);
-        //            vcg::glVertex(Pos0);
-        //            vcg::glVertex(Pos1);
-        //            glEnd();
-        //        }
-
-        glBegin(GL_POLYGON);
-        for (size_t i=0;i<sizeV;i++)
-        {
-            size_t IndexV0,IndexV1;
-            GetSideExtremes(IndexF,i,IndexV0,IndexV1);
-
-            CoordType Pos0= MetaVertPos(MFaces[IndexF].V[IndexV0]);
-            Pos0=bary*0.75+Pos0*0.25;
-
-            vcg::glVertex(Pos0);
-        }
-        glEnd();
-
-        glPopAttrib();
-    }
+//    void GlDrawMetaFaceSides(size_t IndexF)
+//    {
+//        glPushAttrib(GL_ALL_ATTRIB_BITS);
+//        glDisable(GL_LIGHTING);
+//        glDepthRange(0,0.9995);
+//        glDisable(GL_CULL_FACE);
+//        //glLineWidth(5);
 
 
+//        size_t sizeV=NumSides(IndexF);
+//        int ExpVal=MFaces[IndexF].ExpectedVal;
+//        if ((sizeV<3)||(sizeV>6))
+//            glColor(vcg::Color4b(255,0,0,255));
+//        if (sizeV==3)
+//            glColor(vcg::Color4b(0,255,255,255));
+//        if (sizeV==4)
+//            glColor(vcg::Color4b(100,100,100,255));
+//        if (sizeV==5)
+//            glColor(vcg::Color4b(255,0,255,255));
+//        if (sizeV==6)
+//            glColor(vcg::Color4b(255,255,0,255));
+//        if (ExpVal!=sizeV)
+//            glColor(vcg::Color4b(255,0,0,255));
 
-    void GlDrawMetaFace(size_t IndexF,const CEdgeMode EMode)
-    {
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
-        glDisable(GL_LIGHTING);
-        glDepthRange(0,0.9995);
+//        CoordType bary=MFaces[IndexF].BaryF;
 
-        glLineWidth(5);
+//        //        for (size_t i=0;i<sizeV;i++)
+//        //        {
+//        //            size_t IndexV0,IndexV1;
+//        //            GetSideExtremes(IndexF,i,IndexV0,IndexV1);
+
+//        //            CoordType Pos0= MetaVertPos(MFaces[IndexF].V[IndexV0]);
+//        //            Pos0=bary*0.75+Pos0*0.25;
+//        //            CoordType Pos1= MetaVertPos(MFaces[IndexF].V[IndexV1]);
+//        //            Pos1=bary*0.75+Pos1*0.25;
+//        //            glBegin(GL_LINES);
+//        //            vcg::glVertex(Pos0);
+//        //            vcg::glVertex(Pos1);
+//        //            glEnd();
+//        //        }
+
+//        glBegin(GL_POLYGON);
+//        for (size_t i=0;i<sizeV;i++)
+//        {
+//            size_t IndexV0,IndexV1;
+//            GetSideExtremes(IndexF,i,IndexV0,IndexV1);
+
+//            CoordType Pos0= MetaVertPos(MFaces[IndexF].V[IndexV0]);
+//            Pos0=bary*0.75+Pos0*0.25;
+
+//            vcg::glVertex(Pos0);
+//        }
+//        glEnd();
+
+//        glPopAttrib();
+//    }
 
 
-        size_t sizeV=MFaces[IndexF].V.size();
-        for (size_t i=0;i<sizeV;i++)
-        {
-            if (EMode==CMNone)
-                glColor(vcg::Color4b(200,200,200,255));
-            if (EMode==CMLenght)
-                glColor(vcg::Color4b::ColorRamp(0,MaxL,MFaces[IndexF].MetaL[i]));
-            if (EMode==CMRemovable)
-            {
-                if (IsRemovableEdgeVisual(IndexF,i))
-                    glColor(vcg::Color4b(0,255,0,255));
-                else
-                    glColor(vcg::Color4b(255,0,0,255));
-            }
-            if (EMode==CMPathId)
-            {
-                size_t IndexP=MFaces[IndexF].PathId[i];
-                glColor(vcg::Color4b::Scatter(MaxPath,IndexP));
-            }
-            CoordType Pos0= MetaVertPos(MFaces[IndexF].V[i]);
-            CoordType Pos1= MetaVertPos(MFaces[IndexF].V[(i+1)%sizeV]);
-            glBegin(GL_LINES);
-            vcg::glVertex(Pos0);
-            vcg::glVertex(Pos1);
-            glEnd();
-        }
-        glPopAttrib();
-    }
+
+//    void GlDrawMetaFace(size_t IndexF,const CEdgeMode EMode)
+//    {
+//        glPushAttrib(GL_ALL_ATTRIB_BITS);
+//        glDisable(GL_LIGHTING);
+//        glDepthRange(0,0.9995);
+
+//        glLineWidth(5);
+
+
+//        size_t sizeV=MFaces[IndexF].V.size();
+//        for (size_t i=0;i<sizeV;i++)
+//        {
+//            if (EMode==CMNone)
+//                glColor(vcg::Color4b(200,200,200,255));
+//            if (EMode==CMLenght)
+//                glColor(vcg::Color4b::ColorRamp(0,MaxL,MFaces[IndexF].MetaL[i]));
+//            if (EMode==CMRemovable)
+//            {
+//                if (IsRemovableEdgeVisual(IndexF,i))
+//                    glColor(vcg::Color4b(0,255,0,255));
+//                else
+//                    glColor(vcg::Color4b(255,0,0,255));
+//            }
+//            if (EMode==CMPathId)
+//            {
+//                size_t IndexP=MFaces[IndexF].PathId[i];
+//                glColor(vcg::Color4b::Scatter(MaxPath,IndexP));
+//            }
+//            CoordType Pos0= MetaVertPos(MFaces[IndexF].V[i]);
+//            CoordType Pos1= MetaVertPos(MFaces[IndexF].V[(i+1)%sizeV]);
+//            glBegin(GL_LINES);
+//            vcg::glVertex(Pos0);
+//            vcg::glVertex(Pos1);
+//            glEnd();
+//        }
+//        glPopAttrib();
+//    }
 
     void ReSortFace(size_t IndexF)
     {
@@ -1462,7 +1483,7 @@ class MetaMesh
 
             //assert(OppF!=IndexF1);
 
-            if (OppF!=IndexF0)
+            if (OppF!=(int)IndexF0)
             {
                 //it should then be re-directed to the remaining face
                 assert(!IsEmpty(OppF));
@@ -1529,7 +1550,7 @@ class MetaMesh
         if (!IsRemovableSide(IndexMetaF,SideI))
             return MRNoRemovable;
 
-        assert(SideI<NumSides(IndexMetaF));
+        assert(SideI<(int)NumSides(IndexMetaF));
         MergeSide(IndexMetaF,SideI);
         return MRRemoved;
     }
@@ -1618,8 +1639,8 @@ class MetaMesh
         //check if has generated some infeaseable partition
         for (size_t i=0;i<PatchInfos1.size();i++)
         {
-            if ((PatchInfos1[i].NumCorners<MIN_ADMITTIBLE)
-                    ||(PatchInfos1[i].NumCorners>MAX_ADMITTIBLE))
+            if ((PatchInfos1[i].NumCorners<(int)MIN_ADMITTIBLE)
+              ||(PatchInfos1[i].NumCorners>(int)MAX_ADMITTIBLE))
             {
                 //restore
                 MFaces=SwapMFaces;
@@ -1704,29 +1725,28 @@ public:
         //        size_t t1=clock();
         std::cout<<"Performed "<<step_rem<<" removal loops"<<std::endl;
         std::cout<<"Removed "<<num_removed<<" paths"<<std::endl;
-        //        std::cout<<"Time "<<((ScalarType)(t1-t0))/CLOCKS_PER_SEC<<" secs"<<std::endl;
-    }
+     }
 
-    void GLDraw(const CEdgeMode EMode=CMRemovable,
-                bool DrawMetaEdgeAdj=true)
-    {
-        for (size_t i=0;i<MVert.size();i++)
-            GlDrawMetaVert(i);
+//    void GLDraw(const CEdgeMode EMode=CMRemovable,
+//                bool DrawMetaEdgeAdj=true)
+//    {
+//        for (size_t i=0;i<MVert.size();i++)
+//            GlDrawMetaVert(i);
 
-        for (size_t i=0;i<MFaces.size();i++)
-        {
-            GlDrawMetaFace(i,EMode);
-            GlDrawMetaFaceSides(i);
+//        for (size_t i=0;i<MFaces.size();i++)
+//        {
+//            GlDrawMetaFace(i,EMode);
+//            GlDrawMetaFaceSides(i);
 
-            if (DrawMetaEdgeAdj)
-                GlDrawMetaFaceAdj(i);
+//            if (DrawMetaEdgeAdj)
+//                GlDrawMetaFaceAdj(i);
 
-            GlDrawMetaFaceVert(i);
-            GlDrawMetaFaceVertField(i);
-        }
-        //        for (size_t i=0;i<MFaces.size();i++)
-        //            GlDrawMetaFace(i);
-    }
+//            GlDrawMetaFaceVert(i);
+//            GlDrawMetaFaceVertField(i);
+//        }
+//        //        for (size_t i=0;i<MFaces.size();i++)
+//        //            GlDrawMetaFace(i);
+//    }
 
     void Clear()
     {

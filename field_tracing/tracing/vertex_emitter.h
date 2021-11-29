@@ -16,7 +16,7 @@ public:
 
     static void ComputeFlatEmitterReceivers(VertexFieldGraph<MeshType> &VFGraph,
                                             const std::vector<std::vector<CoordType> > &VertOrthoDir,
-                                            const std::vector<std::vector<CoordType> > &VertFlatDir,
+                                            //const std::vector<std::vector<CoordType> > &VertFlatDir,
                                             const size_t IndexV,
                                             size_t &Emitter,
                                             size_t &Receiver)
@@ -37,7 +37,7 @@ public:
     }
 
     static void ComputeNarrowEmitterReceivers(VertexFieldGraph<MeshType> &VFGraph,
-                                              const std::vector<std::vector<CoordType> > &VertOrthoDir,
+                                              //const std::vector<std::vector<CoordType> > &VertOrthoDir,
                                               const std::vector<std::vector<CoordType> > &VertFlatDir,
                                               const size_t IndexV,
                                               size_t &Emitter,
@@ -90,7 +90,8 @@ public:
             if (OppN==IndexNode1)//in this case add a third one
             {
                 size_t EmitterN,ReceiverN;
-                ComputeNarrowEmitterReceivers(VFGraph,VertOrthoDir,VertFlatDir,IndexV,EmitterN,ReceiverN);
+                //ComputeNarrowEmitterReceivers(VFGraph,VertOrthoDir,VertFlatDir,IndexV,EmitterN,ReceiverN);
+                ComputeNarrowEmitterReceivers(VFGraph,VertFlatDir,IndexV,EmitterN,ReceiverN);
                 if ((EmitterN!=IndexNode0)&&(EmitterN!=IndexNode1))
                     Emitter.push_back(EmitterN);
                 else

@@ -7,12 +7,12 @@ enum TypeVert{TVNarrow,TVConcave,TVConvex,TVFlat,TVInternal,TVChoosen,TVNone};
 #include "vert_field_graph.h"
 #include "edge_direction_table.h"
 
-#define CONVEX_THR 5.0
-#define CONCAVE_THR 5.0
-#define NARROW_THR 20.0
+//#define CONVEX_THR 5.0
+//#define CONCAVE_THR 5.0
+//#define NARROW_THR 20.0
 
-#define MAX_SAMPLES 1000
-#define MAX_NARROW_CONST 0.05
+//#define MAX_SAMPLES 1000
+//#define MAX_NARROW_CONST 0.05
 
 template <class MeshType>
 class VertexClassifier
@@ -28,7 +28,7 @@ class VertexClassifier
         VertA.resize(mesh.vert.size(),0);
         for (size_t i=0;i<mesh.face.size();i++)
         {
-            for (size_t j=0;j<mesh.face[i].VN();j++)
+            for (int j=0;j<mesh.face[i].VN();j++)
             {
                 size_t IndexV=vcg::tri::Index(mesh,mesh.face[i].cV(j));
                 ScalarType CurrAngle=vcg::face::WedgeAngleRad(mesh.face[i],j);
@@ -212,8 +212,8 @@ public:
                 //bool IsSharp=VFGraph.Mesh().face[i].IsFaceEdgeS(j);
                 if (!IsB)continue;
 
-                VertexType *v0=VFGraph.Mesh().face[i].cV0(j);
-                VertexType *v1=VFGraph.Mesh().face[i].cV1(j);
+                const VertexType *v0=VFGraph.Mesh().face[i].cV0(j);
+                const VertexType *v1=VFGraph.Mesh().face[i].cV1(j);
                 size_t IndexV0=vcg::tri::Index(VFGraph.Mesh(),v0);
                 size_t IndexV1=vcg::tri::Index(VFGraph.Mesh(),v1);
 

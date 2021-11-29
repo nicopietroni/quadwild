@@ -500,8 +500,14 @@ private:
                 size_t IndexV0=vcg::tri::Index(mesh,mesh.face[i].V0(j));
                 size_t IndexV1=vcg::tri::Index(mesh,mesh.face[i].V1(j));
                 //add connection only with border singularities not the rest
+
                 bool InternalSing0=((IsSingVert[IndexV0])&&(!mesh.vert[IndexV0].IsB()));
                 bool InternalSing1=((IsSingVert[IndexV1])&&(!mesh.vert[IndexV1].IsB()));
+                if (!remove_sign_connections)
+                {
+                    InternalSing0=false;
+                    InternalSing1=false;
+                }
                 if ((InternalSing0)||(InternalSing1))continue;//no add connection with singularities
                 VNeigh[IndexV0].push_back(IndexV1);
                 VNeigh[IndexV1].push_back(IndexV0);
@@ -598,6 +604,7 @@ private:
         Direction_next=FollowDirection(IndexV0,IndexV1,DirectionV0);
     }
 
+public:
 
     //follow the direction from one vertex to another
     //it return the index of the direction in IndexV1
@@ -615,6 +622,8 @@ private:
         size_t BestD=GetClosestDirTo(IndexV1,DirV0);
         return BestD;
     }
+
+private:
 
     //return a direction given an index 0<=Direction<=3 for a given vertex
     CoordType GetDirection(const size_t IndexV,
@@ -785,6 +794,7 @@ public:
 
     std::vector<size_t> SingNodes;
     std::vector<bool> IsSingVert;
+    bool remove_sign_connections;
 
     bool HasTwin(size_t IndexN)
     {
@@ -1377,13 +1387,14 @@ public:
         PropagationSteps=_PropagationSteps;
         assert(PropagationSteps>=1);
         TMark=0;
+        remove_sign_connections=true;
     }
 };
 
 
 
 template <class MeshType>
-bool SplitAdjacentSingularities(MeshType &mesh)
+void SplitAdjacentSingularities(MeshType &mesh)
 {
     typedef typename MeshType::VertexType VertexType;
     typedef typename MeshType::FaceType FaceType;
@@ -1532,28 +1543,39 @@ template <class MeshType>
 void PreProcessMesh(MeshType &mesh,bool DebugMsg=true)
 {
 
+
     mesh.SelectSharpFeatures();
+
+
     SplitAdjacentSingularities(mesh);
+
 
     //split along marked sharp features
     if (DebugMsg)
         std::cout<<"splitting along sharp features"<<std::endl;
     VertSplitter<MeshType>::SplitAlongEdgeSel(mesh);
+    if (DebugMsg)
+        std::cout<<"done"<<std::endl;
 
     mesh.UpdateAttributes();
+
     vcg::tri::Allocator<MeshType>::CompactEveryVector(mesh);
+
+
     size_t Test1=vcg::tri::Clean<MeshType>::CountNonManifoldVertexFF(mesh);
     if (Test1>0)
     {
         std::cout<<"WARNING NON MANIFOLD VERTEX SPLIT! "<<std::endl;
         vcg::tri::Clean<MeshType>::SplitNonManifoldVertex(mesh,std::numeric_limits<typename MeshType::ScalarType>::epsilon()*100);
     }
-    std::cout<<"splitted"<<std::endl;
+    if (DebugMsg)
+        std::cout<<"splitted"<<std::endl;
     //then update attributes
     mesh.UpdateAttributes();
 
     size_t Test2=vcg::tri::Clean<MeshType>::CountNonManifoldVertexFF(mesh);
-    std::cout<<"Non Manif "<<Test2<<std::endl;
+    if (DebugMsg)
+        std::cout<<"Non Manif "<<Test2<<std::endl;
     //vcg::tri::io::ExporterPLY<MeshType>::Save(mesh,"test0.ply");
     //then reupdate the vert cross field
     vcg::tri::CrossField<MeshType>::UpdateSingularByCross(mesh,true);

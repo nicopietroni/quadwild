@@ -608,8 +608,8 @@ public:
     //it can be also tuned to stop when it encounter a selected vertex
     static bool TraceToSelected(VertexFieldGraph<MeshType> &VertGraph,
                                 const size_t StartNode,
-                                std::vector<size_t> &IndexNodes,
-                                bool DebugMsg=false)
+                                std::vector<size_t> &IndexNodes)
+                                //,bool DebugMsg=false)
     {
         VertGraph.UnMarkAll();
 
@@ -1168,8 +1168,8 @@ public:
     static void SamplePoints(MeshType &samplingMesh,
                              MeshType &borderSample_mesh,
                              std::vector<CoordType> &Sampled_pos,
-                             ScalarType &poisson_radius,
-                             const size_t &minSample_per_CC)
+                             ScalarType &poisson_radius)
+                             //const size_t &minSample_per_CC)
     {
         std::vector<CoordType> sampleVec;
         vcg::tri::TrivialSampler<MeshType> mps(sampleVec);
@@ -1201,8 +1201,8 @@ public:
 
     static void SampleGraphPoints(VertexFieldGraph<MeshType> &VFGraph,
                                   std::vector<CoordType> &Sampled_pos,
-                                  const size_t &sampleNum,
-                                  const size_t &minSample_per_CC)
+                                  const size_t &sampleNum)
+                                  //,const size_t &minSample_per_CC)
     {
         typedef vcg::tri::TrivialSampler<MeshType> BaseSampler;
         ScalarType radius = vcg::tri::SurfaceSampling<MeshType,BaseSampler>::ComputePoissonDiskRadius(VFGraph.Mesh(),sampleNum);
@@ -1246,7 +1246,7 @@ public:
 
             //sample the submesh
             std::vector<CoordType> submesh_pos;
-            SamplePoints(SubMesh,borderSample_mesh,submesh_pos,radius,minSample_per_CC);
+            SamplePoints(SubMesh,borderSample_mesh,submesh_pos,radius);//,minSample_per_CC);
             //SamplePoints(VFGraph.Mesh(),borderSample_mesh,partition_sample,radius,minSample_per_CC);
 
             partition_sample.insert(partition_sample.end(),submesh_pos.begin(),submesh_pos.end());
@@ -1273,7 +1273,7 @@ public:
             std::cout<<"Poisson Sampling "<<sampleNum<<" Target samples"<<std::endl;
 
         std::vector<CoordType> Sampled_pos;
-        SampleGraphPoints(VFGraph,Sampled_pos,sampleNum,minSample_per_CC);
+        SampleGraphPoints(VFGraph,Sampled_pos,sampleNum);//,minSample_per_CC);
 //        MeshType PoissonMesh;
 //        vcg::tri::BuildMeshFromCoordVector(PoissonMesh,Sampled_pos);
         //vcg::tri::io::ExporterPLY<MeshType>::Save(PoissonMesh,"PoissonMesh.ply");
@@ -1318,9 +1318,14 @@ public:
             std::cout<<"Poisson Sampling "<<sampleNum<<" Target samples"<<std::endl;
 
         vcg::tri::PoissonSampling<MeshType>(VFGraph.Mesh(),pointVec,sampleNum,radius,1,0.04f,276519752);
+        if (DebugMsg)
+            std::cout<<"Derived "<<pointVec.size()<<" 3D points"<<std::endl;
 
         std::vector<VertexType*> seedVec;
         vcg::tri::VoronoiProcessing<MeshType>::SeedToVertexConversion(VFGraph.Mesh(),pointVec,seedVec);
+
+        if (DebugMsg)
+            std::cout<<"Derived "<<seedVec.size()<<" vertices"<<std::endl;
 
         vcg::tri::UpdateFlags<MeshType>::VertexClearV(VFGraph.Mesh());
         for (size_t i=0;i<seedVec.size();i++)
@@ -1332,6 +1337,8 @@ public:
         std::vector< std::pair<int, typename MeshType::FacePointer> > CCV;
         vcg::tri::Clean<MeshType>::ConnectedComponents(VFGraph.Mesh(), CCV);
         vcg::tri::ConnectedComponentIterator<MeshType> ci;
+
+
         for(unsigned int i=0;i<CCV.size();++i)
         {
             //std::vector<typename MeshType::FacePointer> FPV;
@@ -1350,7 +1357,7 @@ public:
                     else
                         NumV++;
                 }
-                if (NumV>=minSample_per_CC)continue;
+                if ((int)NumV>=minSample_per_CC)continue;
                 //then add other if missing
                 size_t MissingV=minSample_per_CC-NumV;
                 size_t Step=(PossibleAdditionalV.size())/MissingV;

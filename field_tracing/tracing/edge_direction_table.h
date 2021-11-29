@@ -479,7 +479,7 @@ void FindPartitionEdges(MeshType &mesh,
                         std::vector<std::pair<size_t,size_t> > &BorderEdges)
 {
     typedef typename MeshType::FaceType FaceType;
-    typedef typename MeshType::CoordType CoordType;
+    //typedef typename MeshType::CoordType CoordType;
 
     //int t3=clock();
     //then collect all border patches
@@ -491,7 +491,7 @@ void FindPartitionEdges(MeshType &mesh,
     for (size_t i=0;i<Partition.size();i++)
     {
         size_t IndexF=Partition[i];
-        for (size_t j=0;j<mesh.face[IndexF].VN();j++)
+        for (int j=0;j<mesh.face[IndexF].VN();j++)
         {
             FaceType *f=&mesh.face[IndexF];
             FaceType *fOpp=f->FFp(j);
@@ -537,7 +537,7 @@ void InitAngleBorders(MeshType &mesh,const std::vector<size_t> &Partition,
     for (size_t i=0;i<Partition.size();i++)
     {
         size_t IndexF=Partition[i];
-        for (size_t j=0;j<mesh.face[IndexF].VN();j++)
+        for (int j=0;j<mesh.face[IndexF].VN();j++)
         {
             size_t IndexV=vcg::tri::Index(mesh,mesh.face[IndexF].cV(j));
             ScalarType CurrAngle=vcg::face::WedgeAngleRad(mesh.face[IndexF],j);
@@ -666,7 +666,7 @@ void AddBorder(const VertexFieldGraph<MeshType> &VFGraph,
 {
     //do the same for borders
     for (size_t i=0;i<VFGraph.Mesh().face.size();i++)
-        for (size_t j=0;j<VFGraph.Mesh().face[i].VN();j++)
+        for (int j=0;j<VFGraph.Mesh().face[i].VN();j++)
         {
             if (!vcg::face::IsBorder(VFGraph.Mesh().face[i],j))continue;
             size_t IndexV0=vcg::tri::Index(VFGraph.Mesh(),VFGraph.Mesh().face[i].cV0(j));

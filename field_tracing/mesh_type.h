@@ -50,7 +50,7 @@
 /// wrapper imports
 #include <wrap/io_trimesh/import.h>
 #include <wrap/io_trimesh/import_field.h>
-#include <wrap/gl/trimesh.h>
+//#include <wrap/gl/trimesh.h>
 
 #include <wrap/io_trimesh/export_ply.h>
 #include <vcg/complex/algorithms/parametrization/tangent_field_operators.h>
@@ -60,14 +60,14 @@
 //#include <vcg/complex/algorithms/curve_on_manifold.h>
 
 using namespace vcg;
-class CFace;
-class CVertex;
+class TraceFace;
+class TraceVertex;
 
-struct MyUsedTypes : public UsedTypes<	Use<CVertex>::AsVertexType,
-        Use<CFace>::AsFaceType>{};
+struct MyUsedTypes : public UsedTypes<	Use<TraceVertex>::AsVertexType,
+        Use<TraceFace>::AsFaceType>{};
 
 //compositing wanted proprieties
-class CVertex : public vcg::Vertex< MyUsedTypes,
+class TraceVertex : public vcg::Vertex< MyUsedTypes,
         vcg::vertex::TexCoord2d,
         vcg::vertex::Coord3d,
         vcg::vertex::Normal3d,
@@ -83,7 +83,7 @@ public:
     CoordType RPos;
     size_t SingularityValence;
 
-    void ImportData(const CVertex  & left )
+    void ImportData(const TraceVertex  & left )
     {
         vcg::Vertex< MyUsedTypes,
                 vcg::vertex::TexCoord2d,
@@ -102,7 +102,7 @@ public:
 
 };
 
-class CFace   : public vcg::Face<  MyUsedTypes,
+class TraceFace   : public vcg::Face<  MyUsedTypes,
         vcg::face::VertexRef,
         vcg::face::Normal3d,
         vcg::face::BitFlags,
@@ -119,7 +119,7 @@ public:
     bool FullTraced;
     size_t IndexOriginal;
 
-    void ImportData(const CFace  & left )
+    void ImportData(const TraceFace  & left )
     {
         vcg::Face<  MyUsedTypes,
                 vcg::face::VertexRef,
@@ -139,7 +139,7 @@ public:
     }
 };
 
-class CMesh   : public vcg::tri::TriMesh< std::vector<CVertex>,std::vector<CFace> >
+class TraceMesh   : public vcg::tri::TriMesh< std::vector<TraceVertex>,std::vector<TraceFace> >
 {
 public:
     std::vector<std::pair<size_t,size_t> > SharpFeatures;
@@ -148,13 +148,13 @@ public:
 
     void UpdateAttributes()
     {
-        vcg::tri::UpdateNormal<CMesh>::PerFaceNormalized(*this);
-        vcg::tri::UpdateNormal<CMesh>::PerVertexNormalized(*this);
-        vcg::tri::UpdateBounding<CMesh>::Box(*this);
-        vcg::tri::UpdateTopology<CMesh>::FaceFace(*this);
-        vcg::tri::UpdateTopology<CMesh>::VertexFace(*this);
-        vcg::tri::UpdateFlags<CMesh>::FaceBorderFromFF(*this);
-        vcg::tri::UpdateFlags<CMesh>::VertexBorderFromFaceBorder(*this);
+        vcg::tri::UpdateNormal<TraceMesh>::PerFaceNormalized(*this);
+        vcg::tri::UpdateNormal<TraceMesh>::PerVertexNormalized(*this);
+        vcg::tri::UpdateBounding<TraceMesh>::Box(*this);
+        vcg::tri::UpdateTopology<TraceMesh>::FaceFace(*this);
+        vcg::tri::UpdateTopology<TraceMesh>::VertexFace(*this);
+        vcg::tri::UpdateFlags<TraceMesh>::FaceBorderFromFF(*this);
+        vcg::tri::UpdateFlags<TraceMesh>::VertexBorderFromFaceBorder(*this);
     }
 
     bool LoadField(std::string field_filename)
@@ -165,20 +165,20 @@ public:
 
         if (position0!=-1)
         {
-            bool loaded=vcg::tri::io::ImporterFIELD<CMesh>::LoadFFIELD(*this,field_filename.c_str());
+            bool loaded=vcg::tri::io::ImporterFIELD<TraceMesh>::LoadFFIELD(*this,field_filename.c_str());
             if (!loaded)return false;
-            vcg::tri::CrossField<CMesh>::OrientDirectionFaceCoherently(*this);
-            vcg::tri::CrossField<CMesh>::UpdateSingularByCross(*this,true);
+            vcg::tri::CrossField<TraceMesh>::OrientDirectionFaceCoherently(*this);
+            vcg::tri::CrossField<TraceMesh>::UpdateSingularByCross(*this,true);
             return true;
         }
         if (position1!=-1)
         {
             std::cout<<"Importing ROSY field"<<std::endl;
-            bool loaded=vcg::tri::io::ImporterFIELD<CMesh>::Load4ROSY(*this,field_filename.c_str());
+            bool loaded=vcg::tri::io::ImporterFIELD<TraceMesh>::Load4ROSY(*this,field_filename.c_str());
             std::cout<<"Imported ROSY field"<<std::endl;
             if (!loaded)return false;
-            vcg::tri::CrossField<CMesh>::OrientDirectionFaceCoherently(*this);
-            vcg::tri::CrossField<CMesh>::UpdateSingularByCross(*this,true);
+            vcg::tri::CrossField<TraceMesh>::OrientDirectionFaceCoherently(*this);
+            vcg::tri::CrossField<TraceMesh>::UpdateSingularByCross(*this,true);
             return true;
         }
         return false;
@@ -207,21 +207,50 @@ public:
 
         if (position0!=-1)
         {
-            int err=vcg::tri::io::ImporterPLY<CMesh>::Open(*this,filename.c_str());
+            int err=vcg::tri::io::ImporterPLY<TraceMesh>::Open(*this,filename.c_str());
             if (err!=vcg::ply::E_NOERROR)return false;
             return true;
         }
         if (position1!=-1)
         {
             int mask;
-            vcg::tri::io::ImporterOBJ<CMesh>::LoadMask(filename.c_str(),mask);
-            int err=vcg::tri::io::ImporterOBJ<CMesh>::Open(*this,filename.c_str(),mask);
+            vcg::tri::io::ImporterOBJ<TraceMesh>::LoadMask(filename.c_str(),mask);
+            int err=vcg::tri::io::ImporterOBJ<TraceMesh>::Open(*this,filename.c_str(),mask);
             if ((err!=0)&&(err!=5))return false;
             return true;
         }
         if (position2!=-1)
         {
-            int err=vcg::tri::io::ImporterOFF<CMesh>::Open(*this,filename.c_str());
+            int err=vcg::tri::io::ImporterOFF<TraceMesh>::Open(*this,filename.c_str());
+            if (err!=0)return false;
+            return true;
+        }
+        return false;
+    }
+    bool SaveTriMesh(const std::string &filename)
+    {
+        if(filename.empty()) return false;
+        int position0=filename.find(".ply");
+        int position1=filename.find(".obj");
+        int position2=filename.find(".off");
+
+        if (position0!=-1)
+        {
+            int mask=vcg::tri::io::Mask::IOM_FACECOLOR|vcg::tri::io::Mask::IOM_WEDGTEXCOORD;
+            int err=vcg::tri::io::ExporterPLY<TraceMesh>::Save(*this,filename.c_str(),mask);
+            if (err!=vcg::ply::E_NOERROR)return false;
+            return true;
+        }
+        if (position1!=-1)
+        {
+            int mask=vcg::tri::io::Mask::IOM_FACECOLOR|vcg::tri::io::Mask::IOM_WEDGTEXCOORD;
+            int err=vcg::tri::io::ExporterOBJ<TraceMesh>::Save(*this,filename.c_str(),mask);
+            if ((err!=0)&&(err!=5))return false;
+            return true;
+        }
+        if (position2!=-1)
+        {
+            int err=vcg::tri::io::ExporterOFF<TraceMesh>::Save(*this,filename.c_str());
             if (err!=0)return false;
             return true;
         }
@@ -257,7 +286,7 @@ public:
                     SharpFeatures.push_back(EdgeMap[key]);
             }
         }
-        std::cout<<"There are "<<SharpFeatures.size()<<" Sharp edges"<<std::endl;
+        //std::cout<<"There are "<<SharpFeatures.size()<<" Sharp edges"<<std::endl;
     }
 
     void GetSharpCoordPairs(std::vector<std::pair<CoordType,CoordType> > &SharpCoords)
@@ -419,7 +448,7 @@ public:
 
     void SelectSharpFeatures()
     {
-        vcg::tri::UpdateFlags<CMesh>::FaceClearFaceEdgeS(*this);
+        vcg::tri::UpdateFlags<TraceMesh>::FaceClearFaceEdgeS(*this);
         for (size_t i=0;i<SharpFeatures.size();i++)
         {
             int IndexF=SharpFeatures[i].first;
@@ -462,9 +491,9 @@ public:
         FILE *f=NULL;
         f=fopen(SharpCornerPath.c_str(),"wt");
         if(f==NULL) return false;
-        fprintf(f,"%d\n",SharpCorners.size());
+        fprintf(f,"%d\n",(int)SharpCorners.size());
         for (size_t i=0;i<SharpCorners.size();i++)
-            fprintf(f,"%d\n",SharpCorners[i]);
+            fprintf(f,"%d\n",(int)SharpCorners[i]);
         fclose(f);
         return true;
     }
@@ -474,9 +503,9 @@ public:
         FILE *f=NULL;
         f=fopen(FeaturePath.c_str(),"wt");
         if(f==NULL) return false;
-        fprintf(f,"%d\n",SharpFeatures.size());
+        fprintf(f,"%d\n",(int)SharpFeatures.size());
         for (size_t i=0;i<SharpFeatures.size();i++)
-            fprintf(f,"%d,%d\n",SharpFeatures[i].first,SharpFeatures[i].second);
+            fprintf(f,"%d,%d\n",(int)SharpFeatures[i].first,(int)SharpFeatures[i].second);
         fclose(f);
         return true;
     }
@@ -508,39 +537,28 @@ public:
             SelectPos(ToSel[i],SetSel);
     }
 
-    void GLDrawSharpEdges(vcg::Color4b col=vcg::Color4b(255,0,0,255))
-    {
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
-        glDisable(GL_LIGHTING);
-        glDepthRange(0,0.9999);
-        glLineWidth(5);
-        vcg::glColor(col);
-        glBegin(GL_LINES);
-        for (size_t i=0;i<SharpFeatures.size();i++)
-        {
+    //    void GLDrawSharpEdges(vcg::Color4b col=vcg::Color4b(255,0,0,255),
+    //                          ScalarType GLSize=5)
+    //    {
+    //        glPushAttrib(GL_ALL_ATTRIB_BITS);
+    //        glDisable(GL_LIGHTING);
+    //        glDepthRange(0,0.9999);
+    //        glLineWidth(GLSize);
+    //        vcg::glColor(col);
+    //        glBegin(GL_LINES);
+    //        for (size_t i=0;i<SharpFeatures.size();i++)
+    //        {
 
-            size_t IndexF=SharpFeatures[i].first;
-            size_t IndexE=SharpFeatures[i].second;
-            CoordType Pos0=face[IndexF].P0(IndexE);
-            CoordType Pos1=face[IndexF].P1(IndexE);
-            vcg::glVertex(Pos0);
-            vcg::glVertex(Pos1);
-        }
-        //        for (size_t i=0;i<face.size();i++)
-        //            for (size_t j=0;j<3;j++)
-        //            {
-        //                if (!face[i].IsFaceEdgeS(j))continue;
-
-        //                vcg::glColor(col);
-
-        //                CoordType Pos0=face[i].P0(j);
-        //                CoordType Pos1=face[i].P1(j);
-        //                vcg::glVertex(Pos0);
-        //                vcg::glVertex(Pos1);
-        //            }
-        glEnd();
-        glPopAttrib();
-    }
+    //            size_t IndexF=SharpFeatures[i].first;
+    //            size_t IndexE=SharpFeatures[i].second;
+    //            CoordType Pos0=face[IndexF].P0(IndexE);
+    //            CoordType Pos1=face[IndexF].P1(IndexE);
+    //            vcg::glVertex(Pos0);
+    //            vcg::glVertex(Pos1);
+    //        }
+    //        glEnd();
+    //        glPopAttrib();
+    //    }
 
     void InitSingVert()
     {
@@ -600,12 +618,13 @@ public:
             }
     }
 
-    void MoveCenterOnZero()
+    CoordType MoveCenterOnZero()
     {
         CoordType Center=bbox.Center();
         for (size_t i=0;i<vert.size();i++)
             vert[i].P()-=Center;
         UpdateAttributes();
+        return Center;
     }
 
     void RestoreRPos()
@@ -621,103 +640,112 @@ public:
     }
 
 
-    CoordType UVTo3DPos(const vcg::Point2<ScalarType> &UVPos)
-    {
-        CoordType Pos(0,0,0);
-        Pos.X()=UVPos.X();
-        Pos.Y()=UVPos.Y();
-        return Pos;
-    }
+    //    CoordType UVTo3DPos(const vcg::Point2<ScalarType> &UVPos)
+    //    {
+    //        CoordType Pos(0,0,0);
+    //        Pos.X()=UVPos.X();
+    //        Pos.Y()=UVPos.Y();
+    //        return Pos;
+    //    }
 
-    void GLDrawEdgeUV()
-    {
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
-        glPushMatrix();
-        vcg::Box2<ScalarType> uv_box=vcg::tri::UV_Utils<CMesh>::PerWedgeUVBox(*this);
-        vcg::glScale(3.0f/uv_box.Diag());
-        vcg::glTranslate(CoordType(-uv_box.Center().X(),
-                                   -uv_box.Center().Y(),0));
-        glDisable(GL_LIGHTING);
-        glDisable(GL_LIGHT0);
-        glLineWidth(10);
-        //glDepthRange(0,0.9999);
-        glBegin(GL_LINES);
-        for (size_t i=0;i<face.size();i++)
-        {
-            vcg::glColor(face[i].C());
-            CoordType Pos[3];
-            Pos[0]=UVTo3DPos(face[i].WT(0).P());
-            Pos[1]=UVTo3DPos(face[i].WT(1).P());
-            Pos[2]=UVTo3DPos(face[i].WT(2).P());
-            for (size_t j=0;j<3;j++)
-            {
-                if (!face[i].IsFaceEdgeS(j))continue;
-                vcg::glColor(vcg::Color4b(0,0,0,255));
-                vcg::glVertex(Pos[j]);
-                vcg::glVertex(Pos[(j+1)%3]);
-            }
-        }
-        glEnd();
-        glPopMatrix();
-        glPopAttrib();
-    }
+    //    void GLDrawEdgeUV()
+    //    {
+    //        glPushAttrib(GL_ALL_ATTRIB_BITS);
+    //        glPushMatrix();
+    //        vcg::Box2<ScalarType> uv_box=vcg::tri::UV_Utils<TraceMesh>::PerWedgeUVBox(*this);
+    //        vcg::glScale(3.0f/uv_box.Diag());
+    //        vcg::glTranslate(CoordType(-uv_box.Center().X(),
+    //                                   -uv_box.Center().Y(),0));
+    //        glDisable(GL_LIGHTING);
+    //        glDisable(GL_LIGHT0);
+    //        glLineWidth(10);
+    //        //glDepthRange(0,0.9999);
+    //        glBegin(GL_LINES);
+    //        for (size_t i=0;i<face.size();i++)
+    //        {
+    //            vcg::glColor(face[i].C());
+    //            CoordType Pos[3];
+    //            Pos[0]=UVTo3DPos(face[i].WT(0).P());
+    //            Pos[1]=UVTo3DPos(face[i].WT(1).P());
+    //            Pos[2]=UVTo3DPos(face[i].WT(2).P());
+    //            for (size_t j=0;j<3;j++)
+    //            {
+    //                if (!face[i].IsFaceEdgeS(j))continue;
+    //                vcg::glColor(vcg::Color4b(0,0,0,255));
+    //                vcg::glVertex(Pos[j]);
+    //                vcg::glVertex(Pos[(j+1)%3]);
+    //            }
+    //        }
+    //        glEnd();
+    //        glPopMatrix();
+    //        glPopAttrib();
+    //    }
 
-    void GLDrawUV(int TxtIndex=-1,bool colorPerVert=false)
-    {
-        glPushAttrib(GL_ALL_ATTRIB_BITS);
-        glPushMatrix();
-        vcg::Box2<ScalarType> uv_box=vcg::tri::UV_Utils<CMesh>::PerWedgeUVBox(*this);
-        vcg::glScale(3.0f/uv_box.Diag());
-        //ScalarType UVScale=3.0f/uv_box.Diag();
-        vcg::glTranslate(CoordType(-uv_box.Center().X(),
-                                   -uv_box.Center().Y(),0));
-        glDisable(GL_LIGHTING);
-        glDisable(GL_LIGHT0);
+    //    void GLDrawUV(int TxtIndex=-1,bool colorPerVert=false)
+    //    {
+    ////        vcg::Box2<ScalarType> uv_box=vcg::tri::UV_Utils<TraceMesh>::PerWedgeUVBox(deformed_mesh);
+    ////        ScalarType UVScale=3.0f/uv_box.Diag();
+    ////        for (size_t i=0;i<deformed_mesh.face.size();i++)
+    ////        {
+    ////            deformed_mesh.face[i].WT(0).P()*=UVScale;
+    ////            deformed_mesh.face[i].WT(1).P()*=UVScale;
+    ////            deformed_mesh.face[i].WT(2).P()*=UVScale;
+    ////        }
 
-        if (TxtIndex>=0)
-        {
-            glActiveTexture(GL_TEXTURE0);
-            glEnable(GL_TEXTURE_2D);
-            glBindTexture(GL_TEXTURE_2D, TxtIndex);
-        }
-        glBegin(GL_TRIANGLES);
-        for (size_t i=0;i<face.size();i++)
-        {
-            if (!colorPerVert)
-                vcg::glColor(face[i].C());
-            CoordType Pos0=UVTo3DPos(face[i].WT(0).P());
-            CoordType Pos1=UVTo3DPos(face[i].WT(1).P());
-            CoordType Pos2=UVTo3DPos(face[i].WT(2).P());
+    //        glPushAttrib(GL_ALL_ATTRIB_BITS);
+    //        glPushMatrix();
+    //        vcg::Box2<ScalarType> uv_box=vcg::tri::UV_Utils<TraceMesh>::PerWedgeUVBox(*this);
+    //        vcg::glScale(3.0f/uv_box.Diag());
+    //        //ScalarType UVScale=3.0f/uv_box.Diag();
+    //        vcg::glTranslate(CoordType(-uv_box.Center().X(),
+    //                                   -uv_box.Center().Y(),0));
+    //        glDisable(GL_LIGHTING);
+    //        glDisable(GL_LIGHT0);
 
-            if (TxtIndex>=0)
-                vcg::glTexCoord(face[i].WT(0).P());
-            if (colorPerVert)
-                vcg::glColor(face[i].V(0)->C());
+    //        if (TxtIndex>=0)
+    //        {
+    //            glActiveTexture(GL_TEXTURE0);
+    //            glEnable(GL_TEXTURE_2D);
+    //            glBindTexture(GL_TEXTURE_2D, TxtIndex);
+    //        }
+    //        glBegin(GL_TRIANGLES);
+    //        for (size_t i=0;i<face.size();i++)
+    //        {
+    //            if (!colorPerVert)
+    //                vcg::glColor(face[i].C());
+    //            CoordType Pos0=UVTo3DPos(face[i].WT(0).P());
+    //            CoordType Pos1=UVTo3DPos(face[i].WT(1).P());
+    //            CoordType Pos2=UVTo3DPos(face[i].WT(2).P());
 
-            vcg::glVertex(Pos0);
-            if (TxtIndex>=0)
-                vcg::glTexCoord(face[i].WT(1).P());
-            if (colorPerVert)
-                vcg::glColor(face[i].V(1)->C());
+    //            if (TxtIndex>=0)
+    //                vcg::glTexCoord(face[i].WT(0).P());
+    //            if (colorPerVert)
+    //                vcg::glColor(face[i].V(0)->C());
 
-            vcg::glVertex(Pos1);
-            if (TxtIndex>=0)
-                vcg::glTexCoord(face[i].WT(2).P());
-            if (colorPerVert)
-                vcg::glColor(face[i].V(2)->C());
+    //            vcg::glVertex(Pos0);
+    //            if (TxtIndex>=0)
+    //                vcg::glTexCoord(face[i].WT(1).P());
+    //            if (colorPerVert)
+    //                vcg::glColor(face[i].V(1)->C());
 
-            vcg::glVertex(Pos2);
-        }
-        glEnd();
-        glPopMatrix();
-        glPopAttrib();
-    }
+    //            vcg::glVertex(Pos1);
+    //            if (TxtIndex>=0)
+    //                vcg::glTexCoord(face[i].WT(2).P());
+    //            if (colorPerVert)
+    //                vcg::glColor(face[i].V(2)->C());
+
+    //            vcg::glVertex(Pos2);
+    //        }
+    //        glEnd();
+    //        glPopMatrix();
+    //        glPopAttrib();
+    //    }
 
 
     bool SaveOrigFace(const std::string &filename)
     {
         if(filename.empty()) return false;
-        ofstream myfile;
+        std::ofstream myfile;
         myfile.open (filename.c_str());
 
         for (size_t i=0;i<face.size();i++)
@@ -740,7 +768,7 @@ public:
             int FIndex;
             fscanf(f,"%d\n",&FIndex);
             assert(i>=0);
-            assert(i<(int)face.size());
+            assert(i<face.size());
             face[i].IndexOriginal=(size_t)FIndex;
         }
         fclose(f);

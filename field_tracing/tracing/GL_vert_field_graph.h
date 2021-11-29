@@ -94,7 +94,7 @@ public:
                          bool DrawDir=true,
                          ScalarType GLSize=10)
     {
-        GLDrawNodes(VFGraph.SingNodes,size,DrawDir);
+        GLDrawNodes(VFGraph.SingNodes,size,DrawDir,GLSize);
     }
 
     //    void GLDrawNode(size_t &IndexNode,
