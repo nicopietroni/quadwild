@@ -15,6 +15,7 @@
 #include "quad_from_patches.h"
 #include "quad_mesh_tracer.h"
 
+bool LocalUVSm=false;
 typename TriangleMesh::ScalarType avgEdge(const TriangleMesh& trimesh);
 void loadSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor, int& fixedChartClusters);
 void SaveSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor, int& fixedChartClusters);
@@ -174,8 +175,12 @@ int main(int argc, char *argv[])
     auto last=std::unique(QuadCornersVect.begin(),QuadCornersVect.end());
     QuadCornersVect.erase(last, QuadCornersVect.end());
 
+    std::cout<<"** SMOOTHING **"<<std::endl;
     //SmoothSubdivide(trimesh,quadmesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,100,0.5,EdgeSize);
-    MultiCostraintSmooth(quadmesh,trimesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,0.5,EdgeSize,10,1);
+    if (LocalUVSm)
+        LocalUVSmooth(quadmesh,trimesh,trimeshFeatures,trimeshFeaturesC,30);
+    else
+        MultiCostraintSmooth(quadmesh,trimesh,trimeshFeatures,trimeshFeaturesC,TriPart,QuadCornersVect,QuadPart,0.5,EdgeSize,30,1);
 
     //SAVE OUTPUT
     outputFilename = meshFilename;
@@ -201,7 +206,7 @@ int main(int argc, char *argv[])
 
 #ifdef SAVE_MESHES_FOR_DEBUG
    vcg::tri::io::ExporterOBJ<TriangleMesh>::Save(trimesh,"results/test_tri.obj", vcg::tri::io::Mask::IOM_FACECOLOR);
-#endif
+
 
    std::string setupFilename = meshFilename;
    setupFilename.erase(partitionFilename.find_last_of("."));
@@ -209,6 +214,7 @@ int main(int argc, char *argv[])
    setupFilename+=std::string("_")+std::to_string(CurrNum)+std::string("_quadrangulation_setup")+std::string(".txt");
 
    SaveSetupFile(setupFilename, parameters, scaleFactor, fixedChartClusters);
+ #endif
 }
 
 

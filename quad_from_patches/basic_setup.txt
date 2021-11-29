@@ -1,4 +1,4 @@
-alpha 0.01
+alpha 0.02
 ilpMethod 1
 timeLimit 200
 gapLimit 0.0

@@ -5,6 +5,7 @@
 #include <vcg/complex/algorithms/polygonal_algorithms.h>
 #include <wrap/io_trimesh/export.h>
 #include <vcg/complex/algorithms/implicit_smooth.h>
+#include "local_para_smooth.h"
 
 //#include "field_smoother.h"
 
@@ -46,8 +47,8 @@ void ExtractEdgeMesh(const TriangleMeshType &triMesh,
                      const std::vector<std::pair<size_t,size_t> > features,
                      BasicMesh &EdgeMesh)
 {
-//    typedef typename TriangleMeshType::FaceType TriFaceType;
-//    typedef typename TriangleMeshType::ScalarType TriScalarType;
+    //    typedef typename TriangleMeshType::FaceType TriFaceType;
+    //    typedef typename TriangleMeshType::ScalarType TriScalarType;
     typedef typename TriangleMeshType::CoordType CoordType;
 
     EdgeMesh.Clear();
@@ -438,7 +439,7 @@ void ProjectStepPositions(PolyMeshType &PolyM,TriMeshType &TriM,
 
 template <class PolyMeshType,class TriMeshType>
 void GetProjectionBasis(const BasicMesh &edge_mesh,
-                         TriMeshType &tri_mesh,
+                        TriMeshType &tri_mesh,
                         const std::vector<std::pair<size_t,size_t> > &FeatureTris,
                         const std::vector<size_t> &FeatureTrisC,
                         const std::vector<size_t> &tri_face_partition,
@@ -487,14 +488,14 @@ void GetProjectionBasis(const BasicMesh &edge_mesh,
         if (Part0==Part1)
         {
             std::cout<<"WARNING - SAME PARTITION ACROSS SHARP"<<std::endl;
-//            TriMeshType testM;
-//            typename TriMeshType::FaceType *f0,*f1;
-//            f0=&tri_mesh.face[IndexF];
-//            f1=&tri_mesh.face[IndexFOpp];
-//            vcg::tri::Allocator<TriMeshType>::AddFace(testM,f0->P(0),f0->P(1),f0->P(2));
-//            vcg::tri::Allocator<TriMeshType>::AddFace(testM,f1->P(0),f1->P(1),f1->P(2));
-//            vcg::tri::io::ExporterPLY<TriMeshType>::Save(testM,"test_problem.ply");
-//            assert(0);
+            //            TriMeshType testM;
+            //            typename TriMeshType::FaceType *f0,*f1;
+            //            f0=&tri_mesh.face[IndexF];
+            //            f1=&tri_mesh.face[IndexFOpp];
+            //            vcg::tri::Allocator<TriMeshType>::AddFace(testM,f0->P(0),f0->P(1),f0->P(2));
+            //            vcg::tri::Allocator<TriMeshType>::AddFace(testM,f1->P(0),f1->P(1),f1->P(2));
+            //            vcg::tri::io::ExporterPLY<TriMeshType>::Save(testM,"test_problem.ply");
+            //            assert(0);
         }
         //assert(Part0!=Part1);
         PatchPairKey keyPatch(std::min(Part0,Part1),std::max(Part0,Part1));
@@ -794,10 +795,10 @@ void BackProjectStepPositions(PolyMeshType &PolyM,TriMeshType &TriM,
             TargetPos.push_back(PolyM.vert[i].P()+TargetMov[i]);
     }
     int t4=clock();
-//    std::cout<<"BProj T0: "<<t1-t0<<std::endl;
-//    std::cout<<"BProj T1: "<<t2-t1<<std::endl;
-//    std::cout<<"BProj T2: "<<t3-t2<<std::endl;
-//    std::cout<<"BProj T3: "<<t4-t3<<std::endl;
+    //    std::cout<<"BProj T0: "<<t1-t0<<std::endl;
+    //    std::cout<<"BProj T1: "<<t2-t1<<std::endl;
+    //    std::cout<<"BProj T2: "<<t3-t2<<std::endl;
+    //    std::cout<<"BProj T3: "<<t4-t3<<std::endl;
 }
 
 template <class PolyMeshType,class TriMeshType>
@@ -864,7 +865,7 @@ void SmoothInternal(PolyMeshType &PolyM,TriMeshType &TriM,
     //select only the one on borders
     vcg::tri::UpdateFlags<PolyMeshType>::VertexClearS(PolyM);
 
-//    int t0=clock();
+    //    int t0=clock();
     if (!UseSharp)
     {
         vcg::tri::UpdateFlags<PolyMeshType>::VertexSetS(PolyM);
@@ -884,7 +885,7 @@ void SmoothInternal(PolyMeshType &PolyM,TriMeshType &TriM,
         else
             TemplatePos(PolyM,PolyProjBase,Damp,TargetPosSmooth);
     }
-//    int t1=clock();
+    //    int t1=clock();
     //smooth
     for (size_t i=0;i<PolyM.vert.size();i++)
     {
@@ -892,7 +893,7 @@ void SmoothInternal(PolyMeshType &PolyM,TriMeshType &TriM,
         if (PolyProjBase.VertProjType[i]==ProjSuface)
             PolyM.vert[i].P()=TargetPosSmooth[i];
     }
-//    int t2=clock();
+    //    int t2=clock();
     //back projection
     for (size_t i=0;i<back_proj_steps;i++)
     {
@@ -904,7 +905,7 @@ void SmoothInternal(PolyMeshType &PolyM,TriMeshType &TriM,
                 PolyM.vert[i].P()=TargetPosBackProj[i];
         }
     }
-//    int t3=clock();
+    //    int t3=clock();
     for (size_t i=0;i<PolyM.vert.size();i++)
     {
         if (BlockedV[i])continue;
@@ -919,11 +920,11 @@ void SmoothInternal(PolyMeshType &PolyM,TriMeshType &TriM,
             PolyM.vert[i].P()=closestPt;
         }
     }
-//    int t4=clock();
-//    std::cout<<"Internal T0: "<<t1-t0<<std::endl;
-//    std::cout<<"Internal T1: "<<t2-t1<<std::endl;
-//    std::cout<<"Internal T2: "<<t3-t2<<std::endl;
-//    std::cout<<"Internal T3: "<<t4-t3<<std::endl;
+    //    int t4=clock();
+    //    std::cout<<"Internal T0: "<<t1-t0<<std::endl;
+    //    std::cout<<"Internal T1: "<<t2-t1<<std::endl;
+    //    std::cout<<"Internal T2: "<<t3-t2<<std::endl;
+    //    std::cout<<"Internal T3: "<<t4-t3<<std::endl;
 }
 
 template <class PolyMeshType>
@@ -1001,18 +1002,115 @@ void MultiCostraintSmooth(PolyMeshType &PolyM,
         //std::cout<<"Smoooth Feature step: "<<s<<std::endl;
         //int t0=clock();
         SmoothSharpFeatures<PolyMeshType,TriMeshType>(PolyM,PolyProjBase,EdgeM,Damp,BlockedV);
-//        std::cout<<"Smoooth Internal step: "<<s<<std::endl;
-//        int t1=clock();
+        //        std::cout<<"Smoooth Internal step: "<<s<<std::endl;
+        //        int t1=clock();
         SmoothInternal<PolyMeshType,TriMeshType>(PolyM,TriM,TriGrid,
                                                  TriProjBase,PolyProjBase,
                                                  back_proj_steps,
                                                  TemplateFit,Damp,
                                                  BlockedV,true);
-//        int t2=clock();
-//        std::cout<<"Concluded Smoothing step TFeat:"<<t1-t0<<" TInternal:"<<t2-t1<<std::endl;
+        //        int t2=clock();
+        //        std::cout<<"Concluded Smoothing step TFeat:"<<t1-t0<<" TInternal:"<<t2-t1<<std::endl;
     }
 
 }
 
+
+template <class PolyMeshType,class TriMeshType>
+void LocalUVSmooth(PolyMeshType &PolyM,
+                   TriMeshType &TriM,
+                   const std::vector<std::pair<size_t,size_t> > &features,
+                   const std::vector<size_t> &featuresC,
+                   size_t step_num)
+{
+    typedef typename PolyMeshType::ScalarType ScalarType;
+    typedef typename PolyMeshType::CoordType CoordType;
+    typedef typename TriMeshType::FaceType TriFaceType;
+
+    //set index of original face
+    for (size_t i=0;i<PolyM.face.size();i++)
+        PolyM.face[i].Q()=i;
+
+    TriMeshType testM;
+    vcg::PolygonalAlgorithm<PolyMeshType>::template TriangulateToTriMesh<TriMeshType>(PolyM,testM,false);
+    testM.UpdateAttributes();
+
+    vcg::GridStaticPtr<TriFaceType,ScalarType> TriGrid;
+    TriGrid.Set(testM.face.begin(),testM.face.end());
+
+    std::vector<std::pair<size_t,size_t> > PolySharpFeatures;
+    //    std::set<std::pair<CoordType,CoordType> > PolySharpCoord;
+
+    //    ScalarType minDot=0.6;
+
+    size_t subStep=10;
+    for (size_t i=0;i<features.size();i++)
+    {
+        for (size_t k=1;k<subStep-1;k++)
+        {
+            size_t IndexF=features[i].first;
+            size_t IndexE=features[i].second;
+            CoordType P0=TriM.face[IndexF].P0(IndexE);
+            CoordType P1=TriM.face[IndexF].P1(IndexE);
+            //        CoordType Dir0=(P1-P0);
+            //        Dir0.Normalize();
+
+            CoordType TestP=(P0*k+P1*(subStep-k))/subStep;
+            ScalarType maxD=TriM.bbox.Diag();
+            ScalarType minD;
+            CoordType closestPt;
+            TriFaceType *f=vcg::tri::GetClosestFaceBase(testM,TriGrid,TestP,maxD,minD,closestPt);
+            assert(f!=NULL);
+            size_t IndexFPoly=f->Q();
+
+            assert(IndexFPoly>=0);
+            assert(IndexFPoly<PolyM.face.size());
+
+            size_t numV=PolyM.face[IndexFPoly].VN();
+            ScalarType minDT=std::numeric_limits<ScalarType>::max();
+            int minI=-1;
+            for (size_t j=0;j<numV;j++)
+            {
+                CoordType P0=PolyM.face[IndexFPoly].P(j);
+                CoordType P1=PolyM.face[IndexFPoly].P((j+1)%numV);
+                //            CoordType Dir1=(P1-P0);
+                //            Dir1.Normalize();
+
+                //            if (fabs(Dir0*Dir1)<minDot)continue;
+                vcg::Segment3<ScalarType> S3(P0,P1);
+                CoordType closT;
+                ScalarType distT;
+                vcg::SegmentPointDistance(S3,closestPt,closT,distT);
+                if (distT>minDT)continue;
+                minDT=distT;
+                minI=j;
+            }
+            assert(minI>=0);
+            PolySharpFeatures.push_back(std::pair<size_t,size_t>(IndexFPoly,(size_t)minI));
+        }
+    }
+    std::sort(PolySharpFeatures.begin(),PolySharpFeatures.end());
+    auto it = std::unique (PolySharpFeatures.begin(), PolySharpFeatures.end());
+    PolySharpFeatures.resize( std::distance(PolySharpFeatures.begin(),it) );
+
+    std::set<CoordType> CornerPos;
+    for (size_t i=0;i<featuresC.size();i++)
+    {
+        CoordType Pos=TriM.vert[featuresC[i]].P();
+        CornerPos.insert(Pos);
+    }
+
+    std::vector<size_t> PolyCorners;
+    for (size_t i=0;i<PolyM.vert.size();i++)
+    {
+        if (CornerPos.count(PolyM.vert[i].P())==0)continue;
+        //        if (CountS[i]==0)continue;
+        //        if (CountS[i]==2)continue;
+        PolyCorners.push_back(i);
+    }
+
+    SmoothPolygonalMeshByLocalUV(PolyM,PolySharpFeatures,PolyCorners,step_num);
+
+}
 
 #endif // SMOOTH_MESH_H

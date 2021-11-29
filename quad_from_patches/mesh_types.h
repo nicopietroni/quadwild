@@ -23,7 +23,8 @@ class PolyVertex : public vcg::Vertex<MyPolyTypes,
         vcg::vertex::Qualityf,
         vcg::vertex::BitFlags,
         vcg::vertex::VFAdj,
-        vcg::vertex::CurvatureDirf>{};
+        vcg::vertex::CurvatureDirf,
+        vcg::vertex::TexCoord2f>{};
 
 class PolyFace : public vcg::Face<
         MyPolyTypes,
