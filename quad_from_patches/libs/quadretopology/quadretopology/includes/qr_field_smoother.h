@@ -39,9 +39,9 @@
 #include <igl/principal_curvature.h>
 #include <igl/igl_inline.h>
 
-#ifdef COMISO_FIELD
-#include <libiglfields/include/igl/copyleft/comiso/nrosy.h>
-#endif
+//#ifdef COMISO_FIELD
+//#include <libiglfields/include/igl/copyleft/comiso/nrosy.h>
+//#endif
 
 namespace QuadRetopology {
 namespace internal {
@@ -232,39 +232,39 @@ class FieldSmoother
                           ScalarType alpha_soft,
                           int Ndir)
     {
-#ifdef COMISO_FIELD
-        assert((Ndir==2)||(Ndir==4));
-        Eigen::MatrixXi F;
-        Eigen::MatrixXd V;
+//#ifdef COMISO_FIELD
+//        assert((Ndir==2)||(Ndir==4));
+//        Eigen::MatrixXi F;
+//        Eigen::MatrixXd V;
 
-        MeshToMatrix<MeshType>::GetTriMeshData(mesh,F,V);
+//        MeshToMatrix<MeshType>::GetTriMeshData(mesh,F,V);
 
-        Eigen::MatrixXd output_field;
-        Eigen::VectorXd output_sing;
+//        Eigen::MatrixXd output_field;
+//        Eigen::VectorXd output_sing;
 
-        igl::copyleft::comiso::nrosy(V,F,HardI,HardD,SoftI,SoftW,SoftD,Ndir,alpha_soft,output_field,output_sing);
+//        igl::copyleft::comiso::nrosy(V,F,HardI,HardD,SoftI,SoftW,SoftD,Ndir,alpha_soft,output_field,output_sing);
 
-        //finally update the principal directions
-        for (size_t i=0;i<mesh.face.size();i++)
-        {
-            CoordType dir1;
-            dir1[0]=output_field(i,0);
-            dir1[1]=output_field(i,1);
-            dir1[2]=output_field(i,2);
+//        //finally update the principal directions
+//        for (size_t i=0;i<mesh.face.size();i++)
+//        {
+//            CoordType dir1;
+//            dir1[0]=output_field(i,0);
+//            dir1[1]=output_field(i,1);
+//            dir1[2]=output_field(i,2);
 
-            dir1.Normalize();
-            CoordType dir2=mesh.face[i].N()^dir1;
-            dir2.Normalize();
+//            dir1.Normalize();
+//            CoordType dir2=mesh.face[i].N()^dir1;
+//            dir2.Normalize();
 
-            ScalarType Norm1=mesh.face[i].PD1().Norm();
-            ScalarType Norm2=mesh.face[i].PD2().Norm();
+//            ScalarType Norm1=mesh.face[i].PD1().Norm();
+//            ScalarType Norm2=mesh.face[i].PD2().Norm();
 
-            mesh.face[i].PD1()=dir1*Norm1;
-            mesh.face[i].PD2()=dir2*Norm2;
-        }
-#else
+//            mesh.face[i].PD1()=dir1*Norm1;
+//            mesh.face[i].PD2()=dir2*Norm2;
+//        }
+//#else
         assert(0);
-#endif
+///#endif
     }
 
     static void SmoothNPoly(MeshType &mesh,
@@ -277,7 +277,7 @@ class FieldSmoother
         Eigen::MatrixXi F;
         Eigen::MatrixXd V;
 
-        MeshToMatrix<MeshType>::GetTriMeshData(mesh,F,V);
+        vcg::tri::MeshToMatrix<MeshType>::GetTriMeshData(mesh,F,V);
 
         Eigen::MatrixXd output_field;
         Eigen::VectorXd output_sing;
@@ -405,7 +405,7 @@ public:
         Eigen::MatrixXd V;
 
         Eigen::MatrixXd PD1,PD2,PV1,PV2;
-        MeshToMatrix<MeshType>::GetTriMeshData(mesh,F,V);
+        vcg::tri::MeshToMatrix<MeshType>::GetTriMeshData(mesh,F,V);
 
         igl::principal_curvature(V,F,PD1,PD2,PV1,PV2,Nring,true);
 

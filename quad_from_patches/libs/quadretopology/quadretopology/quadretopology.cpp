@@ -455,8 +455,8 @@ inline std::vector<double> computeChartEdgeLength(
     std::vector<double> avgLengths(chartData.charts.size() , -1);
 
 
-    vector<bool> isFixed(chartData.subsides.size(), false);
-    vector<bool> isComputable(chartData.subsides.size(), true);
+    std::vector<bool> isFixed(chartData.subsides.size(), false);
+    std::vector<bool> isComputable(chartData.subsides.size(), true);
     for (size_t subsideId = 0; subsideId < chartData.subsides.size(); ++subsideId) {
         if (ilpResults[subsideId] == ILP_IGNORE) {
             isComputable[subsideId] = false;
@@ -755,7 +755,7 @@ void quadrangulate(
     quadrangulationPartitions.resize(chartData.charts.size());
     quadrangulationCorners.resize(chartData.charts.size());
 
-    vector<bool> isFixed(chartData.subsides.size(), false);
+    std::vector<bool> isFixed(chartData.subsides.size(), false);
     for (int sId : fixedPositionSubsides) {
         isFixed[sId] = true;
     }
