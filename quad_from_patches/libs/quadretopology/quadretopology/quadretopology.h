@@ -1,3 +1,28 @@
+/***************************************************************************/
+/* Copyright(C) 2021
+
+
+The authors of
+
+Reliable Feature-Line Driven Quad-Remeshing
+Siggraph 2021
+
+
+ All rights reserved.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+****************************************************************************/
+
 #ifndef QUADRETOPOLOGY_H
 #define QUADRETOPOLOGY_H
 
@@ -12,25 +37,6 @@
 #include "includes/qr_parameters.h"
 
 namespace QuadRetopology {
-
-template<class TriangleMeshType, class PolyMeshType>
-std::vector<int> patchDecomposition(
-        TriangleMeshType& newSurface,
-        PolyMeshType& preservedSurface,
-        std::vector<std::vector<size_t>>& partitions,
-        std::vector<std::vector<size_t>>& corners,
-        const Parameters& parameters);
-template<class TriangleMeshType, class PolyMeshType>
-std::vector<int> patchDecomposition(
-        TriangleMeshType& newSurface,
-        PolyMeshType& preservedSurface,
-        std::vector<std::vector<size_t>>& partitions,
-        std::vector<std::vector<size_t>>& corners,
-        const bool initialRemeshing,
-        const double edgeFactor,
-        const bool reproject,
-        const bool splitConcaves,
-        const bool finalSmoothing);
 
 template<class TriangleMesh>
 ChartData computeChartData(
@@ -107,28 +113,6 @@ void quadrangulate(
         std::vector<std::vector<size_t>>& quadrangulationPartitions,
         std::vector<std::vector<size_t>>& quadrangulationCorners);
 
-template<class PolyMeshType, class TriangleMeshType>
-void computeResult(
-        PolyMeshType& preservedSurface,
-        PolyMeshType& quadrangulatedNewSurface,
-        PolyMeshType& result,
-        TriangleMeshType& targetBoolean,
-        const Parameters& parameters,
-        std::vector<int>& resultPreservedVertexMap,
-        std::vector<int>& resultPreservedFaceMap);
-template<class PolyMeshType, class TriangleMeshType>
-void computeResult(
-        PolyMeshType& preservedSurface,
-        PolyMeshType& quadrangulatedNewSurface,
-        PolyMeshType& result,
-        TriangleMeshType& targetBoolean,
-        const bool doubletRemoval,
-        const int resultSmoothingIterations,
-        const double resultSmoothingNRing,
-        const int resultSmoothingLaplacianIterations,
-        const double resultSmoothingLaplacianNRing,
-        std::vector<int>& resultPreservedVertexMap,
-        std::vector<int>& resultPreservedFaceMap);
 }
 
 #include "quadretopology.cpp"

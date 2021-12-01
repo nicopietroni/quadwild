@@ -1,12 +1,34 @@
+/***************************************************************************/
+/* Copyright(C) 2021
+
+
+The authors of
+
+Reliable Feature-Line Driven Quad-Remeshing
+Siggraph 2021
+
+
+ All rights reserved.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+****************************************************************************/
+
 #include "quadretopology.h"
 
 #include "includes/qr_convert.h"
-#include "includes/qr_field_tracer.h"
-#include "includes/qr_patch_tracer.h"
 #include "includes/qr_utils.h"
 #include "includes/qr_patterns.h"
 #include "includes/qr_mapping.h"
-#include "includes/qr_patch_assembler.h"
 #include <map>
 
 #include <vcg/complex/algorithms/polygonal_algorithms.h>
@@ -16,63 +38,6 @@
 #endif
 
 namespace QuadRetopology {
-
-
-template<class TriangleMeshType, class PolyMeshType>
-std::vector<int> patchDecomposition(
-        TriangleMeshType& newSurface,
-        PolyMeshType& preservedSurface,
-        std::vector<std::vector<size_t>>& partitions,
-        std::vector<std::vector<size_t>>& corners,
-        const Parameters& parameters)
-{
-    return QuadRetopology::patchDecomposition(
-        newSurface, 
-        preservedSurface, 
-        partitions, 
-        corners,  
-        parameters.initialRemeshing,
-        parameters.initialRemeshingEdgeFactor,
-        parameters.reproject,
-        parameters.splitConcaves,
-        parameters.finalSmoothing);
-            
-}
-template<class TriangleMeshType, class PolyMeshType>
-std::vector<int> patchDecomposition(
-        TriangleMeshType& newSurface,
-        PolyMeshType& preservedSurface,
-        std::vector<std::vector<size_t>>& partitions,
-        std::vector<std::vector<size_t>>& corners,
-        const bool initialRemeshing,
-        const double edgeFactor,
-        const bool reproject,
-        const bool splitConcaves,
-        const bool finalSmoothing)
-{
-    if (newSurface.face.size() <= 0)
-        return std::vector<int>();
-
-    std::vector<std::vector<std::vector<std::pair<size_t,size_t>>>> sides;
-    internal::PatchAssembler<TriangleMeshType, PolyMeshType> patchAssembler(newSurface, preservedSurface);
-    typename internal::PatchAssembler<TriangleMeshType, PolyMeshType>::Parameters parameters;
-    parameters.InitialRemesh = initialRemeshing;
-    parameters.EdgeSizeFactor = edgeFactor;
-    parameters.FinalSmooth = finalSmoothing;
-    parameters.SplitAllConcave = splitConcaves;
-    parameters.Reproject = reproject;
-    patchAssembler.BatchProcess(partitions, corners, sides, parameters);
-
-    std::vector<int> newSurfaceLabel(newSurface.face.size(), -1);
-    for (size_t pId = 0; pId < partitions.size(); pId++) {
-        for (const size_t& fId : partitions[pId]) {
-            assert(newSurfaceLabel[fId] == -1);
-            newSurfaceLabel[fId] = static_cast<int>(pId);
-        }
-    }
-
-    return newSurfaceLabel;
-}
 
 template<class TriangleMesh>
 ChartData computeChartData(
@@ -1356,278 +1321,6 @@ void quadrangulate(
 #ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
     vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(quadrangulation, "results/quadrangulation_6_final.obj", vcg::tri::io::Mask::IOM_NONE);
 #endif
-}
-
-
-template<class PolyMeshType, class TriangleMeshType>
-void computeResult(
-        PolyMeshType& preservedMesh,
-        PolyMeshType& quadrangulation,
-        PolyMeshType& result,
-        TriangleMeshType& targetBoolean,
-        const bool doubletRemoval,
-        const int resultSmoothingIterations,
-        const double resultSmoothingNRing,
-        const int resultSmoothingLaplacianIterations,
-        const double resultSmoothingLaplacianNRing,
-        std::vector<int>& resultPreservedVertexMap,
-        std::vector<int>& resultPreservedFaceMap)
-{
-    //Add birth vertex and faces in preserved quality
-    vcg::tri::UpdateQuality<PolyMeshType>::VertexConstant(quadrangulation, -1);
-    vcg::tri::UpdateQuality<PolyMeshType>::FaceConstant(quadrangulation, -1);
-    vcg::tri::UpdateQuality<PolyMeshType>::VertexConstant(preservedMesh, -1);
-    vcg::tri::UpdateQuality<PolyMeshType>::FaceConstant(preservedMesh, -1);
-    for (size_t i = 0; i < preservedMesh.vert.size(); i++) {
-        if (preservedMesh.vert[i].IsD()) {
-            continue;
-        }
-
-        preservedMesh.vert[i].Q() = i;
-    }
-    for (size_t i = 0; i < preservedMesh.face.size(); i++) {
-        if (preservedMesh.face[i].IsD()) {
-            continue;
-        }
-
-        preservedMesh.face[i].Q() = i;
-    }
-
-    //Update quadrangulation topology and borders
-    vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(quadrangulation);
-    vcg::tri::UpdateFlags<PolyMeshType>::FaceBorderFromFF(quadrangulation);
-    vcg::tri::UpdateFlags<PolyMeshType>::VertexBorderFromFaceBorder(quadrangulation);
-
-    //Set V on quadrangulation border vertices
-    vcg::tri::UpdateFlags<PolyMeshType>::VertexClearV(quadrangulation);
-    vcg::tri::UpdateFlags<PolyMeshType>::FaceClearV(quadrangulation);
-    vcg::tri::UpdateFlags<PolyMeshType>::VertexClearV(preservedMesh);
-    vcg::tri::UpdateFlags<PolyMeshType>::FaceClearV(preservedMesh);
-    for (size_t i = 0; i < quadrangulation.vert.size(); i++) {
-        if (quadrangulation.vert[i].IsD())
-            continue;
-
-        if (quadrangulation.vert[i].IsB()) {
-            quadrangulation.vert[i].SetV();
-        }
-    }
-
-    //Create result
-    PolyMeshType tmpMesh;
-    vcg::tri::Append<PolyMeshType, PolyMeshType>::Mesh(tmpMesh, preservedMesh);
-    vcg::tri::Append<PolyMeshType, PolyMeshType>::Mesh(tmpMesh, quadrangulation);
-
-#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_1_original.obj", vcg::tri::io::Mask::IOM_NONE);
-#endif
-
-    //Select quadrangulation borders and face
-    vcg::tri::UpdateSelection<PolyMeshType>::VertexClear(tmpMesh);
-    vcg::tri::UpdateSelection<PolyMeshType>::FaceClear(tmpMesh);
-    for (size_t i = 0; i < tmpMesh.vert.size(); i++) {
-        if (tmpMesh.vert[i].IsD())
-            continue;
-
-        if (tmpMesh.vert[i].Q() < 0) {
-            if (tmpMesh.vert[i].IsV()) {
-                tmpMesh.vert[i].SetS();
-            }
-        }
-    }
-    for (size_t i = 0; i < tmpMesh.face.size(); i++) {
-        if (tmpMesh.face[i].IsD())
-            continue;
-
-        if (tmpMesh.face[i].Q() < 0) {
-            tmpMesh.face[i].SetS();
-        }
-    }
-
-//    int numClustered = QuadRetopology::internal::clusterVertices(tmpMesh, true, 0.00001);
-//    if (numClustered > 0) {
-//        std::cout << "Clustered " << numClustered << " vertices." << std::endl;
-//    }
-
-    //Duplicates
-    int numDuplicateVertices = QuadRetopology::internal::removeDuplicateVertices(tmpMesh, true);
-    if (numDuplicateVertices > 0) {
-        std::cout << "Merged " << numDuplicateVertices << " duplicate vertices." << std::endl;
-    }
-
-#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_2_merged.obj", vcg::tri::io::Mask::IOM_NONE);
-#endif
-
-    //Degenerate faces
-    int numDegenerateFaces = QuadRetopology::internal::removeDegenerateFaces(tmpMesh, true, true);
-    if (numDegenerateFaces > 0) {
-        std::cout << "Removed " << numDegenerateFaces << " degenerate faces after duplicate vertex removal." << std::endl;        
-        vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(quadrangulation);
-    }
-
-    //Doublet removal
-    if (doubletRemoval) {
-        int numDoublets = QuadRetopology::internal::removeDoubletFaces(tmpMesh, true, true);
-        if (numDoublets > 0) {
-            std::cout << "Removed " << numDoublets << " doublets." << std::endl;
-            vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(quadrangulation);
-        }
-    }
-
-    //Unreferenced vertices
-    int numUnreferencedVertices = QuadRetopology::internal::removeUnreferencedVertices(tmpMesh, true);
-    if (numUnreferencedVertices > 0) {
-        std::cout << "Removed " << numUnreferencedVertices << " unreferenced vertices after duplicate vertex removal." << std::endl;
-    }
-
-#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_3_cleaned.obj", vcg::tri::io::Mask::IOM_NONE);
-#endif
-
-    //Update attributes and re-orient faces
-    vcg::tri::UpdateSelection<PolyMeshType>::VertexClear(tmpMesh);
-    vcg::tri::UpdateSelection<PolyMeshType>::FaceClear(tmpMesh);
-    vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(tmpMesh);
-    vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(tmpMesh);
-    QuadRetopology::internal::OrientFaces<PolyMeshType>::AutoOrientFaces(tmpMesh);
-    vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(tmpMesh);
-    vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(tmpMesh);
-
-#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(tmpMesh, "results/result_4_reoriented.obj", vcg::tri::io::Mask::IOM_NONE);
-#endif
-
-    result.Clear();
-    vcg::tri::Append<PolyMeshType, PolyMeshType>::Mesh(result, tmpMesh);
-
-    vcg::tri::UpdateTopology<PolyMeshType>::FaceFace(result);
-    vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(result);
-    vcg::tri::UpdateNormal<PolyMeshType>::PerVertexNormalized(result);
-
-    //Fill maps and choose vertices to be smoothed
-    std::vector<size_t> smoothingVertices;
-    resultPreservedVertexMap.resize(result.vert.size(), -1);
-    for (size_t i = 0; i < result.vert.size(); i++) {
-        if (result.vert[i].IsD())
-            continue;
-
-        if (result.vert[i].Q() >= 0) {
-            resultPreservedVertexMap[i] = result.vert[i].Q();
-        }
-        else {
-            smoothingVertices.push_back(i);
-        }
-    }
-    resultPreservedFaceMap.resize(result.face.size(), -1);
-    for (size_t i = 0; i < result.face.size(); i++) {
-        if (result.face[i].IsD())
-            continue;
-
-        if (result.face[i].Q() >= 0) {
-            resultPreservedFaceMap[i] = result.face[i].Q();
-        }
-    }
-
-
-#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(result, "results/result_5_recompacted.obj", vcg::tri::io::Mask::IOM_NONE);
-#endif
-
-    if (!targetBoolean.face.empty()) {
-        vcg::tri::UpdateNormal<TriangleMeshType>::PerFaceNormalized(targetBoolean);
-        vcg::tri::UpdateNormal<TriangleMeshType>::PerVertexNormalized(targetBoolean);
-        vcg::tri::UpdateBounding<TriangleMeshType>::Box(targetBoolean);
-
-        if (result.face.size() == 0)
-            return;
-
-        vcg::tri::UpdateSelection<PolyMeshType>::VertexClear(result);
-        vcg::tri::UpdateSelection<PolyMeshType>::FaceClear(result);
-        for (const size_t& vId : smoothingVertices) {
-            result.vert[vId].SetS();
-        }
-
-        vcg::GridStaticPtr<typename TriangleMeshType::FaceType,typename TriangleMeshType::FaceType::ScalarType> Grid;
-        Grid.Set(targetBoolean.face.begin(),targetBoolean.face.end());
-
-        //Reproject
-        vcg::tri::UpdateBounding<PolyMeshType>::Box(result);
-        typename TriangleMeshType::ScalarType maxD=result.bbox.Diag();
-        typename TriangleMeshType::ScalarType minD=0;
-
-        for (const size_t& vId : smoothingVertices) {
-            typename TriangleMeshType::CoordType closestPT;
-            typename TriangleMeshType::FaceType *f=
-                    vcg::tri::GetClosestFaceBase<TriangleMeshType>(
-                        targetBoolean,
-                        Grid,
-                        result.vert[vId].P(),
-                        maxD,minD,
-                        closestPT);
-
-            result.vert[vId].P()=closestPT;
-        }
-
-        for (int it = 0; it < resultSmoothingIterations; it++) {
-            typename PolyMeshType::ScalarType maxDistance = internal::averageEdgeLength(result) * resultSmoothingNRing;
-
-            internal::LaplacianGeodesicSmoothing(result, resultSmoothingIterations, maxDistance, 0.7);
-
-            //Reproject
-            vcg::tri::UpdateBounding<PolyMeshType>::Box(result);
-            typename TriangleMeshType::ScalarType maxD=result.bbox.Diag();
-            typename TriangleMeshType::ScalarType minD=0;
-
-            for (const size_t& vId : smoothingVertices) {
-                typename TriangleMeshType::CoordType closestPT;
-                typename TriangleMeshType::FaceType *f=
-                        vcg::tri::GetClosestFaceBase<TriangleMeshType>(
-                            targetBoolean,
-                            Grid,
-                            result.vert[vId].P(),
-                            maxD,minD,
-                            closestPT);
-
-                result.vert[vId].P()=closestPT;
-            }
-        }
-
-        typename PolyMeshType::ScalarType maxDistance = internal::averageEdgeLength(result) * resultSmoothingLaplacianNRing;
-
-        internal::LaplacianGeodesicSmoothing(result, resultSmoothingLaplacianIterations, maxDistance, 0.8);
-
-        vcg::PolygonalAlgorithm<PolyMeshType>::UpdateFaceNormalByFitting(result);
-        vcg::tri::UpdateNormal<PolyMeshType>::PerVertexNormalized(result);
-        vcg::tri::UpdateBounding<PolyMeshType>::Box(result);
-    }
-
-#ifdef QUADRETOPOLOGY_DEBUG_SAVE_MESHES
-    vcg::tri::io::ExporterOBJ<PolyMeshType>::Save(result, "results/result_6_final.obj", vcg::tri::io::Mask::IOM_NONE);
-#endif
-}
-
-template<class PolyMeshType, class TriangleMeshType>
-void computeResult(
-        PolyMeshType& preservedSurface,
-        PolyMeshType& quadrangulatedNewSurface,
-        PolyMeshType& result,
-        TriangleMeshType& targetBoolean,
-        const Parameters& parameters,
-        std::vector<int>& resultPreservedVertexMap,
-        std::vector<int>& resultPreservedFaceMap)
-{
-    return computeResult(
-        preservedSurface,
-        quadrangulatedNewSurface,
-        result,
-        targetBoolean,
-        parameters.doubletRemoval,
-        parameters.resultSmoothingIterations,
-        parameters.resultSmoothingNRing,
-        parameters.resultSmoothingLaplacianIterations,
-        parameters.resultSmoothingLaplacianNRing,
-        resultPreservedVertexMap,
-        resultPreservedFaceMap);
 }
 
 }
