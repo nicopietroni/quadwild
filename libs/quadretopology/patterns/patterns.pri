@@ -10,8 +10,7 @@ KT_PATH = $$PWD/patterns/kt84
 
 
 #Libs
-LIBS += -ldl -lm -lmpfr
-
+LIBS += -ldl -lm
 
 #Main files
 SOURCES += \
