@@ -65,7 +65,7 @@ unix:!mac {
 macx{
     QMAKE_CXXFLAGS += -Xpreprocessor -fopenmp -lomp -I/usr/local/include
     QMAKE_LFLAGS += -lomp
-    LIBS += -L /usr/local/lib /usr/local/lib/libomp.dylib
+    LIBS += -L /usr/local/lib/usr/local/lib/libomp.dylib
 }
 
 
