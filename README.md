@@ -41,11 +41,19 @@ git clone --recursive https://github.com/stefanonuvoli/quadwild
 ```
 
 ### Build
-The following libraries are requested:
-- `vcglib`: [https://github.com/cnr-isti-vclab/vcglib](https://github.com/cnr-isti-vclab/vcglib)
-- `gurobi`: [https://www.gurobi.com](https://www.gurobi.com)
+Install the libraries eigen3, boost, gurobi and antTweakBar. Then, open the file libs/libs.pri and set the paths of these libraries.
+```
+#External libraries
+EIGEN_PATH          = /usr/include/eigen3/
+BOOST_PATH          = /usr/include/boost/
+GUROBI_PATH         = /opt/gurobi903/linux64/
+ANTTWEAKBAR_PATH    = /opt/AntTweakBar/
+```
+You can now compile the project quadwild/quadwild.pro with QtCreator or qmake.
 
-TODO
+## Run
+
+TODO: write input mesh parameters, other parameters and options in running the project
 
 ## Note
 The code has slightly changed and the results could be different from the ones showed in the paper.
