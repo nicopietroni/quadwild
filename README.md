@@ -41,10 +41,14 @@ git clone --recursive https://github.com/stefanonuvoli/quadwild
 ```
 
 ### Build
+The following libraries are requested:
+- `vcglib`: [https://github.com/cnr-isti-vclab/vcglib](https://github.com/cnr-isti-vclab/vcglib)
+- `gurobi`: [https://www.gurobi.com](https://www.gurobi.com)
+
 TODO
 
 ## Note
-The code has been slightly changed and the results could be different from the ones showed in the paper.
+The code has slightly changed and the results could be different from the ones showed in the paper.
 
 ## License
 [GPL3](LICENSE) licensed
