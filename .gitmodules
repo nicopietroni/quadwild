@@ -1,0 +1,6 @@
+[submodule "libs/vcglib"]
+	path = libs/vcglib
+	url = ../../cnr-isti-vclab/vcglib
+[submodule "libs/libigl"]
+	path = libs/libigl
+	url = ../../libigl/libigl
