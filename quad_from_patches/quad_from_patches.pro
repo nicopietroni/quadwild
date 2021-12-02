@@ -33,7 +33,7 @@ macx {
 ############################ LIBRARIES ############################
 
 #Setting library paths and configuration
-include(configuration.pri)
+include(libs.pri)
 
 #Quad retopology
 include($$QUADRETOPOLOGY_PATH/quadretopology.pri)
