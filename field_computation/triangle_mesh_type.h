@@ -38,6 +38,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 #include <wrap/igl/smooth_field.h>
 #include <wrap/io_trimesh/export_field.h>
+#include <wrap/io_trimesh/import_field.h>
 #include <iostream>
 #include <fstream>
 #include <vcg/complex/algorithms/attribute_seam.h>
@@ -322,6 +323,33 @@ public:
             }
         myfile.close();
         return true;
+    }
+
+    bool LoadField(std::string field_filename)
+    {
+        int position0=field_filename.find(".ffield");
+        int position1=field_filename.find(".rosy");
+
+
+        if (position0!=-1)
+        {
+            bool loaded=vcg::tri::io::ImporterFIELD<FieldTriMesh>::LoadFFIELD(*this,field_filename.c_str());
+            if (!loaded)return false;
+            vcg::tri::CrossField<FieldTriMesh>::OrientDirectionFaceCoherently(*this);
+            vcg::tri::CrossField<FieldTriMesh>::UpdateSingularByCross(*this,true);
+            return true;
+        }
+        if (position1!=-1)
+        {
+            std::cout<<"Importing ROSY field"<<std::endl;
+            bool loaded=vcg::tri::io::ImporterFIELD<FieldTriMesh>::Load4ROSY(*this,field_filename.c_str());
+            std::cout<<"Imported ROSY field"<<std::endl;
+            if (!loaded)return false;
+            vcg::tri::CrossField<FieldTriMesh>::OrientDirectionFaceCoherently(*this);
+            vcg::tri::CrossField<FieldTriMesh>::UpdateSingularByCross(*this,true);
+            return true;
+        }
+        return false;
     }
 
     bool LoadSharpFeatures(const std::string &filename)

@@ -31,7 +31,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <wrap/io_trimesh/export.h>
 #include <vcg/complex/algorithms/implicit_smooth.h>
 #include "local_para_smooth.h"
-
+#include <vcg/space/distance3.h>
+#include <vcg/space/index/grid_static_ptr.h>
 //#include "field_smoother.h"
 
 ///* ----- Triangle mesh ----- */
@@ -920,6 +921,7 @@ void SmoothInternal(PolyMeshType &PolyM,TriMeshType &TriM,
     }
     //    int t2=clock();
     //back projection
+
     for (size_t i=0;i<back_proj_steps;i++)
     {
         BackProjectStepPositions(PolyM,TriM,TriProjBase,PolyProjBase,TargetPosBackProj);
@@ -930,6 +932,7 @@ void SmoothInternal(PolyMeshType &PolyM,TriMeshType &TriM,
                 PolyM.vert[i].P()=TargetPosBackProj[i];
         }
     }
+
     //    int t3=clock();
     for (size_t i=0;i<PolyM.vert.size();i++)
     {
@@ -940,11 +943,13 @@ void SmoothInternal(PolyMeshType &PolyM,TriMeshType &TriM,
             CoordType closestPt;
             ScalarType MaxD=PolyM.bbox.Diag();
             ScalarType MinD;
+            //std::cout<<"Index:"<<i<<std::endl;
             TriFaceType *f=vcg::tri::GetClosestFaceBase(TriM,TriGrid,TestPos,MaxD,MinD,closestPt);
             assert(f!=NULL);
             PolyM.vert[i].P()=closestPt;
         }
     }
+
     //    int t4=clock();
     //    std::cout<<"Internal T0: "<<t1-t0<<std::endl;
     //    std::cout<<"Internal T1: "<<t2-t1<<std::endl;
@@ -1029,11 +1034,13 @@ void MultiCostraintSmooth(PolyMeshType &PolyM,
         SmoothSharpFeatures<PolyMeshType,TriMeshType>(PolyM,PolyProjBase,EdgeM,Damp,BlockedV);
         //        std::cout<<"Smoooth Internal step: "<<s<<std::endl;
         //        int t1=clock();
+
         SmoothInternal<PolyMeshType,TriMeshType>(PolyM,TriM,TriGrid,
                                                  TriProjBase,PolyProjBase,
                                                  back_proj_steps,
                                                  TemplateFit,Damp,
                                                  BlockedV,true);
+
         //        int t2=clock();
         //        std::cout<<"Concluded Smoothing step TFeat:"<<t1-t0<<" TInternal:"<<t2-t1<<std::endl;
     }

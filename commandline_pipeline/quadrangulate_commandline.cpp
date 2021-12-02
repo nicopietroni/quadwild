@@ -22,10 +22,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ****************************************************************************/
+#include <iomanip>
 
 #include <triangle_mesh_type.h>
 #include <mesh_manager.h>
-
+#include <vcg/space/box3.h>
 #include <mesh_type.h>
 #include <tracing/tracer_interface.h>
 
@@ -49,8 +50,49 @@ typename TriangleMesh::ScalarType avgEdge(const TriangleMesh& trimesh)
     return (AvgVal/Num);
 }
 
+bool DoRemesh=true;
+float SharpAngle=35;
+float Alpha=0.02;
+float ScaleFact=1;
+bool HasFeature=false;
+std::string PathS;
+bool HasField=false;
+std::string PathField;
+
+bool loadConfigFile(const std::string & filename)
+{
+
+    FILE *f=fopen(filename.c_str(),"rt");
+
+    if (f==NULL)return false;
+
+    std::cout<<"READ CONFIG FILE"<<std::endl;
+
+    int IntVar;
+    fscanf(f,"do_remesh %d\n",&IntVar);
+    if (IntVar==0)
+        DoRemesh=false;
+    else
+        DoRemesh=true;
+
+    fscanf(f,"sharp_feature_thr %f\n",&SharpAngle);
+
+    fscanf(f,"alpha %f\n",&Alpha);
+
+    fscanf(f,"scaleFact %f\n",&ScaleFact);
+
+    fclose(f);
+
+    std::cout << "[fieldComputation] Successful config import" << std::endl;
+
+    return true;
+
+}
+
 int main(int argc, char *argv[])
 {
+
+
     std::cout<<"READING INPUT"<<std::endl;
 
     if (argc==1)
@@ -61,9 +103,44 @@ int main(int argc, char *argv[])
     FieldTriMesh tri_mesh;
     bool allQuad;
     std::string PathM=std::string(argv[1]);
+
+    loadConfigFile("basic_setup.txt");
+
+    for (size_t i=2;i<argc;i++)
+    {
+        int position;
+        std::string pathTest=std::string(argv[i]);
+
+        position=pathTest.find(".sharp");
+        if (position!=-1)
+        {
+            PathS=pathTest;
+            HasFeature=true;
+            continue;
+        }
+
+        position=pathTest.find(".txt");
+        if (position!=-1)
+        {
+           loadConfigFile(pathTest.c_str());
+           continue;
+        }
+
+        position=pathTest.find(".rosy");
+        if (position!=-1)
+        {
+           PathField=pathTest;
+           HasField=true;
+           continue;
+        }
+    }
+
+
     std::cout<<"Loading:"<<PathM.c_str()<<std::endl;
 
     bool loaded=tri_mesh.LoadTriMesh(PathM,allQuad);
+    tri_mesh.UpdateDataStructures();
+
     if (!loaded)
     {
         std::cout<<"Mesh Filename Wrong"<<std::endl;
@@ -74,20 +151,37 @@ int main(int argc, char *argv[])
     std::cout<<"1- REMESH AND FIELD"<<std::endl;
 
     typename MeshPrepocess<FieldTriMesh>::BatchParam BPar;
-    BPar.DoRemesh=true;
+    BPar.DoRemesh=DoRemesh;
     BPar.feature_erode_dilate=4;
     BPar.remesher_aspect_ratio=0.3;
     BPar.remesher_iterations=15;
     BPar.remesher_termination_delta=10000;
     BPar.SharpFactor=6;
-    BPar.sharp_feature_thr=35;
+    BPar.sharp_feature_thr=SharpAngle;
     BPar.surf_dist_check=true;
-    BPar.UpdateSharp=true;//(!(has_features || has_features_fl));
+    BPar.UpdateSharp=(!HasFeature);
 
     typename vcg::tri::FieldSmoother<FieldTriMesh>::SmoothParam FieldParam;
     FieldParam.alpha_curv=0.3;
     FieldParam.curv_thr=0.8;
-    MeshPrepocess<FieldTriMesh>::BatchProcess(tri_mesh,BPar,FieldParam);
+
+    if (HasFeature)
+    {
+        bool loaded=tri_mesh.LoadSharpFeatures(PathS);
+        if (!loaded)
+        {
+            std::cout<<"ERROR: Wrong Sharp Feature File"<<std::endl;
+            exit(0);
+        }
+        std::cout<<"Sharp Feature Length:"<<tri_mesh.SharpLenght()<<std::endl;
+    }
+    if (!HasField)
+        MeshPrepocess<FieldTriMesh>::BatchProcess(tri_mesh,BPar,FieldParam);
+    else
+    {
+        tri_mesh.LoadField(PathField.c_str());
+    }
+
     MeshPrepocess<FieldTriMesh>::SaveAllData(tri_mesh,PathM);
 
     std::cout<<"2- TRACING"<<std::endl;
@@ -211,7 +305,7 @@ int main(int argc, char *argv[])
     float scaleFactor;
     int fixedChartClusters;
 
-    parameters.alpha=0.02;
+    parameters.alpha=Alpha;
     parameters.ilpMethod=QuadRetopology::ILPMethod::LEASTSQUARES;
     parameters.timeLimit=200;
     parameters.gapLimit=0.0;
@@ -257,7 +351,7 @@ int main(int argc, char *argv[])
 
     parameters.hardParityConstraint=true;
 
-    scaleFactor=1;
+    scaleFactor=ScaleFact;
 
     fixedChartClusters=300;
 
@@ -275,7 +369,6 @@ int main(int argc, char *argv[])
     //SAVE OUTPUT
     std::string outputFilename = pathProject;
     outputFilename+=std::string("_quadrangulation")+std::string(".obj");
-    int MaskP=0;
     vcg::tri::io::ExporterOBJ<PolyMesh>::Save(quadmesh, outputFilename.c_str(),0);
 
 
@@ -294,6 +387,7 @@ int main(int argc, char *argv[])
     for (size_t i=0;i<quadmeshCorners.size();i++)
         for (size_t j=0;j<quadmeshCorners[i].size();j++)
             QuadCornersVect.push_back(quadmeshCorners[i][j]);
+
     std::sort(QuadCornersVect.begin(),QuadCornersVect.end());
     auto last=std::unique(QuadCornersVect.begin(),QuadCornersVect.end());
     QuadCornersVect.erase(last, QuadCornersVect.end());
