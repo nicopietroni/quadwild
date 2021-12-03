@@ -2,7 +2,6 @@
 
 include(../libs/libs.pri)
 include($$QUADRETOPOLOGY_PATH/quadretopology.pri)
-include($$LIBIGLFIELDS_PATH/libiglfields.pri)
 
 SOURCES += \
     quadwild.cpp
@@ -77,10 +76,6 @@ INCLUDEPATH += $$MESHFIELD_PATH
 INCLUDEPATH += $$MESHTRACE_PATH
 INCLUDEPATH += $$QUADRANGULATE_PATH
 
-win32{ # Awful problem with windows..
-    DEFINES += NOMINMAX
-}
-
 contains(DEFINES, COMISO_FIELD) {
     #comiso
     LIBS += -L$$COMISO_PATH/build/Build/lib/CoMISo/ -lCoMISo
@@ -104,6 +99,24 @@ INCLUDEPATH += $$BOOST_PATH
 
 #Gurobi
 INCLUDEPATH += $$GUROBI_PATH/include
-LIBS += -L$$GUROBI_PATH/lib -lgurobi_g++5.2 -lgurobi90
+LIBS += -L$$GUROBI_PATH/lib -l$$GUROBI_COMPILER -l$$GUROBI_LIB
 DEFINES += GUROBI_DEFINED
+
+#Parallel computation (just in release)
+unix:!mac {
+    QMAKE_CXXFLAGS += -fopenmp
+    LIBS += -fopenmp
+}
+#macx{
+#    QMAKE_CXXFLAGS += -Xpreprocessor -fopenmp -lomp -I/usr/local/include
+#    QMAKE_LFLAGS += -lomp
+#    LIBS += -L /usr/local/lib /usr/local/lib/libomp.dylib
+#}
+
+win32{
+    DEFINES += NOMINMAX # Awful problem with windows..
+    DEFINES *= _USE_MATH_DEFINES
+    DEFINES *= _SCL_SECURE_NO_DEPRECATE
+    QMAKE_CXXFLAGS *= /bigobj
+}
 

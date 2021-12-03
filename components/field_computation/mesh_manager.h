@@ -43,7 +43,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <vcg/complex/algorithms/crease_cut.h>
 #include "mesh_field_smoother.h"
 #include <vcg/complex/algorithms/polygonal_algorithms.h>
-#include <libiglfields/field_smoother.h>
+
+#include "fields/field_smoother.h"
 
 // Basic subdivision class
 template <class FaceType>

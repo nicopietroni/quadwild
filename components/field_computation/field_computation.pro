@@ -1,7 +1,6 @@
 ############################ PROJECT FILES ############################
 
 include(../../libs/libs.pri)
-include($$LIBIGLFIELDS_PATH/libiglfields.pri)
 
 HEADERS = \
     glwidget.h \
@@ -10,6 +9,14 @@ HEADERS = \
 SOURCES = \
     glwidget.cpp \
     main.cpp
+
+HEADERS += \
+    fields/field_smoother.h \
+    fields/n_polyvector.h \
+    fields/polyroots.h
+SOURCES += \
+    fields/n_polyvector.cpp \
+    fields/polyroots.cpp
 
 DEFINES += GLEW_STATIC
 DEFINES += INCLUDE_TEMPLATES
@@ -107,4 +114,22 @@ macx{
     DEPENDPATH += .
 #    DEPENDPATH += $$COMISO_PATH/build/Build/lib/CoMISo
 #    INCLUDEPATH += $$COMISO_PATH/build/Build/lib/CoMISo
+}
+
+#Parallel computation
+unix:!mac {
+    QMAKE_CXXFLAGS += -fopenmp
+    LIBS += -fopenmp
+}
+#macx{
+#    QMAKE_CXXFLAGS += -Xpreprocessor -fopenmp -lomp -I/usr/local/include
+#    QMAKE_LFLAGS += -lomp
+#    LIBS += -L /usr/local/lib /usr/local/lib/libomp.dylib
+#}
+
+win32{
+    DEFINES += NOMINMAX # Awful problem with windows..
+    DEFINES *= _USE_MATH_DEFINES
+    DEFINES *= _SCL_SECURE_NO_DEPRECATE
+    QMAKE_CXXFLAGS *= /bigobj
 }

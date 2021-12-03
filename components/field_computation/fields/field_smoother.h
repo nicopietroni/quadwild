@@ -35,7 +35,7 @@
 
 //igl related stuff
 
-#include <libiglfields/n_polyvector.h>
+#include "fields/n_polyvector.h"
 #include <igl/principal_curvature.h>
 #include <igl/igl_inline.h>
 

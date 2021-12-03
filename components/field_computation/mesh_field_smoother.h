@@ -28,7 +28,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <wrap/io_trimesh/export_field.h>
 #include <wrap/io_trimesh/import.h>
-#include <libiglfields/field_smoother.h>
+#include <fields/field_smoother.h>
 
 template <class MeshType>
 class MeshFieldSmoother

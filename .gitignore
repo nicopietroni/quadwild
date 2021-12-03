@@ -34,5 +34,8 @@
 # Qt creator
 *.pro.user
 *.qmake.stash
+
+# Build
 *Makefile
 *build-*
+build/

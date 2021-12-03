@@ -31,7 +31,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <math.h>
 #include "glwidget.h"
 #include "mesh_manager.h"
-#include <libiglfields/field_smoother.h>
+#include "fields/field_smoother.h"
 #include "triangle_mesh_type.h"
 #include "poly_mesh_type.h"
 #include <wrap/qt/trackball.h>

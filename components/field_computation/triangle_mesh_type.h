@@ -42,7 +42,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <fstream>
 #include <vcg/complex/algorithms/attribute_seam.h>
 #include <vcg/complex/algorithms/crease_cut.h>
-#include <libiglfields/field_smoother.h>
+#include "fields/field_smoother.h"
 
 
 class FieldTriFace;

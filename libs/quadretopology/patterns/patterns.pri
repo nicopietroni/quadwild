@@ -1,5 +1,3 @@
-QMAKE_CXXFLAGS += -fpermissive
-
 INCLUDEPATH += $$PWD
 INCLUDEPATH += $$PWD/patterns
 
@@ -8,9 +6,6 @@ OPENMESH_PATH = $$PWD/patterns/OpenMesh
 PATCHGEN_PATH = $$PWD/patterns/patchgen
 KT_PATH = $$PWD/patterns/kt84
 
-
-#Libs
-LIBS += -ldl -lm
 
 #Main files
 SOURCES += \
