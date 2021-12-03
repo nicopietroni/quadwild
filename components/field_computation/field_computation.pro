@@ -86,7 +86,9 @@ win32{ # Awful problem with windows..
 }
 
 #glew
-LIBS += -lGLU
+unix:!mac{
+    LIBS += -lGLU
+}
 INCLUDEPATH += $$GLEW_PATH/include
 SOURCES += $$GLEW_PATH/src/glew.c
 
