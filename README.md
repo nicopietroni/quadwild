@@ -41,19 +41,18 @@ git clone --recursive https://github.com/stefanonuvoli/quadwild
 ```
 
 ### Build
-Install the libraries eigen3, boost, gurobi and antTweakBar. 
-In Ubuntu you can install eigen and boost easily with the following terminal commands:
+Install the libraries boost and gurobi. 
+In Ubuntu you can install boost easily with the following terminal commands:
 ```
-sudo apt-get install libeigen3-dev
 sudo apt-get install libboost-dev
 ```
-Open the file libs/libs.pri and set the paths of the libraries:
+Open the file libs/libs.pri and set the paths of the libraries and gurobi parameters:
 ```
 #External libraries
-EIGEN_PATH          = /usr/include/eigen3/
 BOOST_PATH          = /usr/include/boost/
 GUROBI_PATH         = /opt/gurobi903/linux64/
-ANTTWEAKBAR_PATH    = /opt/AntTweakBar/
+GUROBI_COMPILER     = gurobi_g++5.2
+GUROBI_LIB          = gurobi90
 ```
 You can now compile the project quadwild/quadwild.pro with QtCreator or qmake.
 
