@@ -46,7 +46,7 @@ In Ubuntu you can install boost easily with the following terminal commands:
 ```
 sudo apt-get install libboost-dev
 ```
-Open the file libs/libs.pri and set the paths of the libraries and gurobi parameters:
+Open the file libs/libs.pri and set the paths of the requested libraries and the gurobi parameters:
 ```
 #External libraries
 BOOST_PATH          = /usr/include/boost/
