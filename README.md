@@ -55,7 +55,8 @@ GUROBI_COMPILER     = gurobi_g++5.2
 GUROBI_LIB          = gurobi90
 ```
 You can now compile the project quadwild/quadwild.pro with qmake or QtCreator.
-If you have any technical issue or building problem, please write an e-mail to [stefano.nuvoli@gmail.com](mailto:stefano.nuvoli@gmail.com).
+<br /><br/>
+If you have any technical issue or building problem, please write to [stefano.nuvoli@gmail.com](mailto:stefano.nuvoli@gmail.com) or [nico.pietroni@uts.edu.au](mailto:nico.pietroni@uts.edu.au).
 
 ## Run
 
