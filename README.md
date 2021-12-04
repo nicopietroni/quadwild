@@ -54,7 +54,7 @@ GUROBI_PATH         = /opt/gurobi903/linux64/
 GUROBI_COMPILER     = gurobi_g++5.2
 GUROBI_LIB          = gurobi90
 ```
-You can now compile the project quadwild/quadwild.pro with QtCreator or qmake.
+You can now compile the project quadwild/quadwild.pro with qmake or QtCreator.
 
 ## Run
 
