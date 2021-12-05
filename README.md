@@ -66,12 +66,12 @@ This project has no visual interface and can be used via command-line. This can 
 ```
 ./quadwild <mesh> [.txt setup file] [.rosy file] [.sharp file]
 ```
-The command takes as input a mesh and various optional configuration files:
+The command takes as input a mesh and three optional configuration files:
 
-###### `<mesh>`
+##### <mesh>
 Filename of the input triangle mesh. **The mesh can be either an obj or a ply.**
    
-###### `[.txt setup file]` (optional)
+##### .txt setup file (optional)
 The txt setup file contains the parameters in the pipeline. **By default, the executable loads the file basic_setup.txt** and two other examples are included, names basic_setup_mechanical.txt and basic_setup_organic.txt. Any setup parameter can be specified to control the output result. The setup file has the following fields:
 ```
 do_remesh 1/0 		          // remesh or not the input mesh
@@ -80,7 +80,7 @@ alpha 0.02                //regularity vs isometry of the final tessellation. Cl
 scaleFact 1               //the scale of the final quadrangulation (the bigger the bigger the quads)
 ```
 
-###### `.rosy file` (optional)
+##### .rosy file (optional)
 This optional file contains parameters for the cross-field computation.
 ```
 fn              // number of faces of the mesh
@@ -90,40 +90,33 @@ x0 y0 z0        // XYZ directions of one vector of the cross-field of the first 
 xn yn zn        // XYZ directions of one vector of the cross-field of the n-th face
 ```
 
-###### `.sharp file` (optional)
-This optional file contains the informations of the sharp features.
+##### .sharp file (optional)
+This optional file contains the informations of the sharp features. Note that border edges are considered sharp features by default.
 ```
 sn                // number of sharp features
 t0 f0 e0          // for each sharp edge: the first integer is 0 if the edge is concave 1 if convex, then the face and the index of the sharp edge
 ...
 tn fn en          // nth sharp edge
 ```
-Note that border edges are considered sharp features by default.
 
 ###### Output
 The program outputs:
-
-- Two quadrangulation files. One that has been smoothed and one that has not.
-
-Other:
-
+- **The output smooth quadrangulation (suffix quadrangulation_smooth.obj).**
+- The output quadrangulation before being smoothed (suffix quadrangulation.obj).
 - The re-meshed triangulated mesh (suffix rem.obj), the relative field and the sharp features automatically computed (.rosy and .sharp files as above)
 - The mesh decomposed after the tracing (suffix rem_p0.obj)
 - The patch decomposition (.patch file) contains the patch index for each triangle of the rem_p0 mesh.
 - .corners, .c_feature, .feature files that contain per patch information (corners of each patch, corners to be fixed and feature lines on the patches)
 
-### field_computation. The program can be used either with a GUI or by command line (useful to batch run entire datasets of models).
-
+### field_computation. 
+The program can be used either with a GUI or by command line (useful to batch run entire datasets of models).
 ```
 ./field_computation <mesh> [.txt setup file] [.rosy file][.sharp file] [batch]
 ```
-
 The "batch" option makes the program run in the shell without the GUI. The setup file includes additional parameters. The one loaded by default is basic_setup.txt.
-
 
 ### field_tracing
 This program is used to trace fields and split the mesh into patches.
-
 ```
 ./field_tracing <mesh> [.txt setup file] [batch]
 ```
@@ -131,14 +124,11 @@ It requires having a .rosy and a .sharp file (with the same name of the mesh fil
 
 ### quad_from_patches
 This program is used to obtain a quadrangulation from a patch decomposition.
-
 ```
 ./quad_from_patches <mesh> [.txt setup file]
 ```
-It requires to have in the same folder a .corners, .c_feature, .feature files
- (with the same name of the mesh file). The setup file includes additional parameters. The one loaded by default is basic_setup.txt.
+It requires to have in the same folder a .corners, .c_feature, .feature files (with the same name of the mesh file). The setup file includes additional parameters. The one loaded by default is basic_setup.txt.
 
-The main command
 ## Note
 The code has slightly changed and the results could be different from the ones showed in the paper.
 
