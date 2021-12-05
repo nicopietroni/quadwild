@@ -59,7 +59,7 @@ You can now compile the project quadwild/quadwild.pro with qmake or QtCreator.
 In case you have technical issues or building problems, please write to [stefano.nuvoli@gmail.com](mailto:stefano.nuvoli@gmail.com) or [nico.pietroni@uts.edu.au](mailto:nico.pietroni@uts.edu.au).
 
 ### Run
-The package is composed of the main command-line quad-remesher (quadwild) and three different components of the pipeline (field_computation, field_tracing, quad_from_patches).
+The package is composed of the main command-line quad-remesher (quadwild) and three different components (field_computation, field_tracing, quad_from_patches) that perform different steps of the pipeline.
 
 #### quadwild
 This project has no visual interface and can be used via command-line. This can be helpful to batch run entire datasets of models. To run the project, once builded, execute the following terminal command:
@@ -70,15 +70,15 @@ The command takes as input a mesh and three optional configuration files:
 
 - **`<mesh>`**: filename of the input triangle mesh. **The mesh can be either an obj or a ply.**
    
-- **`.txt setup file`** (optional): The txt setup file contains the parameters in the pipeline. **By default, the executable loads the file basic_setup.txt** and two other examples are included, names basic_setup_mechanical.txt and basic_setup_organic.txt. Any setup parameter can be specified to control the output result. The setup file has the following fields:
+- **`.txt setup file`** (optional): The txt setup file contains the parameters in the pipeline. By default, the executable loads the file basic_setup.txt and two other examples are included, names basic_setup_mechanical.txt and basic_setup_organic.txt. Any setup parameter can be specified to control the output result. The setup file has the following fields:
 ```
-do_remesh 1/0 		          // remesh or not the input mesh
+do_remesh 1 		        // remesh (1) or not (0) the input mesh
 sharp_feature_thr 35      // the dihedral angle of sharp features (-1 no features)
 alpha 0.02                //regularity vs isometry of the final tessellation. Close to zero -> more regular, Close to 1 -> more singularity are inserted
 scaleFact 1               //the scale of the final quadrangulation (the bigger the bigger the quads)
 ```
 
-- **`.rosy file` (optional)**: This optional file contains parameters for the cross-field computation.
+- **`.rosy file` (optional)**: This optional file contains parameters for the field computation of the field.
 ```
 fn              // number of faces of the mesh
 4               // directions of the field (always 4 for a cross-field)
@@ -87,7 +87,7 @@ x0 y0 z0        // XYZ directions of one vector of the cross-field of the first 
 xn yn zn        // XYZ directions of one vector of the cross-field of the n-th face
 ```
 
-- **`.sharp file` (optional)**: This optional file contains the informations of the sharp features. Note that border edges are considered sharp features by default.
+- **`.sharp file` (optional)**: This optional file contains the informations of the sharp features. Note that, in the pipeline, border edges are considered sharp features by default.
 ```
 sn                // number of sharp features
 t0 f0 e0          // for each sharp edge: the first integer is 0 if the edge is concave 1 if convex, then the face and the index of the sharp edge
@@ -95,35 +95,35 @@ t0 f0 e0          // for each sharp edge: the first integer is 0 if the edge is 
 tn fn en          // nth sharp edge
 ```
 
-###### Output
-The program outputs:
+The output of quadwild consists of several files:
 - **The output smooth quadrangulation (suffix quadrangulation_smooth.obj).**
 - The output quadrangulation before being smoothed (suffix quadrangulation.obj).
-- The re-meshed triangulated mesh (suffix rem.obj), the relative field and the sharp features automatically computed (.rosy and .sharp files as above)
-- The mesh decomposed after the tracing (suffix rem_p0.obj)
-- The patch decomposition (.patch file) contains the patch index for each triangle of the rem_p0 mesh.
-- .corners, .c_feature, .feature files that contain per patch information (corners of each patch, corners to be fixed and feature lines on the patches)
+- Other files:
+  - The re-meshed triangulated mesh (suffix rem.obj), the relative field and the sharp features automatically computed (.rosy and .sharp files as above)
+  - The mesh decomposed after the tracing (suffix rem_p0.obj)
+  - The patch decomposition (.patch file) contains the patch index for each triangle of the rem_p0 mesh.
+  - The files .corners, .c_feature, .feature files that contain per patch information (respectively corners of each patch, corners to be fixed and feature lines on the patches)
 
 ### field_computation. 
 The program can be used either with a GUI or by command line (useful to batch run entire datasets of models).
 ```
 ./field_computation <mesh> [.txt setup file] [.rosy file][.sharp file] [batch]
 ```
-The "batch" option makes the program run in the shell without the GUI. The setup file includes additional parameters. The one loaded by default is basic_setup.txt.
+The "batch" option makes the program run in the shell without the GUI. The setup file includes additional parameters. By default, the executable loads the file basic_setup.txt.
 
 ### field_tracing
 This program is used to trace fields and split the mesh into patches.
 ```
 ./field_tracing <mesh> [.txt setup file] [batch]
 ```
-It requires having a .rosy and a .sharp file (with the same name of the mesh file). The "batch" option makes the program run in the shell without the GUI. The setup file includes additional parameters. The one loaded by default is basic_setup.txt.
+It requires having a .rosy and a .sharp file (with the same name of the mesh file). The "batch" option makes the program run in the shell without the GUI. The setup file includes additional parameters. By default, the executable loads the file basic_setup.txt.
 
 ### quad_from_patches
 This program is used to obtain a quadrangulation from a patch decomposition.
 ```
 ./quad_from_patches <mesh> [.txt setup file]
 ```
-It requires to have in the same folder a .corners, .c_feature, .feature files (with the same name of the mesh file). The setup file includes additional parameters. The one loaded by default is basic_setup.txt.
+It requires to have in the same folder a .corners, .c_feature, .feature files (with the same name of the mesh file). The setup file includes additional parameters. By default, the executable loads the file basic_setup.txt.
 
 ## Note
 The code has slightly changed and the results could be different from the ones showed in the paper.
