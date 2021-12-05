@@ -71,36 +71,39 @@ The program has no visual interface and can be used via command-line (this is va
 #### txt setup file (optional)
 By default, the executable load the file basic_setup.txt and two other examples are included, named basic_setup_mechanical.txt and basic_setup_organic.txt. Any setup parameter can be specified to control the output. The setup file has the following fields:
 ```
-do_remesh 1/0 		 // remesh or not the input mesh
+do_remesh 1/0 		  // remesh or not the input mesh
 sharp_feature_thr 35      // the dihedral angle of sharp features (-1 no features)
-alpha 0.02			//regularity vs isometry of the final tessellation. Close to zero -> more regular, Close to 1 -> more singularity are inserted
-scaleFact 1			//the scale of the final quadrangulation (the bigger the bigger the quads)
+alpha 0.02                //regularity vs isometry of the final tessellation. Close to zero -> more regular, Close to 1 -> more singularity are inserted
+scaleFact 1               //the scale of the final quadrangulation (the bigger the bigger the quads)
 ```
 #### Rosy file format (optional)
 ```
-fn                   // number of faces of the mesh
-4                    // directions of the field (always 4 for a cross-field)
+fn              // number of faces of the mesh
+4               // directions of the field (always 4 for a cross-field)
 x0 y0 z0        // XYZ directions of one vector of the cross-field of the first face
 ...
-xn yn zn          // XYZ directions of one vector of the cross-field of the n-th face
+xn yn zn        // XYZ directions of one vector of the cross-field of the n-th face
 ```
 
 #### Sharp file format (optional)
 ```
-sn                   // number of sharp features
+sn                // number of sharp features
 t0 f0 e0          // for each sharp edge: the first integer is 0 if the edge is concave 1 if convex, then the face and the index of the sharp edge
 ...
-tn fn en             // nth sharp edge
+tn fn en          // nth sharp edge
 ```
 Notice that border edges are considered sharp features by default
 
 #### OUTPUT
 The program outputs:
-Two quadrangulation files. One that has been smoothed and one not.
+
+- Two quadrangulation files. One that has been smoothed and one not.
+
 Other:
-The re-meshed triangulated mesh (suffix rem.obj), the relative field and the sharp features (.rosy and .sharp files as above)
-The mesh decomposed after the tracing suffix rem_p0.obj)
-The patch decomposition (.patch file) contains the patch index for each triangle of the rem_p0 mesh.
+
+- The re-meshed triangulated mesh (suffix rem.obj), the relative field and the sharp features (.rosy and .sharp files as above)
+- The mesh decomposed after the tracing suffix rem_p0.obj)
+- The patch decomposition (.patch file) contains the patch index for each triangle of the rem_p0 mesh.
 .corners, .c_feature, .feature files that contain per patch information (corners of each patch, corners to be fixed and feature lines on the patches)
 
 ### Components
