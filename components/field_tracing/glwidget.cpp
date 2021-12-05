@@ -33,7 +33,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "tracing/GL_vert_field_graph.h"
 #include "tracing/patch_tracer.h"
 #include "tracing/tracer_interface.h"
-#include "tracing/mesh_drawing.h"
+#include "tracing/GL_mesh_drawing.h"
 #include "tracing/GL_metamesh.h"
 //#include <vcg/complex/algorithms/parametrization/local_para_smooth.h>
 

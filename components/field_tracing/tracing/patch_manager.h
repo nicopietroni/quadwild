@@ -26,7 +26,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #ifndef PATCH_MANAGER
 #define PATCH_MANAGER
 
-#include "tracing/mesh_type.h"
+#include "mesh_type.h"
 #include "patch_tracer.h"
 #include <wrap/igl/arap_parametrization.h>
 #include <wrap/igl/lscm_parametrization.h>
