@@ -70,7 +70,7 @@ The command takes as input a mesh and three optional configuration files:
 
 - **`<mesh>`**: filename of the input triangle mesh. **The mesh can be either an obj or a ply.**
    
-- **`.txt setup file`** (optional): The txt setup file contains the parameters in the pipeline. By default, the executable loads the file basic_setup.txt and two other examples are included: basic_setup_mechanical.txt and basic_setup_organic.txt. Any setup parameter can be specified to control the output result. The setup file has the following fields:
+- **`.txt setup file` (optional):** The txt setup file contains the parameters in the pipeline. By default, the executable loads the file basic_setup.txt and two other examples are included: basic_setup_mechanical.txt and basic_setup_organic.txt. Any setup parameter can be specified to control the output result. The setup file has the following fields:
 ```
 do_remesh 1 		  //remesh (1) or not (0) the input mesh
 sharp_feature_thr 35      //the dihedral angle of sharp features (-1 no features)
