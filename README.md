@@ -72,27 +72,27 @@ The command takes as input a mesh and three optional configuration files:
    
 - **`.txt setup file`** (optional): The txt setup file contains the parameters in the pipeline. By default, the executable loads the file basic_setup.txt and two other examples are included: basic_setup_mechanical.txt and basic_setup_organic.txt. Any setup parameter can be specified to control the output result. The setup file has the following fields:
 ```
-do_remesh 1 		      // remesh (1) or not (0) the input mesh
-sharp_feature_thr 35      // the dihedral angle of sharp features (-1 no features)
+do_remesh 1 		   //remesh (1) or not (0) the input mesh
+sharp_feature_thr 35      //the dihedral angle of sharp features (-1 no features)
 alpha 0.02                //regularity vs isometry of the final tessellation. Close to zero -> more regular, Close to 1 -> more singularity are inserted
 scaleFact 1               //the scale of the final quadrangulation (the bigger the bigger the quads)
 ```
 
 - **`.rosy file` (optional)**: This optional file contains parameters for the field computation of the field.
 ```
-fn              // number of faces of the mesh
-4               // directions of the field (always 4 for a cross-field)
-x0 y0 z0        // XYZ directions of one vector of the cross-field of the first face
+fn              //number of faces of the mesh
+4               //directions of the field (always 4 for a cross-field)
+x0 y0 z0        //XYZ directions of one vector of the cross-field of the first face
 ...
-xn yn zn        // XYZ directions of one vector of the cross-field of the n-th face
+xn yn zn        //XYZ directions of one vector of the cross-field of the n-th face
 ```
 
 - **`.sharp file` (optional)**: This optional file contains the informations of the sharp features. Note that, in the pipeline, border edges are considered sharp features by default.
 ```
-sn                // number of sharp features
-t0 f0 e0          // for each sharp edge: the first integer is 0 if the edge is concave 1 if convex, then the face and the index of the sharp edge
+sn                //number of sharp features
+t0 f0 e0          //for each sharp edge: the first integer is 0 if the edge is concave 1 if convex, then the face and the index of the sharp edge
 ...
-tn fn en          // nth sharp edge
+tn fn en          //nth sharp edge
 ```
 
 The output of quadwild consists of several files:
