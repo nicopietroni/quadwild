@@ -99,10 +99,10 @@ The output of quadwild consists of several files:
 - **The output smooth quadrangulation (suffix quadrangulation_smooth.obj).**
 - The output quadrangulation before being smoothed (suffix quadrangulation.obj).
 - Other files:
-  - The re-meshed triangulated mesh (suffix rem.obj), the relative field and the sharp features automatically computed (.rosy and .sharp files as above)
-  - The mesh decomposed after the tracing (suffix rem_p0.obj)
+  - The re-meshed triangulated mesh (suffix rem.obj), the relative field and the sharp features automatically computed (.rosy and .sharp files as above).
+  - The mesh decomposed after the tracing (suffix rem_p0.obj).
   - The patch decomposition (.patch file) contains the patch index for each triangle of the rem_p0 mesh.
-  - The files .corners, .c_feature, .feature files that contain per patch information (respectively corners of each patch, corners to be fixed and feature lines on the patches)
+  - The files .corners, .c_feature, .feature files that contain per patch information (respectively corners of each patch, corners to be fixed and feature lines on the patches).
 
 ### field_computation. 
 The program can be used either with a GUI or by command line (useful to batch run entire datasets of models).
