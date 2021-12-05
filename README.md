@@ -72,7 +72,7 @@ The command takes as input a mesh and three optional configuration files:
    
 - **`.txt setup file`** (optional): The txt setup file contains the parameters in the pipeline. By default, the executable loads the file basic_setup.txt and two other examples are included: basic_setup_mechanical.txt and basic_setup_organic.txt. Any setup parameter can be specified to control the output result. The setup file has the following fields:
 ```
-do_remesh 1 		   //remesh (1) or not (0) the input mesh
+do_remesh 1 		  //remesh (1) or not (0) the input mesh
 sharp_feature_thr 35      //the dihedral angle of sharp features (-1 no features)
 alpha 0.02                //regularity vs isometry of the final tessellation. Close to zero -> more regular, Close to 1 -> more singularity are inserted
 scaleFact 1               //the scale of the final quadrangulation (the bigger the bigger the quads)
