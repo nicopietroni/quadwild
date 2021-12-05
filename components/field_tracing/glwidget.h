@@ -31,7 +31,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <QKeyEvent>
 
 /// vcg imports
-#include "mesh_type.h"
+#include "tracing/mesh_type.h"
 
 #include <wrap/gui/trackball.h>
 

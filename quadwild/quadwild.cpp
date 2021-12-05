@@ -27,7 +27,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <triangle_mesh_type.h>
 #include <mesh_manager.h>
 #include <vcg/space/box3.h>
-#include <mesh_type.h>
+#include <tracing/mesh_type.h>
 #include <tracing/tracer_interface.h>
 
 #include <load_save.h>
