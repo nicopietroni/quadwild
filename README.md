@@ -68,9 +68,9 @@ This project has no visual interface and can be used via command-line. This can 
 ```
 The command takes as input a mesh and three optional configuration files:
 
-- `<mesh>`: filename of the input triangle mesh. **The mesh can be either an obj or a ply.**
+- **`<mesh>`**: filename of the input triangle mesh. **The mesh can be either an obj or a ply.**
    
-- `.txt setup file` (optional): The txt setup file contains the parameters in the pipeline. **By default, the executable loads the file basic_setup.txt** and two other examples are included, names basic_setup_mechanical.txt and basic_setup_organic.txt. Any setup parameter can be specified to control the output result. The setup file has the following fields:
+- **`.txt setup file`** (optional): The txt setup file contains the parameters in the pipeline. **By default, the executable loads the file basic_setup.txt** and two other examples are included, names basic_setup_mechanical.txt and basic_setup_organic.txt. Any setup parameter can be specified to control the output result. The setup file has the following fields:
 ```
 do_remesh 1/0 		          // remesh or not the input mesh
 sharp_feature_thr 35      // the dihedral angle of sharp features (-1 no features)
@@ -78,8 +78,7 @@ alpha 0.02                //regularity vs isometry of the final tessellation. Cl
 scaleFact 1               //the scale of the final quadrangulation (the bigger the bigger the quads)
 ```
 
-##### .rosy file (optional)
-This optional file contains parameters for the cross-field computation.
+- **`.rosy file` (optional)**: This optional file contains parameters for the cross-field computation.
 ```
 fn              // number of faces of the mesh
 4               // directions of the field (always 4 for a cross-field)
@@ -88,8 +87,7 @@ x0 y0 z0        // XYZ directions of one vector of the cross-field of the first 
 xn yn zn        // XYZ directions of one vector of the cross-field of the n-th face
 ```
 
-##### .sharp file (optional)
-This optional file contains the informations of the sharp features. Note that border edges are considered sharp features by default.
+- **`.sharp file` (optional)**: This optional file contains the informations of the sharp features. Note that border edges are considered sharp features by default.
 ```
 sn                // number of sharp features
 t0 f0 e0          // for each sharp edge: the first integer is 0 if the edge is concave 1 if convex, then the face and the index of the sharp edge
