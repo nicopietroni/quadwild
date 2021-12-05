@@ -94,7 +94,7 @@ tn fn en          // nth sharp edge
 ```
 Notice that border edges are considered sharp features by default
 
-#### OUTPUT
+#### Output
 The program outputs:
 
 - Two quadrangulation files. One that has been smoothed and one not.
