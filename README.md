@@ -44,22 +44,46 @@ git clone --recursive https://github.com/stefanonuvoli/quadwild
 Install the libraries boost and gurobi. 
 In Ubuntu you can install boost easily with the following terminal commands:
 ```
-sudo apt-get install libboost-dev
+apt-get install libboost-dev
 ```
 Open the file libs/libs.pri and set the paths of the requested libraries and the gurobi parameters:
 ```
 #External libraries
 BOOST_PATH          = /usr/include/boost/
-GUROBI_PATH         = /opt/gurobi903/linux64/
+GUROBI_PATH         = /opt/gurobi950/linux64/
 GUROBI_COMPILER     = gurobi_g++5.2
-GUROBI_LIB          = gurobi90
+GUROBI_LIB          = gurobi95
 ```
+
 You can now compile the project quadwild/quadwild.pro with qmake or QtCreator.
-<br /><br/>
+
+<br/>
+
+If you need CoMISo to compute fields, you need to add a define `COMISO_FIELD` to the project and build the cmake project in libs/CoMISo. 
+
+For the define, you can find a line to uncomment in libs.pri:
+```
+#DEFINES += COMISO_FIELD
+```
+
+Then, you need to compile CoMISo with its dependencies (BLAS):
+```
+apt install libblas-dev
+cd quadwild/libs/CoMISo
+mkdir build
+cd build
+cmake ..
+make
+```
+
+<br/>
+
 In case you have technical issues or building problems, please write to [stefano.nuvoli@gmail.com](mailto:stefano.nuvoli@gmail.com) or [nico.pietroni@uts.edu.au](mailto:nico.pietroni@uts.edu.au).
 
 ### Run
 The package is composed of the main command-line quad-remesher (quadwild) and three different components (field_computation, field_tracing, quad_from_patches) that perform different steps of the pipeline.
+
+---
 
 #### quadwild
 This project has no visual interface and can be used via command-line. This can be helpful to batch run entire datasets of models. To run the project, once builded, execute the following terminal command:
@@ -104,21 +128,27 @@ The output of quadwild consists of several files:
   - The patch decomposition (.patch file) contains the patch index for each triangle of the rem_p0 mesh.
   - The files .corners, .c_feature, .feature files that contain per patch information (respectively corners of each patch, corners to be fixed and feature lines on the patches).
 
-### field_computation. 
+---
+
+#### field_computation. 
 The program can be used either with a GUI or by command line (useful to batch run entire datasets of models).
 ```
 ./field_computation <mesh> [.txt setup file] [.rosy file][.sharp file] [batch]
 ```
 The "batch" option makes the program run in the shell without the GUI. The setup file includes additional parameters. By default, the executable loads the file basic_setup.txt.
 
-### field_tracing
+---
+
+#### field_tracing
 This program is used to trace fields and split the mesh into patches.
 ```
 ./field_tracing <mesh> [.txt setup file] [batch]
 ```
 It requires having a .rosy and a .sharp file (with the same name of the mesh file). The "batch" option makes the program run in the shell without the GUI. The setup file includes additional parameters. By default, the executable loads the file basic_setup.txt.
 
-### quad_from_patches
+---
+
+#### quad_from_patches
 This program is used to obtain a quadrangulation from a patch decomposition.
 ```
 ./quad_from_patches <mesh> [.txt setup file]
