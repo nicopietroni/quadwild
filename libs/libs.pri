@@ -14,6 +14,6 @@ ANTTWEAKBAR_PATH    = /opt/AntTweakBar/
 
 #External libraries
 BOOST_PATH          = /usr/include/boost/
-GUROBI_PATH         = /opt/gurobi903/linux64/
+GUROBI_PATH         = /opt/gurobi950/linux64/
 GUROBI_COMPILER     = gurobi_g++5.2
-GUROBI_LIB          = gurobi90
+GUROBI_LIB          = gurobi95
