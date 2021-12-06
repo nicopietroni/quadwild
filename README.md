@@ -55,18 +55,13 @@ GUROBI_COMPILER     = gurobi_g++5.2
 GUROBI_LIB          = gurobi95
 ```
 
-You can now compile the project quadwild/quadwild.pro with qmake or QtCreator.
-
 <br/>
 
-If you need CoMISo to compute fields, you need to add a define `COMISO_FIELD` to the project and build the cmake project in libs/CoMISo. 
-
-For the define, you can find a line to uncomment in libs.pri:
+If you do not need CoMISo, you can simply remove the define `COMISO_FIELD` in the file libs.pri:
 ```
 #DEFINES += COMISO_FIELD
 ```
-
-Then, you need to compile CoMISo with its dependencies (BLAS):
+However, for organic meshes, we suggest to abilitate CoMISo. You need to compile it along with its dependencies (BLAS):
 ```
 apt install libblas-dev
 cd quadwild/libs/CoMISo
@@ -77,6 +72,8 @@ make
 ```
 
 <br/>
+
+You can now compile the project quadwild/quadwild.pro with qmake or QtCreator.
 
 In case you have technical issues or building problems, please write to [stefano.nuvoli@gmail.com](mailto:stefano.nuvoli@gmail.com) or [nico.pietroni@uts.edu.au](mailto:nico.pietroni@uts.edu.au).
 
