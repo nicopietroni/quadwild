@@ -64,7 +64,7 @@ class MeshFieldSmoother
         {
 #ifndef COMISO_FIELD
             std::cout<<"Using NPoly"<<std::endl;
-            FParam.SmoothM=SMNPoly;
+            FParam.SmoothM=vcg::tri::SMNPoly;
             FParam.curv_thr=0.8;
             FParam.alpha_curv=0;
 #else
@@ -114,7 +114,7 @@ class MeshFieldSmoother
             FieldParam.align_borders=true;
 //        }
 #ifndef COMISO_FIELD
-         FieldParam.SmoothM=SMNPoly;
+         FieldParam.SmoothM=vcg::tri::SMNPoly;
 #endif
 //        std::cout<<"..Alpha.."<<FieldParam.alpha_curv<<std::endl;
 //        std::cout<<"..Smoothing.."<<std::endl;

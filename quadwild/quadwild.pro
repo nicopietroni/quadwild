@@ -21,7 +21,6 @@ macx {
 
 DEFINES += GLEW_STATIC
 DEFINES += INCLUDE_TEMPLATES
-DEFINES += COMISO_FIELD
 
 
 #Debug/release optimization flags
