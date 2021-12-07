@@ -86,7 +86,7 @@ ScalarType alpha=0.3;
 
 int xMouse,yMouse;
 
-vcg::GridStaticPtr<FieldTriMesh::FaceType,FieldTriMesh::ScalarType> Gr;
+//vcg::GridStaticPtr<FieldTriMesh::FaceType,FieldTriMesh::ScalarType> Gr;
 
 typedef vcg::tri::FieldSmoother<FieldTriMesh> FieldSmootherType;
 FieldSmootherType::SmoothParam FieldParam;
@@ -309,7 +309,7 @@ void DoAutoRemesh()
 //    tri_mesh.ErodeDilate(feature_erode_dilate);
 
     //MeshPrepocess<FieldTriMesh>::AutoRemesh(tri_mesh,RemPar);
-    Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
+//    Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
 }
 
 void TW_CALL CleanMesh(void *)
@@ -332,7 +332,7 @@ void TW_CALL RefineIfNeeded(void *)
    // tri_mesh.RefineIfNeeded();
     MeshPrepocess<FieldTriMesh>::RefineIfNeeded(tri_mesh);
     //MP.RefineIfNeeded();
-    Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
+    //Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
 }
 
 void TW_CALL BatchProcess(void *)
@@ -665,7 +665,7 @@ GLWidget::GLWidget(QWidget *parent)
     }
 
     //remeshed_mesh.UpdateDataStructures();
-    Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
+    //Gr.Set(tri_mesh.face.begin(),tri_mesh.face.end());
 }
 
 
@@ -746,42 +746,42 @@ void GLWidget::paintGL ()
         vcg::GLField<FieldTriMesh>::GLDrawSingularity(tri_mesh);
     }
 
-    if(hasToPick)
-    {
-        hasToPick=false;
-        typename FieldTriMesh::CoordType pp;
-        if(vcg::Pick<typename FieldTriMesh::CoordType>(xMouse,yMouse,pp))
-        {
-            typename FieldTriMesh::CoordType closPt,bary;
-            typename FieldTriMesh::ScalarType minD;
-            typename FieldTriMesh::FaceType *f=vcg::tri::GetClosestFaceBase(tri_mesh,Gr,pp,tri_mesh.bbox.Diag(),minD,closPt);
-            vcg::InterpolationParameters(*f,closPt,bary);
-            size_t EdgeI=1;
-            if ((bary.Y()<bary.X())&&(bary.Y()<bary.Z()))EdgeI=2;
-            if ((bary.Z()<bary.X())&&(bary.Z()<bary.Y()))EdgeI=0;
+//    if(hasToPick)
+//    {
+//        hasToPick=false;
+//        typename FieldTriMesh::CoordType pp;
+//        if(vcg::Pick<typename FieldTriMesh::CoordType>(xMouse,yMouse,pp))
+//        {
+//            typename FieldTriMesh::CoordType closPt,bary;
+//            typename FieldTriMesh::ScalarType minD;
+//            typename FieldTriMesh::FaceType *f=vcg::tri::GetClosestFaceBase(tri_mesh,Gr,pp,tri_mesh.bbox.Diag(),minD,closPt);
+//            vcg::InterpolationParameters(*f,closPt,bary);
+//            size_t EdgeI=1;
+//            if ((bary.Y()<bary.X())&&(bary.Y()<bary.Z()))EdgeI=2;
+//            if ((bary.Z()<bary.X())&&(bary.Z()<bary.Y()))EdgeI=0;
 
-//            FieldTriMesh::FaceType *fOpp=f->FFp(EdgeI);
-//            int eOpp=f->FFi(EdgeI);
+////            FieldTriMesh::FaceType *fOpp=f->FFp(EdgeI);
+////            int eOpp=f->FFi(EdgeI);
 
-            if (f->IsFaceEdgeS(EdgeI))
-            {
-                tri_mesh.ClearSharp((*f),EdgeI);
-                //MP.ClearSharp((*f),EdgeI);
-//                {
-//                f->ClearFaceEdgeS(EdgeI);
-//                if (fOpp!=f)
-//                    fOpp->ClearFaceEdgeS(eOpp);
-            }else
-            {
+//            if (f->IsFaceEdgeS(EdgeI))
+//            {
+//                tri_mesh.ClearSharp((*f),EdgeI);
+//                //MP.ClearSharp((*f),EdgeI);
+////                {
+////                f->ClearFaceEdgeS(EdgeI);
+////                if (fOpp!=f)
+////                    fOpp->ClearFaceEdgeS(eOpp);
+//            }else
+//            {
 
-                tri_mesh.SetSharp((*f),EdgeI);
-                //MP.SetSharp((*f),EdgeI);
-//                f->SetFaceEdgeS(EdgeI);
-//                if (fOpp!=f)
-//                    fOpp->SetFaceEdgeS(eOpp);
-            }
-        }
-    }
+//                tri_mesh.SetSharp((*f),EdgeI);
+//                //MP.SetSharp((*f),EdgeI);
+////                f->SetFaceEdgeS(EdgeI);
+////                if (fOpp!=f)
+////                    fOpp->SetFaceEdgeS(eOpp);
+//            }
+//        }
+//    }
 
     glPopMatrix();
     glPopMatrix();
