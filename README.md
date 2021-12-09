@@ -37,7 +37,7 @@ keywords = {geometry processing, quad-meshing, modelling}
 
 ### Download
 ```bash
-git clone --recursive https://github.com/stefanonuvoli/quadwild
+git clone --recursive https://github.com/nicopietroni/quadwild
 ```
 
 ### Build
