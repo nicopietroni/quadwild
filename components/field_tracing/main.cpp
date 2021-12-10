@@ -30,7 +30,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <QWindow>
 #include <QFileInfo>
 
-#include <locale>
+#include <clocale>
 
 extern TraceMesh mesh;
 extern std::string pathM;

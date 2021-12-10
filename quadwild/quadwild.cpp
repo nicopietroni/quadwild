@@ -36,7 +36,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <quad_from_patches.h>
 #include <quad_mesh_tracer.h>
 
-#include <locale>
+#include <clocale>
 
 typename TriangleMesh::ScalarType avgEdge(const TriangleMesh& trimesh)
 {
