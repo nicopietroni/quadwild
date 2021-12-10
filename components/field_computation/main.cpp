@@ -38,8 +38,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //#include <wrap/io_trimesh/import.h>
 
 #include<vcg/complex/algorithms/hole.h>
-
-#include <locale>
+#include <cstdio>
+#include <clocale>
+//#include <locale>
 
 
 extern bool do_batch;
