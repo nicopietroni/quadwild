@@ -36,6 +36,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <quad_from_patches.h>
 #include <quad_mesh_tracer.h>
 
+#include <locale>
+
 typename TriangleMesh::ScalarType avgEdge(const TriangleMesh& trimesh)
 {
     typedef typename TriangleMesh::ScalarType ScalarType;
@@ -91,7 +93,8 @@ bool loadConfigFile(const std::string & filename)
 
 int main(int argc, char *argv[])
 {
-
+    //Use "." as decimal separator
+    std::setlocale(LC_NUMERIC, "en_US.UTF-8");
 
     std::cout<<"READING INPUT"<<std::endl;
 

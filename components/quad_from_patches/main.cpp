@@ -40,6 +40,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "quad_from_patches.h"
 #include "quad_mesh_tracer.h"
 
+#include <locale>
+
 bool LocalUVSm=false;
 typename TriangleMesh::ScalarType avgEdge(const TriangleMesh& trimesh);
 void loadSetupFile(const std::string& path, QuadRetopology::Parameters& parameters, float& scaleFactor, int& fixedChartClusters);
@@ -48,6 +50,9 @@ void SaveSetupFile(const std::string& path, QuadRetopology::Parameters& paramete
 
 int main(int argc, char *argv[])
 {
+    //Use "." as decimal separator
+    std::setlocale(LC_NUMERIC, "en_US.UTF-8");
+
     int CurrNum=0;
 
     TriangleMesh trimesh;

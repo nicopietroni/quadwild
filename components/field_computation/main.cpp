@@ -39,6 +39,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include<vcg/complex/algorithms/hole.h>
 
+#include <locale>
+
 
 extern bool do_batch;
 extern bool has_features;
@@ -176,6 +178,9 @@ bool loadConfigFile(const std::string & filename)
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+
+    //Use "." as decimal separator
+    std::setlocale(LC_NUMERIC, "en_US.UTF-8");
 
     QWindow dummy;
     QString def_string = QString("GLOBAL fontscaling=%1").arg((int)dummy.devicePixelRatio());

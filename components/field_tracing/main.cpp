@@ -30,6 +30,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <QWindow>
 #include <QFileInfo>
 
+#include <locale>
+
 extern TraceMesh mesh;
 extern std::string pathM;
 extern std::string pathF;
@@ -51,6 +53,9 @@ extern bool batch_process;
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+
+    //Use "." as decimal separator
+    std::setlocale(LC_NUMERIC, "en_US.UTF-8");
 
     QWindow dummy;
     QString def_string = QString("GLOBAL fontscaling=%1").arg((int)dummy.devicePixelRatio());
