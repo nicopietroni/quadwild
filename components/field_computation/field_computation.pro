@@ -20,7 +20,6 @@ SOURCES += \
 
 DEFINES += GLEW_STATIC
 DEFINES += INCLUDE_TEMPLATES
-DEFINES += COMISO_FIELD
 
 
 ############################ TARGET ############################
