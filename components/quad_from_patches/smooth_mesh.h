@@ -782,7 +782,9 @@ void BackProjectStepPositions(PolyMeshType &PolyM,TriMeshType &TriM,
     //first set the internal
     //then initialize the grid
     vcg::GridStaticPtr<TriFaceType,ScalarType> TriGrid;
-    TriGrid.Set(poly_tris.face.begin(),poly_tris.face.end());
+    vcg::Box3<ScalarType> BB=poly_tris.bbox;
+    BB.Offset(BB.Diag()*0.1);
+    TriGrid.Set(poly_tris.face.begin(),poly_tris.face.end(),BB);
     int t2=clock();
     for (size_t i=0;i<TriM.vert.size();i++)
     {
@@ -1025,7 +1027,9 @@ void MultiCostraintSmooth(PolyMeshType &PolyM,
     std::vector<bool> BlockedV(PolyM.vert.size(),false);
 
     vcg::GridStaticPtr<TriFaceType,ScalarType> TriGrid;
-    TriGrid.Set(TriM.face.begin(),TriM.face.end());
+    vcg::Box3<ScalarType> BB=TriM.bbox;
+    BB.Offset(BB.Diag()*0.1);
+    TriGrid.Set(TriM.face.begin(),TriM.face.end(),BB);
 
     for (size_t s=0;s<step_num;s++)
     {
@@ -1068,7 +1072,9 @@ void LocalUVSmooth(PolyMeshType &PolyM,
     testM.UpdateAttributes();
 
     vcg::GridStaticPtr<TriFaceType,ScalarType> TriGrid;
-    TriGrid.Set(testM.face.begin(),testM.face.end());
+    vcg::Box3<ScalarType> BB=testM.bbox;
+    BB.Offset(BB.Diag()*0.1);
+    TriGrid.Set(testM.face.begin(),testM.face.end(),BB);
 
     std::vector<std::pair<size_t,size_t> > PolySharpFeatures;
     //    std::set<std::pair<CoordType,CoordType> > PolySharpCoord;
