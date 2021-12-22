@@ -342,7 +342,7 @@ bool TraceSubPatch(const size_t &IndexPatch,
     //        PTr.Mesh().vert[i].Q()=i;
 
     MeshType SubMesh;
-    PTr.GetPatchMesh(IndexPatch,SubMesh);
+    PTr.GetPatchMesh(IndexPatch,SubMesh,false);
     SubMesh.UpdateAttributes();
 
     size_t t1=clock();
@@ -558,7 +558,7 @@ void SolveSubPatches(TracerType &PTr,
             std::vector<bool> NewIsLoop;
             size_t currPartIndex=UnsolvedPartitionIndex[i];
             bool traced=TraceSubPatch<TracerType>(currPartIndex,PTr,NewVertIdx,NewVertDir,
-                                                NewIsLoop,onlyneeded,only_non_disk,false,force_always);
+                                                  NewIsLoop,onlyneeded,only_non_disk,false,force_always);
             if (!traced)
             {
                 for (size_t j=0;j<PTr.Partitions[currPartIndex].size();j++)
@@ -697,6 +697,12 @@ void RecursiveProcess(TracerType &PTr,
 {
     typedef typename TracerType::ScalarType ScalarType;
 
+    //cannot do metacollapse with the following conditions
+    assert(!(PTr.AllowDarts && UseMetamesh));
+    assert(!(PTr.AllowSelfGluedPatch && UseMetamesh));
+    assert(!(PTr.CheckQuadrangulationLimits && UseMetamesh));
+    assert(!((PTr.MinVal<2) && UseMetamesh));
+
     Time_FirstTrace=0;
     Time_InitSubPatches0=0;
     Time_InitSubPatches1=0;
@@ -779,7 +785,7 @@ void RecursiveProcess(TracerType &PTr,
 
         bool HasNonManif=false;
         std::vector<size_t > NonGenusOK;
-//        PTr.UpdatePartitionsFromChoosen(true);
+        //        PTr.UpdatePartitionsFromChoosen(true);
         PTr.GetTopologicallyNotOKPartitionsIndex(NonGenusOK);
         if (NonGenusOK.size()>0)
             HasNonManif=true;
@@ -796,8 +802,8 @@ void RecursiveProcess(TracerType &PTr,
         //        PTr.CutEarPath();
         if (HasNonManif)
         {
-           PTr.UpdatePartitionsFromChoosen(true);
-           PTr.WriteInfo();
+            PTr.UpdatePartitionsFromChoosen(true);
+            PTr.WriteInfo();
         }
     }
     else
@@ -874,6 +880,63 @@ void RecursiveProcess(TracerType &PTr,
     //    //PTr.InitMetaMesh();
 }
 
+template <class TracerType>
+void RecursiveProcessForTexturing(TracerType &PTr,
+                                  const typename TracerType::ScalarType Drift,
+                                  bool onlyneeded,
+                                  bool finalremoval,
+                                  bool PreRemoveStep=true,
+                                  bool UseMetamesh=true,
+                                  bool ForceMultiSplit=false,
+                                  bool CheckSurfaceFolds=true,
+                                  bool DebugMsg=true)
+{
+    RecursiveProcess(PTr,Drift,onlyneeded,finalremoval,PreRemoveStep,
+                     UseMetamesh,ForceMultiSplit,CheckSurfaceFolds,DebugMsg);
+
+    //then make a remove step
+    //PTr.SplitIntoSubPaths();
+    PTr.SetAllRemovable();
+    PTr.AllowDarts=false;
+    PTr.AllowSelfGluedPatch=true;
+    PTr.MinVal=0;
+    PTr.split_on_removal=true;
+    PTr.match_valence=false;
+    PTr.CheckQuadrangulationLimits=false;
+    PTr.BatchRemovalOnMesh(true);
+    PTr.MergeContiguousPaths();
+}
+
+template <class TracerType>
+void RecursiveProcessForTexturingWithDarts(TracerType &PTr,
+                                           const typename TracerType::ScalarType Drift,
+                                           bool onlyneeded,
+                                           bool finalremoval,
+                                           bool PreRemoveStep=true,
+                                           bool UseMetamesh=true,
+                                           bool ForceMultiSplit=false,
+                                           bool CheckSurfaceFolds=true,
+                                           bool DebugMsg=true)
+{
+    RecursiveProcess(PTr,Drift,onlyneeded,finalremoval,PreRemoveStep,
+                     UseMetamesh,ForceMultiSplit,CheckSurfaceFolds,DebugMsg);
+
+    //then make a remove step
+    //PTr.SplitIntoSubPaths();
+    PTr.SetAllRemovable();
+    PTr.AllowDarts=true;
+    PTr.AllowSelfGluedPatch=true;
+    PTr.MinVal=0;
+    PTr.split_on_removal=true;
+    PTr.match_valence=false;
+    PTr.CheckQuadrangulationLimits=false;
+
+    PTr.SplitIntoIntervals();
+
+    PTr.BatchRemovalOnMesh(true);
+
+    PTr.MergeContiguousPaths();
+}
 
 template <class MeshType>
 void SaveCSV(PatchTracer<MeshType> &PTr,
@@ -1200,8 +1263,11 @@ void SaveAllData(PatchTracer<MeshType> &PTr,
         fprintf(F,"%d\n",PatchCorners[i].size());
         for (size_t j=0;j<PatchCorners[i].size();j++)
         {
-            assert(PatchCorners[i].size()>=MIN_ADMITTIBLE);
-            assert(PatchCorners[i].size()<=MAX_ADMITTIBLE);
+            if (PTr.CheckQuadrangulationLimits)
+            {
+                assert(PatchCorners[i].size()>=MIN_ADMITTIBLE);
+                assert(PatchCorners[i].size()<=MAX_ADMITTIBLE);
+            }
             int IndexV=PatchCorners[i][j];//PTr.PartitionCorners[i][j];
             assert(IndexV<PTr.Mesh().vert.size());
             assert(IndexV>=0);

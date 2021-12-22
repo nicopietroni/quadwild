@@ -588,6 +588,14 @@ void FindCorners(const EdgeDirectionTable &EDirTable,
 }
 
 template <class MeshType>
+bool HasConcaveEdge(const EdgeDirectionTable &EDirTable,
+                    MeshType &mesh,
+                    const std::vector<size_t> &Partition)
+{
+    //TO BE IMPLEMENTED
+}
+
+template <class MeshType>
 void FindCorners(const EdgeDirectionTable &EDirTable,MeshType &mesh,
                  const std::vector<std::vector<size_t> > &Partitions,
                  std::vector<std::vector<size_t> > &PartitionCorners)

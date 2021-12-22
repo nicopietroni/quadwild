@@ -38,6 +38,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <vcg/space/triangle3.h>
 #include <vcg/complex/algorithms/create/platonic.h>
 #include <vcg/complex/algorithms/update/flag.h>
+#include <vcg/complex/algorithms/attribute_seam.h>
 
 //#define MIN_SAMPLES_HARD 4
 //#define MAX_SAMPLES 1000
@@ -138,6 +139,20 @@ typename MeshType::ScalarType MeshArea(MeshType &mesh)
         currA+=(vcg::DoubleArea(mesh.face[i])/2.0);
     return currA;
 }
+
+//template <class MeshType>
+//void SplitMeshAlongEdgeSel(MeshType &mesh)
+//{
+//   // typedef typename MeshType::ScalarType ScalarType;
+
+//    MeshType dstMesh;
+//	vcg::tri::AttributeSeam::SplitVertex(srcMesh, dstMesh, ExtractVertex, CompareVertex, CopyVertex);
+
+////    ScalarType currA=0;
+////    for (size_t i=0;i<mesh.face.size();i++)
+////        currA+=(vcg::DoubleArea(mesh.face[i])/2.0);
+////    return currA;
+//}
 
 enum ParamType{Arap,LSQMap};
 
@@ -387,6 +402,14 @@ public:
         size_t NumE=EdgeSet.size();
 
         return ( NumV + NumF - NumE );
+    }
+
+    static int PatchGenusCopyMesh(MeshType &mesh,const std::vector<size_t> &PatchFaces)
+    {
+        MeshType PatchMesh;
+        GetMeshFromPatch(mesh,PatchFaces,PatchMesh,true);
+        int GenusVal=vcg::tri::Clean<MeshType>::CountHoles(PatchMesh);
+        return GenusVal;
     }
 
     static void ComputeUV(MeshType &mesh, ParamType &PType,bool fixSVert)
@@ -812,14 +835,15 @@ public:
                                            std::vector<size_t> &SortedCorners,
                                            ParamType PType,
                                            bool FixBorders,
-                                           bool ScaleEdges)
+                                           bool ScaleEdges,
+                                           bool InternalCuts)
     {
         for (size_t i=0;i<mesh.vert.size();i++)
             mesh.vert[i].Q()=i;
         for (size_t i=0;i<mesh.face.size();i++)
             mesh.face[i].Q()=i;
 
-        GetMeshFromPatch(mesh,PatchFaces,subMesh);
+        GetMeshFromPatch(mesh,PatchFaces,subMesh,InternalCuts);
         std::vector<size_t> CornersIdx;
         GetIndexFromQ(subMesh,PatchCorners,CornersIdx);
         ComputeUV(subMesh,PType,FixBorders,ScaleEdges,CornersIdx,SortedCorners);
@@ -838,7 +862,8 @@ public:
 
     static void GetMeshFromPatch(MeshType &mesh,
                                  const std::vector<size_t> &Partition,
-                                 MeshType &PatchMesh)
+                                 MeshType &PatchMesh,
+                                 bool InternalCuts)
     {
         //size_t t0=clock();
 
@@ -911,6 +936,35 @@ public:
             PatchMesh.face[i].ImportData(*f);
         }
         PatchMesh.UpdateAttributes();
+
+        if (InternalCuts)
+        {
+            //bool HasToSplit=false;
+            //copy the edge sel
+
+            for (size_t i=0;i<Partition.size();i++)
+            {
+                size_t IndexF=Partition[i];
+                for (int j=0;j<mesh.face[IndexF].VN();j++)
+                {
+                    if (!mesh.face[IndexF].IsFaceEdgeS(j))continue;
+                    PatchMesh.face[i].SetFaceEdgeS(j);
+                }
+            }
+            //std::cout<<"Splitting Internal Cuts"<<std::endl;
+            std::map<CoordType,ScalarType> VertQ;
+            for (size_t i=0;i<PatchMesh.vert.size();i++)
+                VertQ[PatchMesh.vert[i].P()]=PatchMesh.vert[i].Q();
+            VertSplitter<MeshType>::SplitAlongEdgeSel(PatchMesh);
+            for (size_t i=0;i<PatchMesh.vert.size();i++)
+            {
+                assert(VertQ.count(PatchMesh.vert[i].P())>0);
+                PatchMesh.vert[i].Q()=VertQ[PatchMesh.vert[i].P()];
+            }
+            vcg::tri::Allocator<MeshType>::CompactEveryVector(PatchMesh);
+            PatchMesh.UpdateAttributes();
+        }
+
 
         //        size_t t1=clock();
         //        Time_InitSubPatches0_0+=t1-t0;
@@ -1012,9 +1066,10 @@ public:
     static void GetMeshFromPatch(MeshType &mesh,
                                  const size_t &IndexPatch,
                                  const std::vector<std::vector<size_t> > &Partitions,
-                                 MeshType &PatchMesh)
+                                 MeshType &PatchMesh,
+                                 bool InternalCuts)
     {
-        GetMeshFromPatch(mesh,Partitions[IndexPatch],PatchMesh);
+        GetMeshFromPatch(mesh,Partitions[IndexPatch],PatchMesh,InternalCuts);
     }
 
 
@@ -1083,8 +1138,8 @@ public:
             AreaUV2+=vcg::tri::UV_Utils<MeshType>::PerVertUVArea(*ParamPatches[i]);
         }
 
-//        std::cout<<"Area UV0:"<<AreaUV0<<std::endl;
-//        std::cout<<"Area UV2:"<<AreaUV2<<std::endl;
+        //        std::cout<<"Area UV0:"<<AreaUV0<<std::endl;
+        //        std::cout<<"Area UV2:"<<AreaUV2<<std::endl;
 
     }
 
@@ -1725,6 +1780,7 @@ public:
                                    bool FixBorders,
                                    bool ScaleEdges,
                                    bool Arrange=true,
+                                   bool InternalCuts=false,
                                    typename MeshType::ScalarType borderArrange=0)
     {
         std::vector<MeshType*> ParamPatches;
@@ -1735,7 +1791,8 @@ public:
             ComputeParametrizedSubMesh(mesh,*ParamPatches.back(),
                                        PatchFaces[i],PatchCorners[i],
                                        SortedCorners,PType,
-                                       FixBorders,ScaleEdges);
+                                       FixBorders,ScaleEdges,
+                                       InternalCuts);
         }
         if (Arrange)
             ArrangeUVPatches(ParamPatches,borderArrange);
@@ -1973,7 +2030,9 @@ public:
                              //std::unordered_map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap,
                              std::map<std::pair<size_t,size_t>,typename MeshType::ScalarType>  &EdgeMap,
                              std::vector<PatchInfo<typename MeshType::ScalarType> > &PInfo,
-                             const typename MeshType::ScalarType Thr,bool SkipValence4)
+                             const typename MeshType::ScalarType Thr,bool SkipValence4,
+                             bool AllowDarts,bool AllowSelfGluedPatches,
+                             bool CheckQuadrangulationLimits)
     {
         //typedef typename MeshType::ScalarType ScalarType;
         PInfo.clear();
@@ -1993,14 +2052,56 @@ public:
             size_t t1=clock();
             int0+=t1-t0;
 
+            //if ((!AllowDarts)&&(!AllowSelfGluedPatches))
+            //initialize genus by default
             PInfo[i].Genus=PatchGenus(mesh,PatchFaces[i]);
-            //        size_t Test=PatchGenus1(mesh,PatchFaces[i]);
-            //        if (PInfo[i].Genus!=Test)
-            //        {
-            //            std::cout<<"Genus "<<PInfo[i].Genus<<std::endl;
-            //            std::cout<<"Test "<<Test<<std::endl;
-            //            assert(0);
-            //        }
+
+            //check if there is internal path not connected
+            if ((AllowDarts)&&(!AllowSelfGluedPatches))
+            {
+                //in such case check if there is no internal holes
+                //(but only if the mesh is not glued to itself)
+                if (PInfo[i].Genus==1)
+                {
+                    bool SingleHoles=SingleConnectedBorderFromEdgeS(mesh,PatchFaces[i]);
+                    if (SingleHoles)
+                        PInfo[i].Genus=1;
+                    else
+                        PInfo[i].Genus=2;
+                }
+            }
+//            if ((!AllowDarts)&&(!AllowSelfGluedPatches))
+//            {
+//                //in this case check if the borders is connected
+//                bool SingleHoles=SingleConnectedBorderFromEdgeS(mesh,PatchFaces[i]);
+//                if (SingleHoles)
+//                    PInfo[i].Genus=1;
+//                else
+//                    PInfo[i].Genus=2;
+//            }
+            if ((!AllowDarts)&&(AllowSelfGluedPatches))
+            {
+                //only if self glue is allowed
+                bool SingleHoles=SingleConnectedBorderFromEdgeS(mesh,PatchFaces[i]);
+                if (SingleHoles)
+                    PInfo[i].Genus=1;
+                else
+                    PInfo[i].Genus=2;
+                //PInfo[i].Genus=PatchGenusCopyMesh(mesh,PatchFaces[i]);
+            }
+
+            if ((AllowDarts)&&(AllowSelfGluedPatches))
+            {
+                //only if self glue is allowed
+                bool SingleHoles=SingleConnectedBorderFromEdgeS(mesh,PatchFaces[i]);
+                if (SingleHoles)
+                    PInfo[i].Genus=1;
+                else
+                    PInfo[i].Genus=2;
+                //PInfo[i].Genus=PatchGenusCopyMesh(mesh,PatchFaces[i]);
+            }
+
+
             size_t t2=clock();
             int1=t2-t1;
 
@@ -2021,8 +2122,14 @@ public:
             size_t t4=clock();
             int3+=t4-t3;
 
-            if ((PInfo[i].NumCorners<(int)MIN_ADMITTIBLE)||
-                    (PInfo[i].NumCorners>(int)MAX_ADMITTIBLE)||
+
+            //            if ((PInfo[i].NumCorners<(int)MIN_ADMITTIBLE)||
+            //                    (PInfo[i].NumCorners>(int)MAX_ADMITTIBLE)||
+            //                    (PInfo[i].Genus!=1)||
+            //                    (PInfo[i].NumEmitters>0)||
+            //                    (Thr<=0))
+            if ((CheckQuadrangulationLimits && (PInfo[i].NumCorners<(int)MIN_ADMITTIBLE))||
+                    (CheckQuadrangulationLimits && (PInfo[i].NumCorners>(int)MAX_ADMITTIBLE))||
                     (PInfo[i].Genus!=1)||
                     (PInfo[i].NumEmitters>0)||
                     (Thr<=0))
@@ -2082,16 +2189,25 @@ public:
         return CurrA;
     }
 
-    static bool BetterConfiguration(//MeshType &mesh,
-                                    //                                    const std::vector<std::vector<size_t> > &PatchFaces0,
-                                    //                                    const std::vector<std::vector<size_t> > &PatchFaces1,
-                                    const std::vector<PatchInfo<typename MeshType::ScalarType> > &PInf0,
+    //    static bool BetterConfiguration(//MeshType &mesh,
+    //                                    //                                    const std::vector<std::vector<size_t> > &PatchFaces0,
+    //                                    //                                    const std::vector<std::vector<size_t> > &PatchFaces1,
+    //                                    const std::vector<PatchInfo<typename MeshType::ScalarType> > &PInf0,
+    //                                    const std::vector<PatchInfo<typename MeshType::ScalarType> > &PInf1,
+    //                                    size_t MinSides,size_t MaxSides,
+    //                                    const typename MeshType::ScalarType CClarkability,
+    //                                    const typename MeshType::ScalarType avgEdge,
+    //                                    bool match_sing_valence,
+    //                                    bool print_debug=false)
+    static bool BetterConfiguration(const std::vector<PatchInfo<typename MeshType::ScalarType> > &PInf0,
                                     const std::vector<PatchInfo<typename MeshType::ScalarType> > &PInf1,
                                     size_t MinSides,size_t MaxSides,
                                     const typename MeshType::ScalarType CClarkability,
                                     const typename MeshType::ScalarType avgEdge,
-                                    bool match_sing_valence,
-                                    bool print_debug=false)
+                                    bool match_sing_valence,/*
+                                                                                                    bool allow_darts,
+                                                                                                    bool allow_self_glue,*/
+                                    bool print_debug)
     {
         //        std::cout<<"CClarkability"<<CClarkability<<std::endl;
         //        std::cout<<"AvgEdge"<<avgEdge<<std::endl;
@@ -2125,6 +2241,7 @@ public:
 
             if (PInf0[i].Genus!=1)NonOKGenus0++;
             if (PInf0[i].NumEmitters>0)NonOKEmitters0++;
+            //(!allow_darts)&&
             if (PInf0[i].NumCorners<(int)MinSides)NonOKSize0++;
             if (PInf0[i].NumCorners>(int)MaxSides)NonOKSize0++;
             NonQArea0+=PInf0[i].QualityFunctorValue;
@@ -2153,6 +2270,7 @@ public:
                 std::cout<<"Num Sides 1:"<<PInf1[i].NumCorners<<std::endl;
             if (PInf1[i].Genus!=1)NonOKGenus1++;
             if (PInf1[i].NumEmitters>0)NonOKEmitters1++;
+            //(!allow_darts)&&
             if (PInf1[i].NumCorners<(int)MinSides)NonOKSize1++;
             if (PInf1[i].NumCorners>(int)MaxSides)NonOKSize1++;
             NonQArea1+=PInf1[i].QualityFunctorValue;
@@ -2259,7 +2377,6 @@ public:
         }
     }
 
-
     static void MeshTraces(const VertexFieldGraph<MeshType> &VFGraph,
                            const std::vector<CandidateTrace> &TraceSet,
                            const std::vector<bool> &Selected,
@@ -2282,6 +2399,317 @@ public:
         }
     }
 
+    //if Dest==0 then check if is a single connected component
+    static bool IsConnectedTo(size_t SourceN, std::vector<size_t> &Dest,
+                              std::map<size_t,std::vector<size_t> > &Adj)
+    {
+        //if (Dest.size()==0)return false;
+        if ((Dest.size()==1)&&(Dest[0]==SourceN))return false;
+
+        std::vector<size_t> to_explore;
+        std::set<size_t> has_explored;
+        std::set<size_t> DestSet(Dest.begin(),Dest.end());
+
+        to_explore.push_back(SourceN);
+        has_explored.insert(SourceN);
+
+        do{
+            size_t curr_node=to_explore.back();
+            assert(has_explored.count(curr_node)>0);
+            to_explore.pop_back();
+            for (size_t i=0;i<Adj[curr_node].size();i++)
+            {
+                size_t adj_node=Adj[curr_node][i];
+                if (has_explored.count(adj_node)>0)continue;
+
+                to_explore.push_back(adj_node);
+                has_explored.insert(adj_node);
+
+                if (DestSet.count(adj_node)>0)return true;
+            }
+        }while (to_explore.size()>0);
+
+        if (Dest.size()==0)
+            return (Adj.size()==has_explored.size());
+
+        return false;
+    }
+
+    static bool MarkFaces(MeshType &mesh,std::vector<size_t> &PatchFaces)
+    {
+        //mark the faces
+        vcg::tri::UnMarkAll(mesh);
+        for (size_t i=0;i<PatchFaces.size();i++)
+            vcg::tri::Mark(mesh,&mesh.face[PatchFaces[i]]);
+    }
+
+    static bool HasInternalFeaturesFromEdgeSel(MeshType &mesh,
+                                               std::vector<size_t> &PatchFaces)
+    {
+        MarkFaces(mesh,PatchFaces);
+
+        for (size_t i=0;i<PatchFaces.size();i++)
+        {
+            size_t IndexF=PatchFaces[i];
+            assert(vcg::tri::IsMarked(mesh,&mesh.face[IndexF]));
+
+            for (size_t j=0;j<3;j++)
+            {
+                if (!mesh.face[IndexF].IsFaceEdgeS(j))continue;
+
+                bool IsOnBorder=vcg::face::IsBorder(mesh.face[IndexF],j);
+                FaceType *fOpp=mesh.face[IndexF].FFp(j);
+                IsOnBorder|=(!vcg::tri::IsMarked(mesh,fOpp));
+
+                if (!IsOnBorder)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    static void GetPatchBorderV(MeshType &mesh,
+                                std::vector<size_t> &PatchFaces,
+                                std::vector<size_t> &BorderV)
+    {
+        MarkFaces(mesh,PatchFaces);
+        BorderV.clear();
+        for (size_t i=0;i<PatchFaces.size();i++)
+        {
+            size_t IndexF=PatchFaces[i];
+            assert(vcg::tri::IsMarked(mesh,&mesh.face[IndexF]));
+
+            for (size_t j=0;j<3;j++)
+            {
+                bool IsOnBorder=vcg::face::IsBorder(mesh.face[IndexF],j);
+                FaceType *fOpp=mesh.face[IndexF].FFp(j);
+                IsOnBorder|=(!vcg::tri::IsMarked(mesh,fOpp));
+
+                size_t IndexV0=vcg::tri::Index(mesh,mesh.face[IndexF].V0(j));
+                size_t IndexV1=vcg::tri::Index(mesh,mesh.face[IndexF].V1(j));
+
+                if (IsOnBorder)
+                {
+                    BorderV.push_back(IndexV0);
+                    BorderV.push_back(IndexV1);
+                }
+            }
+        }
+        std::sort(BorderV.begin(),BorderV.end());
+        std::vector<size_t>::iterator it;
+        it = std::unique (BorderV.begin(),BorderV.end());
+        BorderV.resize( std::distance(BorderV.begin(),it) );
+    }
+
+    static void GetSelectedEdgesGraph(MeshType &mesh,
+                                      std::vector<size_t> &PatchFaces,
+                                      std::map<size_t,std::vector<size_t> > &Adj,
+                                      bool OnlyInternal)
+    {
+        MarkFaces(mesh,PatchFaces);
+        Adj.clear();
+
+        for (size_t i=0;i<PatchFaces.size();i++)
+        {
+            size_t IndexF=PatchFaces[i];
+            assert(vcg::tri::IsMarked(mesh,&mesh.face[IndexF]));
+
+            for (size_t j=0;j<3;j++)
+            {
+                bool IsOnBorder=vcg::face::IsBorder(mesh.face[IndexF],j);
+                FaceType *fOpp=mesh.face[IndexF].FFp(j);
+                IsOnBorder|=(!vcg::tri::IsMarked(mesh,fOpp));
+
+                size_t IndexV0=vcg::tri::Index(mesh,mesh.face[IndexF].V0(j));
+                size_t IndexV1=vcg::tri::Index(mesh,mesh.face[IndexF].V1(j));
+
+                bool AddEdge=false;
+                bool IsEdgeS=mesh.face[IndexF].IsFaceEdgeS(j);
+
+                if (IsOnBorder && (!OnlyInternal))
+                {
+                    //assert(IsEdgeS);
+                    AddEdge=true;
+                }
+
+                if ((!IsOnBorder) && (IsEdgeS))
+                    AddEdge=true;
+
+                if (AddEdge)
+                {
+                    Adj[IndexV0].push_back(IndexV1);
+                    Adj[IndexV1].push_back(IndexV0);
+                }
+            }
+        }
+    }
+
+//    static void GetCornerValuesFromInternalFeatures(MeshType &mesh,
+//                                                    std::vector<size_t> &PatchFaces,
+//                                                    std::vector<size_t> &Corners,
+//                                                    std::vector<size_t> &CornerValence)
+//    {
+//        //mark the faces
+//        vcg::tri::UnMarkAll(mesh);
+//        for (size_t i=0;i<PatchFaces.size();i++)
+//            vcg::tri::Mark(mesh,&mesh.face[PatchFaces[i]]);
+
+//        //create the adjacency graph
+//        std::map<size_t,std::vector<size_t> > Adj;
+//        std::vector<size_t> BorderV;
+//        for (size_t i=0;i<PatchFaces.size();i++)
+//        {
+//            size_t IndexF=PatchFaces[i];
+//            assert(vcg::tri::IsMarked(mesh,&mesh.face[IndexF]));
+
+//            for (size_t j=0;j<3;j++)
+//            {
+//                bool IsOnBorder=vcg::face::IsBorder(mesh.face[IndexF],j);
+//                FaceType *fOpp=mesh.face[IndexF].FFp(j);
+//                IsOnBorder|=(!vcg::tri::IsMarked(mesh,fOpp));
+
+//                size_t IndexV0=vcg::tri::Index(mesh,mesh.face[IndexF].V0(j));
+//                size_t IndexV1=vcg::tri::Index(mesh,mesh.face[IndexF].V1(j));
+
+//                if (IsOnBorder)
+//                {
+//                    BorderV.push_back(IndexV0);
+//                    BorderV.push_back(IndexV1);
+//                }
+//                else
+//                {
+//                    if (mesh.face[IndexF].IsFaceEdgeS(j))
+//                    {
+//                        Adj[IndexV0].push_back(IndexV1);
+//                        Adj[IndexV1].push_back(IndexV0);
+//                    }
+//                }
+//            }
+//        }
+
+//        std::sort(BorderV.begin(),BorderV.end());
+//        std::vector<size_t>::iterator it;
+//        it = std::unique (BorderV.begin(),BorderV.end());
+//        BorderV.resize( std::distance(BorderV.begin(),it) );
+
+//        //collect sources
+//        std::vector<size_t> Sources;
+//        for (size_t i=0;i<BorderV.size();i++)
+//        {
+//            size_t IndexV=BorderV[i];
+//            if (Adj.count(IndexV)>0)
+//                Sources.push_back(IndexV);
+//        }
+//        //std::cout<<"There are:"<<Sources.size()<<" sources"<<std::endl;
+//        CornerValence=std::vector<size_t>(Corners.size(),1);
+
+//        //then check for each source if connected to another source
+//        for (size_t i=0;i<Sources.size();i++)
+//        {
+//            size_t IndexV=Sources[i];
+//            bool HasConn=IsConnectedTo(IndexV,Sources,Adj);
+
+//            std::vector<size_t>::iterator IteC;
+//            IteC=std::find(Corners.begin(),Corners.end(),IndexV);
+//            assert(IteC!=Corners.end());
+//            size_t Index=distance(Corners.begin(),IteC);
+
+//            if (HasConn)
+//                CornerValence[Index]=2;
+//            else
+//                CornerValence[Index]=0;
+//        }
+//    }
+
+    static void GetCornerValuesFromInternalFeatures(MeshType &mesh,
+                                                    std::vector<size_t> &PatchFaces,
+                                                    std::vector<size_t> &Corners,
+                                                    std::vector<size_t> &CornerValence)
+    {
+        CornerValence=std::vector<size_t>(Corners.size(),1);
+        if (!HasInternalFeaturesFromEdgeSel(mesh,PatchFaces))
+            return;
+
+        std::vector<size_t> BorderV;
+        GetPatchBorderV(mesh,PatchFaces,BorderV);
+
+        std::map<size_t,std::vector<size_t> > Adj;
+        GetSelectedEdgesGraph(mesh,PatchFaces,Adj,true);
+
+        //collect sources
+        std::vector<size_t> Sources;
+        for (size_t i=0;i<BorderV.size();i++)
+        {
+            size_t IndexV=BorderV[i];
+            if (Adj.count(IndexV)>0)
+                Sources.push_back(IndexV);
+        }
+
+
+        //then check for each source if connected to another source
+        for (size_t i=0;i<Sources.size();i++)
+        {
+            size_t IndexV=Sources[i];
+            bool HasConn=IsConnectedTo(IndexV,Sources,Adj);
+
+            std::vector<size_t>::iterator IteC;
+            IteC=std::find(Corners.begin(),Corners.end(),IndexV);
+            if(IteC==Corners.end())continue;//it might be a concave and so not a corner from that side
+//            if (IteC==Corners.end())
+//            {
+//                std::cout<<"There are:"<<Sources.size()<<" sources"<<std::endl;
+//                std::cout<<"There are:"<<Corners.size()<<" corners"<<std::endl;
+
+//                std::cout<<"Sources"<<std::endl;
+//                for (size_t i=0;i<Sources.size();i++)
+//                    std::cout<<Sources[i]<<std::endl;
+
+//                std::cout<<"Corners"<<std::endl;
+//                std::set<CoordType> CornersSet;
+//                for (size_t i=0;i<Corners.size();i++)
+//                {
+//                    CornersSet.insert(mesh.vert[Corners[i]].P());
+//                    //std::cout<<Corners[i]<<std::endl;
+//                }
+
+//                MeshType curr_patch;
+//                GetMeshFromPatch(mesh,PatchFaces,curr_patch,true);
+
+//                for (size_t i=0;i<curr_patch.vert.size();i++)
+//                {
+//                    if (CornersSet.count(curr_patch.vert[i].P())==0)continue;
+//                    curr_patch.vert[i].SetS();
+//                }
+//                vcg::tri::io::ExporterPLY<MeshType>::Save(curr_patch,"test_patch.ply",
+//                                                          vcg::tri::io::Mask::IOM_VERTFLAGS);
+//                //assert(0);
+//            }
+            size_t Index=distance(Corners.begin(),IteC);
+
+            if (HasConn)
+                CornerValence[Index]=2;
+            else
+                CornerValence[Index]=0;
+        }
+    }
+
+    static bool SingleConnectedBorderFromEdgeS(MeshType &mesh,std::vector<size_t> &PatchFaces)
+    {
+
+        std::vector<size_t> BorderV;
+        GetPatchBorderV(mesh,PatchFaces,BorderV);
+
+        //there is no border
+        if (BorderV.size()==0)return false;
+
+        std::map<size_t,std::vector<size_t> > Adj;
+        GetSelectedEdgesGraph(mesh,PatchFaces,Adj,false);
+
+        std::vector<size_t> Dest;
+        bool SingleConn=IsConnectedTo(BorderV[0],Dest,Adj);
+
+        return SingleConn;
+    }
 };
 
 #endif

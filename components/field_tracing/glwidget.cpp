@@ -522,6 +522,24 @@ void TW_CALL InitGraph(void *)
     drawSing=false;
 }
 
+//void TW_CALL TestInit(void *)
+//{
+//    PTr.sample_ratio=0.001;
+//    PTr.CClarkability=-1;
+//    //PTr.
+//    PatchGeneralParameters::MinSamples()=1;
+//    InitStructures();
+//    PTr.DebugMsg=true;
+//    PTr.TraceLoops(false);
+//    PTr.UpdatePartitionsFromChoosen();
+//    PTr.ColorByPartitions();
+//    PTr.SmoothPatches();
+//    UpdateVisualNodes();
+//    drawField=false;
+//    drawSharpF=true;
+//    drawSing=true;
+//}
+
 void TW_CALL JoinNarrow(void *)
 {
     PTr.JoinNarrowStep();
@@ -560,6 +578,52 @@ void TW_CALL SmoothPathes(void *)
     PTr.GetVisualCornersPos(PatchCornerPos);
 }
 
+//void TW_CALL RemoveIteration(void *)
+//{
+
+
+////    PTr.SetAllRemovable();
+////    PTr.match_valence=false;
+////    PTr.AllowDarts=false;
+////    PTr.DebugMsg=false;
+////    PTr.AllowSelfGluedPatch=true;
+////    PTr.MinVal=0;
+////    PTr.CheckQuadrangulationLimits=false;
+////    //PTr.SingleRemoveStep(true);
+////    while(PTr.SingleRemoveStep(false)){}
+
+//    //PTr.MergeContiguousPaths();
+//    //PTr.ColorByPartitions();
+
+//    InitStructures();
+
+//    //RecursiveProcessForTexturing(PTr,Drift, add_only_needed,final_removal,true,meta_mesh_collapse,force_split);
+
+//    RecursiveProcessForTexturingWithDarts(PTr,Drift, add_only_needed,final_removal,true,meta_mesh_collapse,force_split);
+
+
+////    PTr.SetAllRemovable();
+////    PTr.AllowDarts=true;
+////    PTr.AllowSelfGluedPatch=true;
+////    PTr.MinVal=0;
+////    PTr.split_on_removal=true;
+////    PTr.match_valence=false;
+////    PTr.CheckQuadrangulationLimits=false;
+
+////    //PTr.SplitIntoIntervals();
+
+////    PTr.BatchRemovalOnMesh(true);
+
+//    PTr.MergeContiguousPaths();
+
+//    PTr.ColorByPartitions();
+
+//    CurrPatchMode=CMPatchCol;
+//    drawField=false;
+//    drawSharpF=false;
+//    drawSing=false;
+//    UpdateVisualNodes();
+//}
 
 void TW_CALL BatchProcess(void *)
 {
@@ -746,23 +810,40 @@ void TW_CALL TestLoops(void *)
                      Emitter,Receiver,Disabled);
 }
 
-void TW_CALL SplitSupPatches(void *)
-{
-    PTr.SplitIntoSubPaths();
-    PTr.InitMetaMesh();
-    PTr.GetCurrCandidates(CurrCandidates);
+//void TW_CALL SplitSupPatches(void *)
+//{
+//    PTr.SplitIntoSubPaths();
+//    PTr.InitMetaMesh();
+//    PTr.GetCurrCandidates(CurrCandidates);
 
-    ChosenCandidates.clear();
-    PTr.GetCurrChosen(ChosenCandidates);
+//    ChosenCandidates.clear();
+//    PTr.GetCurrChosen(ChosenCandidates);
 
-    ChosenIsLoop.clear();
-    PTr.GetCurrChosenIsLoop(ChosenIsLoop);
+//    ChosenIsLoop.clear();
+//    PTr.GetCurrChosenIsLoop(ChosenIsLoop);
 
-    PTr.GetUnsatisfied(UnsatisfiedNodes);
+//    PTr.GetUnsatisfied(UnsatisfiedNodes);
 
-    PTr.GetVisualCornersPos(PatchCornerPos);
-}
+//    PTr.GetVisualCornersPos(PatchCornerPos);
+//}
 
+//void TW_CALL SplitInIntervals(void *)
+//{
+//    PTr.SplitIntoIntervals();
+//    UpdateVisualNodes();
+////    PTr.InitMetaMesh();
+////    PTr.GetCurrCandidates(CurrCandidates);
+
+////    ChosenCandidates.clear();
+////    PTr.GetCurrChosen(ChosenCandidates);
+
+////    ChosenIsLoop.clear();
+////    PTr.GetCurrChosenIsLoop(ChosenIsLoop);
+
+////    PTr.GetUnsatisfied(UnsatisfiedNodes);
+
+////    PTr.GetVisualCornersPos(PatchCornerPos);
+//}
 
 void TW_CALL SaveData(void *)
 {
@@ -878,7 +959,7 @@ void InitLoopBar(QWidget *w)
     TwAddButton(bar,"TraceLoops",AddLoops,0," label='Trace Loops' ");
     TwAddButton(bar,"TraceBorders",TraceBorder,0," label='Trace Borders' ");
     TwAddButton(bar,"BatchProcess",BatchProcess,0," label='Batch Process' ");
-    TwAddButton(bar,"Split",SplitSupPatches,0," label='Split sub' ");
+    //TwAddButton(bar,"Split",SplitSupPatches,0," label='Split sub' ");
     TwAddButton(bar,"BatchRemoval",BatchRemoval,0," label='Batch Removal' ");
     TwAddButton(bar,"SmoothPaths",SmoothPathes,0," label='Smooth Paths' ");
     //TwAddButton(bar,"SmoothParam",SmoothParam,0," label='Smooth Param' ");
@@ -904,8 +985,24 @@ void InitLoopBar(QWidget *w)
     TwAddVarRW(bar,"FinalRem",TW_TYPE_BOOLCPP,&final_removal,"label='Final removal'");
     TwAddVarRW(bar,"ForceSplit",TW_TYPE_BOOLCPP,&force_split,"label='Force split'");
     TwAddButton(bar,"RecursiveProcess",RecursiveProcess,0," label='Recursive Process' ");
-    TwAddButton(bar,"Subdivide",SubdividePatches,0," label='Subdivide Patches' ");
+    //TwAddButton(bar,"Subdivide",SubdividePatches,0," label='Subdivide Patches' ");
+
+  //    TwAddSeparator(bar,NULL,NULL);
+
+//    TwAddButton(bar,"Subdivide",SubdividePatches,0," label='Subdivide Patches' ");
+//    TwAddButton(bar,"ParametrizePatches",ParametrizePatches,0," label='Parametrize Patches' ");
+
+
+    //TwAddSeparator(bar,NULL,NULL);
+
+    //TwAddButton(bar,"TestInit",TestInit,0," label='TestInit' ");
+    //TwAddButton(bar,"Split",SplitSupPatches,0," label='Split sub' ");
+    //TwAddButton(bar,"Split Int",SplitInIntervals,0," label='Split in intervals' ");
+    //TwAddButton(bar,"OneStepRem",RemoveIteration,0," label='Remove Ite step' ");
     TwAddButton(bar,"ParametrizePatches",ParametrizePatches,0," label='Parametrize Patches' ");
+
+
+    TwAddSeparator(bar,NULL,NULL);
 
     TwAddVarRW(bar,"SubdSave",TW_TYPE_BOOLCPP,&subdivide_when_save,"label='Subdivide When Save'");
     TwAddButton(bar,"SaveData",SaveData,0," label='Save Data' ");
@@ -1057,7 +1154,7 @@ void GLWidget::paintGL ()
             GLGraph.GLDrawPoints(PatchCornerPos,10,vcg::Color4b(255,0,255,255));
 
         if (drawPaths)
-            GLGraph.GLDrawPaths(ChosenCandidates,ChosenIsLoop,mesh.bbox.Diag()*0.01,drawPathNodes,VisTraces);
+            GLGraph.GLDrawPaths(ChosenCandidates,ChosenIsLoop,mesh.bbox.Diag()*0.01,drawPathNodes,VisTraces);//,true);
 
         //GLGraph.GLDrawPaths(DiscardedCandidates,DiscardedIsLoop,mesh.bbox.Diag()*0.01,true);
         //GLGraph.GLDrawNodes(TraceableFlatNode,mesh.bbox.Diag()*0.002);

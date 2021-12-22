@@ -652,7 +652,7 @@ public:
             PatchManager<MeshType>::ComputeParametrizedSubMesh(tri_mesh,*ParamPatches[i],
                                        PatchFaces[i],CornersIDX[i],
                                        PatchCorners[i],
-                                       Arap,true,true);
+                                       Arap,true,true,false);
         }
 
         std::vector<std::vector<Point2x> > SideUV;

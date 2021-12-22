@@ -308,7 +308,8 @@ public:
                      const std::vector<bool> &IsLoop,
                      ScalarType size,
                      bool DrawNode,
-                     int VisTraces=-1)
+                     int VisTraces=-1,
+                     bool ColorByLoop=false)
     {
         size_t Limit=Paths.size();
         if ((VisTraces>0)&&(VisTraces<Paths.size()))
@@ -316,6 +317,15 @@ public:
         for (size_t i=0;i<Limit;i++)
         {
             vcg::Color4b Col=vcg::Color4b::Scatter(Paths.size(),i);
+
+            if (ColorByLoop)
+            {
+                if (IsLoop[i])
+                    Col=vcg::Color4b::Blue;
+                else
+                    Col=vcg::Color4b::Red;
+            }
+
             GLDrawPath(Paths[i],Col,IsLoop[i]);
             if (DrawNode)
                 GLDrawNodes(Paths[i],size);

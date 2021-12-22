@@ -28,6 +28,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <wrap/gl/trimesh.h>
 #include <vcg/complex/algorithms/parametrization/uv_utils.h>
+#include <vcg/complex/algorithms/update/topology.h>
 
 template <class MeshType>
 class MeshDrawing
@@ -82,19 +83,20 @@ public:
                                    -uv_box.Center().Y(),0));
         glDisable(GL_LIGHTING);
         glDisable(GL_LIGHT0);
-        glLineWidth(10);
+        glLineWidth(5);
         //glDepthRange(0,0.9999);
         glBegin(GL_LINES);
         for (size_t i=0;i<m.face.size();i++)
         {
-            vcg::glColor(m.face[i].C());
             CoordType Pos[3];
             Pos[0]=UVTo3DPos(m.face[i].WT(0).P());
             Pos[1]=UVTo3DPos(m.face[i].WT(1).P());
             Pos[2]=UVTo3DPos(m.face[i].WT(2).P());
             for (size_t j=0;j<3;j++)
             {
-                if (!m.face[i].IsFaceEdgeS(j))continue;
+                bool IsB=vcg::face::IsBorder(m.face[i],j);
+                bool IsS=m.face[i].IsFaceEdgeS(j);
+                if (!(IsS || IsB)) continue;
                 vcg::glColor(vcg::Color4b(0,0,0,255));
                 vcg::glVertex(Pos[j]);
                 vcg::glVertex(Pos[(j+1)%3]);
