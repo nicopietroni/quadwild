@@ -881,6 +881,34 @@ void RecursiveProcess(TracerType &PTr,
 }
 
 template <class TracerType>
+void RecursiveProcessWithDarts(TracerType &PTr,
+                               const typename TracerType::ScalarType Drift,
+                               bool onlyneeded,
+                               bool finalremoval,
+                               bool PreRemoveStep=true,
+                               bool UseMetamesh=true,
+                               bool ForceMultiSplit=false,
+                               bool CheckSurfaceFolds=true,
+                               bool DebugMsg=true)
+{
+    RecursiveProcess(PTr,Drift,onlyneeded,finalremoval,PreRemoveStep,
+                     UseMetamesh,ForceMultiSplit,CheckSurfaceFolds,DebugMsg);
+
+    //then make a remove step
+    //PTr.SplitIntoSubPaths();
+    PTr.SetAllRemovable();
+    PTr.AllowDarts=true;
+    PTr.AllowSelfGluedPatch=false;
+    PTr.MinVal=0;
+    PTr.split_on_removal=true;
+    PTr.match_valence=false;
+    PTr.CheckQuadrangulationLimits=false;
+    PTr.BatchRemovalOnMesh(true);
+    PTr.MergeContiguousPaths();
+}
+
+
+template <class TracerType>
 void RecursiveProcessForTexturing(TracerType &PTr,
                                   const typename TracerType::ScalarType Drift,
                                   bool onlyneeded,
