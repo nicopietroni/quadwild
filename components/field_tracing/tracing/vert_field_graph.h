@@ -678,7 +678,12 @@ private:
                 CoordType Dir= GetDirection(i,j);
                 Dir.Normalize();
                 if (fabs(Dir*Norm)>0.01)
+                {
                     std::cout<<"WARNING NON TANGENT FIELD"<<std::endl;
+                    std::cout<<"DOT:"<<fabs(Dir*Norm)<<std::endl;
+                    std::cout<<"DIR:"<<Dir.X()<<","<<Dir.Y()<<","<<Dir.Z()<<std::endl;
+                    std::cout<<"NORM:"<<Norm.X()<<","<<Norm.Y()<<","<<Norm.Z()<<std::endl;
+                }
             }
         }
     }
