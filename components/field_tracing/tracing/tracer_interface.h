@@ -727,10 +727,14 @@ void RecursiveProcess(TracerType &PTr,
 
     //in this case need to trace loops
     if ((NumE0==0)||(NumE1==0))
-        PTr.BatchAddLoops(false,onlyneeded,false,false);
+    {
+        //PTr.DebugMsg=true;
+        PTr.BatchAddLoops(false,onlyneeded,false,false);   
+    }
     else
+    {
         PTr.BatchAddLoops(false,onlyneeded,ForceMultiSplit,false);
-
+    }
     //if no patch has been created than trace loops
     if ((ForceMultiSplit==true)&&(PTr.Partitions.size()==0))
         PTr.BatchAddLoops(false,onlyneeded,false,false);

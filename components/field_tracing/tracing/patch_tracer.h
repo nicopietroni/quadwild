@@ -1560,6 +1560,7 @@ private:
                 //set the last one to update
                 //std::vector<size_t> LastAdded(1,ChoosenPaths.size()-1);
                 //LazyUpdatePartitions(LastAdded);
+
                 LazyUpdatePartitions(lupd_time_menage_sel,
                                      lupd_time_getting_diff,
                                      lupd_time_changed_part,
@@ -2559,7 +2560,8 @@ public:
             for (size_t i=0;i<Partitions.size();i++)
             {
                 MeshType m;
-                GetPatchMesh(i,m,false);
+                bool UseInternalCuts=(AllowDarts||AllowSelfGluedPatch);
+                GetPatchMesh(i,m,UseInternalCuts);
                 PatchInfos[i].QualityFunctorValue=PFunct(m);
             }
         }
@@ -2567,18 +2569,6 @@ public:
         for (size_t i=0;i<Partitions.size();i++)
             UpdatePartitionType(i);
 
-        //        if (check_quality_functor)
-        //        {
-        //            PatchQualityFunctor PFunct;
-        //            MeshType m;
-        //            GetPatchMesh(Index,m);
-        //            bool IsOKQ=PFunct(m);
-        //            if (!IsOKQ)
-        //            {
-        //                PartitionType[Index]=NoQualityMatch;
-        //                return;
-        //            }
-        //        }
         //int t3=clock();
         //                std::cout<<"Time Init Lenghts "<<t1-t0<<std::endl;
         //                std::cout<<"Time Get PInfo "<<t2-t1<<std::endl;
@@ -2766,8 +2756,10 @@ public:
             UpdateCornersWithInternalCuts();
 
         if (UpdateType)
+        {
             InitPartitionsType();
-
+        }
+        //WriteInfo();
         int t3=clock();
         Time_UpdatePartitionsTotal+=t3-t0;
 
@@ -3305,6 +3297,7 @@ public:
         size_t NonDiskLike;
         size_t HasEmit;
         size_t NumPatchs;
+        size_t NotMatchQ;
         size_t SizePatches[8];
     };
 
@@ -3316,6 +3309,7 @@ public:
         PInfo.NonDiskLike=0;
         PInfo.HasEmit=0;
         PInfo.NumPatchs=PartitionType.size();
+        PInfo.NotMatchQ=0;
         PInfo.SizePatches[0]=0;
         PInfo.SizePatches[1]=0;
         PInfo.SizePatches[2]=0;
@@ -3339,6 +3333,9 @@ public:
                 break;
             case HasEmitter  :
                 PInfo.HasEmit++;
+                break;
+            case NoQualityMatch :
+                PInfo.NotMatchQ++;
                 break;
             default:
                 break;
@@ -3367,6 +3364,7 @@ public:
         std::cout<<"* Low Valence Patches "<<PInfo.LowC<<std::endl;
         std::cout<<"* High Valence Patches "<<PInfo.HighC<<std::endl;
         std::cout<<"* Non Disk Like Patches "<<PInfo.NonDiskLike<<std::endl;
+        std::cout<<"* Non Match Quality Patches "<<PInfo.NotMatchQ<<std::endl;
         std::cout<<"* With Emitters Patches "<<PInfo.HasEmit<<std::endl;
         for (size_t i=0;i<8;i++)
             std::cout<<"* Patch with  "<<i<<" corners are: "<<PInfo.SizePatches[i]<<std::endl;
@@ -3539,6 +3537,7 @@ public:
         for (size_t i=0;i<Partitions.size();i++)
         {
             if (PartitionType[i]==IsOK)continue;
+
             for (size_t j=0;j<Partitions[i].size();j++)
             {
                 FaceType *f=&Mesh().face[Partitions[i][j]];
@@ -3958,6 +3957,7 @@ public:
             //not the same kind
             if (!CanEmit[i])continue;
             if (!Traceable[i])continue;
+
             //debug
             //            if (FromType==TVNarrow)
             //                std::cout<<"BOIADE "<<i<<std::endl;
