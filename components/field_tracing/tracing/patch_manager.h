@@ -2399,12 +2399,16 @@ public:
         }
     }
 
-    //if Dest==0 then check if is a single connected component
+    //NOTE if Dest==0 then the function check if is a single connected component
     static bool IsConnectedTo(size_t SourceN, std::vector<size_t> &Dest,
                               std::map<size_t,std::vector<size_t> > &Adj)
     {
         //if (Dest.size()==0)return false;
-        if ((Dest.size()==1)&&(Dest[0]==SourceN))return false;
+        //if ((Dest.size()==1)&&(Dest[0]==SourceN))return false;
+        if (Dest.size()==1)
+        {
+            if (Dest[0]==SourceN)return false;
+        }
 
         std::vector<size_t> to_explore;
         std::set<size_t> has_explored;
@@ -2414,6 +2418,7 @@ public:
         has_explored.insert(SourceN);
 
         do{
+            assert(to_explore.size()>0);
             size_t curr_node=to_explore.back();
             assert(has_explored.count(curr_node)>0);
             to_explore.pop_back();
@@ -2440,7 +2445,11 @@ public:
         //mark the faces
         vcg::tri::UnMarkAll(mesh);
         for (size_t i=0;i<PatchFaces.size();i++)
+        {
+            assert(PatchFaces[i]>=0);
+            assert(PatchFaces[i]<mesh.face.size());
             vcg::tri::Mark(mesh,&mesh.face[PatchFaces[i]]);
+        }
     }
 
     static bool HasInternalFeaturesFromEdgeSel(MeshType &mesh,
@@ -2451,6 +2460,8 @@ public:
         for (size_t i=0;i<PatchFaces.size();i++)
         {
             size_t IndexF=PatchFaces[i];
+            assert(IndexF>=0);
+            assert(IndexF<mesh.face.size());
             assert(vcg::tri::IsMarked(mesh,&mesh.face[IndexF]));
 
             for (size_t j=0;j<3;j++)
@@ -2459,6 +2470,7 @@ public:
 
                 bool IsOnBorder=vcg::face::IsBorder(mesh.face[IndexF],j);
                 FaceType *fOpp=mesh.face[IndexF].FFp(j);
+                assert(fOpp!=NULL);
                 IsOnBorder|=(!vcg::tri::IsMarked(mesh,fOpp));
 
                 if (!IsOnBorder)
@@ -2477,6 +2489,8 @@ public:
         for (size_t i=0;i<PatchFaces.size();i++)
         {
             size_t IndexF=PatchFaces[i];
+            assert(IndexF<mesh.face.size());
+
             assert(vcg::tri::IsMarked(mesh,&mesh.face[IndexF]));
 
             for (size_t j=0;j<3;j++)
@@ -2512,12 +2526,16 @@ public:
         for (size_t i=0;i<PatchFaces.size();i++)
         {
             size_t IndexF=PatchFaces[i];
+
+            assert(IndexF<mesh.face.size());
             assert(vcg::tri::IsMarked(mesh,&mesh.face[IndexF]));
 
             for (size_t j=0;j<3;j++)
             {
                 bool IsOnBorder=vcg::face::IsBorder(mesh.face[IndexF],j);
                 FaceType *fOpp=mesh.face[IndexF].FFp(j);
+                assert(fOpp!=NULL);
+
                 IsOnBorder|=(!vcg::tri::IsMarked(mesh,fOpp));
 
                 size_t IndexV0=vcg::tri::Index(mesh,mesh.face[IndexF].V0(j));
@@ -2636,7 +2654,7 @@ public:
         std::map<size_t,std::vector<size_t> > Adj;
         GetSelectedEdgesGraph(mesh,PatchFaces,Adj,true);
 
-        //collect sources
+        //collect sources that are also on internal features
         std::vector<size_t> Sources;
         for (size_t i=0;i<BorderV.size();i++)
         {
@@ -2646,7 +2664,8 @@ public:
         }
 
 
-        //then check for each source if connected to another source
+        //then check for each source if connected to another source only with internal path
+        // in such case the vertex is duplicated as is a patch glued to itself
         for (size_t i=0;i<Sources.size();i++)
         {
             size_t IndexV=Sources[i];
@@ -2654,7 +2673,7 @@ public:
 
             std::vector<size_t>::iterator IteC;
             IteC=std::find(Corners.begin(),Corners.end(),IndexV);
-            if(IteC==Corners.end())continue;//it might be a concave and so not a corner from that side
+            if(IteC==Corners.end())continue;//it might be a concave and so not marked as a corner from that side
 //            if (IteC==Corners.end())
 //            {
 //                std::cout<<"There are:"<<Sources.size()<<" sources"<<std::endl;
@@ -2685,7 +2704,8 @@ public:
 //                //assert(0);
 //            }
             size_t Index=distance(Corners.begin(),IteC);
-
+            assert(Index>=0);
+            assert(Index<CornerValence.size());
             if (HasConn)
                 CornerValence[Index]=2;
             else
@@ -2702,9 +2722,11 @@ public:
         //there is no border
         if (BorderV.size()==0)return false;
 
+        //get a graph of all borders
         std::map<size_t,std::vector<size_t> > Adj;
         GetSelectedEdgesGraph(mesh,PatchFaces,Adj,false);
 
+        //then check if single connected omponents
         std::vector<size_t> Dest;
         bool SingleConn=IsConnectedTo(BorderV[0],Dest,Adj);
 

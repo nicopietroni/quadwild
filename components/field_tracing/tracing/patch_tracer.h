@@ -2971,7 +2971,6 @@ private:
         //CHECK ENDPOINTS!
         assert(IndexPath<ChoosenPaths.size());
 
-
         //get the old configuration
         std::vector<vcg::face::Pos<FaceType> > FacesPath;
         VFGraph.GetNodesPos(ChoosenPaths[IndexPath].PathNodes,ChoosenPaths[IndexPath].IsLoop,FacesPath);
@@ -3444,6 +3443,7 @@ public:
                 assert(currValence>=0);
                 size_t currCorner=PartitionCorners[i][j];
                 if (currValence==0)continue;
+                //if the corner is splitted then count it twice
                 NewCorners.resize(NewCorners.size()+currValence,currCorner);
                 //push_back(PartitionCorners[i][j]);
                 // if (CornerValence==1)
@@ -3599,6 +3599,9 @@ public:
 
     void InitTracer(ScalarType _Drift,bool _DebugMsg)
     {
+        vcg::tri::InitFaceIMark(Mesh());
+        vcg::tri::InitVertexIMark(Mesh());
+
         DebugMsg=_DebugMsg;
         Drift=_Drift;
 
