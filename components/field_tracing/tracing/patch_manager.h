@@ -2440,7 +2440,7 @@ public:
         return false;
     }
 
-    static bool MarkFaces(MeshType &mesh,std::vector<size_t> &PatchFaces)
+    static void MarkFaces(MeshType &mesh,std::vector<size_t> &PatchFaces)
     {
         //mark the faces
         vcg::tri::UnMarkAll(mesh);
