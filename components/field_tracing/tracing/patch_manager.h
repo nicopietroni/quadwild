@@ -1081,19 +1081,37 @@ public:
 
     static void GetUVOutline(MeshType &testM,
                              std::vector<vcg::Point2d > &Poly2D,
-                             vcg::Box2d &box2D,
+                             //vcg::Box2d &box2D,
                              typename MeshType::ScalarType borders)
     {
         vcg::tri::UpdateTopology<MeshType>::FaceFace(testM);
         vcg::tri::UpdateFlags<MeshType>::VertexBorderFromFaceAdj(testM);
-        box2D.SetNull();
+        //box2D.SetNull();
+        vcg::Box2d PolyBox;
         for (size_t i=0;i<testM.vert.size();i++)
         {
             if (!testM.vert[i].IsB())continue;
             Poly2D.push_back(testM.vert[i].T().P());
-            box2D.Add(testM.vert[i].T().P());
+            PolyBox.Add(testM.vert[i].T().P());
+            //box2D.Add(testM.vert[i].T().P());
         }
-        box2D.Offset(borders);
+        if (borders==0)return;
+
+        vcg::Box2d PolyBoxTarget=PolyBox;
+        PolyBoxTarget.Offset(borders);
+
+        ScalarType ScaleVal=PolyBoxTarget.Diag()/PolyBox.Diag();
+        for (size_t i=0;i<Poly2D.size();i++)
+        {
+            //translate to the center
+            Poly2D[i]-=PolyBox.Center();
+            //then scale to match borders
+            Poly2D[i]*=ScaleVal;
+            //translate back
+            Poly2D[i]+=PolyBox.Center();
+        }
+
+        //box2D.Offset(borders);
     }
 
 
@@ -1105,13 +1123,14 @@ public:
         std::vector<std::vector<vcg::Point2<ScalarType> > > ParaOutlines;
         ParaOutlines.resize(ParamPatches.size());
 
-        vcg::Box2d box2D,totalBox;
+        //vcg::Box2d box2D,totalBox;
         ScalarType AreaUV0=0;
         for (size_t i=0;i<ParamPatches.size();i++)
         {
-            GetUVOutline(*ParamPatches[i],ParaOutlines[i],box2D,borders);
+            //GetUVOutline(*ParamPatches[i],ParaOutlines[i],box2D,borders);
+            GetUVOutline(*ParamPatches[i],ParaOutlines[i],borders);
             AreaUV0+=vcg::tri::UV_Utils<MeshType>::PerVertUVArea(*ParamPatches[i]);//(box2D.DimX()*box2D.DimY());
-            totalBox.Add(box2D);
+            //totalBox.Add(box2D);
         }
 
         int EdgeSize=floor(1000);//sqrt(AreaUV)+0.5);
