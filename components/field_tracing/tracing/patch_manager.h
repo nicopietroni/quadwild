@@ -962,9 +962,15 @@ public:
                 PatchMesh.vert[i].Q()=VertQ[PatchMesh.vert[i].P()];
             }
             vcg::tri::Allocator<MeshType>::CompactEveryVector(PatchMesh);
+
+            for (size_t i=0;i<PatchMesh.face.size();i++)
+            {
+                FaceType *f=&mesh.face[Partition[i]];
+                PatchMesh.face[i].ImportData(*f);
+            }
+
             PatchMesh.UpdateAttributes();
         }
-
 
         //        size_t t1=clock();
         //        Time_InitSubPatches0_0+=t1-t0;
@@ -1092,7 +1098,8 @@ public:
 
 
     static void ArrangeUVPatches(std::vector<MeshType*> &ParamPatches,
-                                 typename MeshType::ScalarType borders=0)
+                                 typename MeshType::ScalarType borders=0,
+                                 bool allowRot=false)
     {
         typedef typename MeshType::ScalarType ScalarType;
         std::vector<std::vector<vcg::Point2<ScalarType> > > ParaOutlines;
@@ -1112,7 +1119,10 @@ public:
         vcg::Point2i siz(EdgeSize*2,EdgeSize*2);
         vcg::Point2<ScalarType> coveredA;
         std::vector<vcg::Similarity2<ScalarType> > trVec;
-        vcg::PolyPacker<ScalarType>::PackAsObjectOrientedRect(ParaOutlines,siz,trVec,coveredA,borders);
+        if (allowRot)
+            vcg::PolyPacker<ScalarType>::PackAsObjectOrientedRect(ParaOutlines,siz,trVec,coveredA,borders);
+        else
+            vcg::PolyPacker<ScalarType>::PackAsAxisAlignedRect(ParaOutlines,siz,trVec,coveredA);//,borders);
 
         //find the final position
         ScalarType AreaUV1=0;

@@ -3406,7 +3406,7 @@ public:
         if (DebugMsg)
             std::cout<<"Removing..."<<std::endl;
 
-        int s=0;
+        //int s=0;
         while (RemoveIteration()){}
 
         //CutEarPath();
