@@ -1677,7 +1677,7 @@ private:
         bool CanRemove=true;
         CanRemove=PatchManager<MeshType>::BetterConfiguration(PatchInfos0,PatchInfos1,MinVal,
                                                               MaxVal,CClarkability,avgEdge,
-                                                              match_valence,false);//,false,false);
+                                                              match_valence,true,false);//,false,false);
 
         if (!CanRemove)
         {

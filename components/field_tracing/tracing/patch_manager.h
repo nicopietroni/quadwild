@@ -2233,9 +2233,8 @@ public:
                                     size_t MinSides,size_t MaxSides,
                                     const typename MeshType::ScalarType CClarkability,
                                     const typename MeshType::ScalarType avgEdge,
-                                    bool match_sing_valence,/*
-                                                                                                    bool allow_darts,
-                                                                                                    bool allow_self_glue,*/
+                                    bool match_sing_valence,
+                                    bool CountEmitters,
                                     bool print_debug)
     {
         //        std::cout<<"CClarkability"<<CClarkability<<std::endl;
@@ -2269,7 +2268,7 @@ public:
                 std::cout<<"Num Sides 0:"<<PInf0[i].NumCorners<<std::endl;
 
             if (PInf0[i].Genus!=1)NonOKGenus0++;
-            if (PInf0[i].NumEmitters>0)NonOKEmitters0++;
+            if ((CountEmitters)&&(PInf0[i].NumEmitters>0))NonOKEmitters0++;
             //(!allow_darts)&&
             if (PInf0[i].NumCorners<(int)MinSides)NonOKSize0++;
             if (PInf0[i].NumCorners>(int)MaxSides)NonOKSize0++;
@@ -2298,7 +2297,7 @@ public:
             if (print_debug)
                 std::cout<<"Num Sides 1:"<<PInf1[i].NumCorners<<std::endl;
             if (PInf1[i].Genus!=1)NonOKGenus1++;
-            if (PInf1[i].NumEmitters>0)NonOKEmitters1++;
+            if ((CountEmitters)&&(PInf1[i].NumEmitters>0))NonOKEmitters1++;
             //(!allow_darts)&&
             if (PInf1[i].NumCorners<(int)MinSides)NonOKSize1++;
             if (PInf1[i].NumCorners>(int)MaxSides)NonOKSize1++;

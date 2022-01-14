@@ -813,6 +813,7 @@ public:
     bool AllowDarts;
     bool AllowSelfGluedPatch;
     bool CheckQuadrangulationLimits;
+    bool AllowRemoveConcave;
     //bool TraceLoopsBorders;
 
     std::vector<std::vector<size_t> > Partitions;
@@ -2821,8 +2822,16 @@ private:
         {
             size_t IndexN=ChoosenPaths[IndexPath].PathNodes[j];
             size_t IndexV=VertexFieldGraph<MeshType>::NodeVertI(IndexN);
-            if ((VertType[IndexV]==TVNarrow)||(VertType[IndexV]==TVConcave))
-                return true;
+            if (!AllowRemoveConcave)
+            {
+                if ((VertType[IndexV]==TVNarrow)||(VertType[IndexV]==TVConcave))
+                    return true;
+            }
+            else
+            {
+                if (VertType[IndexV]==TVNarrow)
+                    return true;
+            }
         }
         return false;
     }
@@ -3031,8 +3040,7 @@ private:
         //std::vector<typename MeshType::ScalarType> QThresold;
         CanRemove=PatchManager<MeshType>::BetterConfiguration(PatchInfos0,PatchInfos1,MinVal,
                                                               MaxVal,CClarkability,avgEdge,
-                                                              match_valence,//AllowDarts,
-                                                              //AllowSelfGluedPatch,
+                                                              match_valence,!AllowRemoveConcave,
                                                               debubg_msg);
 
         //int t6=clock();
@@ -5216,6 +5224,7 @@ public:
         AllowDarts=false;
         AllowSelfGluedPatch=false;
         CheckQuadrangulationLimits=false;
+        AllowRemoveConcave=false;
         //max_patch_area=MeshArea(Mesh())*0.5;
         //TraceLoopsBorders=true;
     }

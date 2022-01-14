@@ -1587,10 +1587,19 @@ void PreProcessMesh(MeshType &mesh,bool DebugMsg=true)
     if (DebugMsg)
         std::cout<<"done"<<std::endl;
 
+    if (DebugMsg)
+        std::cout<<"updating attributes"<<std::endl;
+
     mesh.UpdateAttributes();
+
+    if (DebugMsg)
+        std::cout<<"compact vectors"<<std::endl;
 
     vcg::tri::Allocator<MeshType>::CompactEveryVector(mesh);
 
+
+    if (DebugMsg)
+        std::cout<<"counting non manifold Vert"<<std::endl;
 
     size_t Test1=vcg::tri::Clean<MeshType>::CountNonManifoldVertexFF(mesh);
     if (Test1>0)
