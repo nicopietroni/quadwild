@@ -39,6 +39,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <vcg/complex/algorithms/create/platonic.h>
 #include <vcg/complex/algorithms/update/flag.h>
 #include <vcg/complex/algorithms/attribute_seam.h>
+//#include <vcg/complex/algorithms/crease_cut.h>
+#include <vcg/space/intersection2.h>
 
 //#define MIN_SAMPLES_HARD 4
 //#define MAX_SAMPLES 1000
@@ -371,7 +373,7 @@ public:
     //        return ( NumV + NumF - NumE );
     //    }
 
-    static int PatchGenus(MeshType &mesh,const std::vector<size_t> &PatchFaces)
+    static int FastPatchGenus(MeshType &mesh,const std::vector<size_t> &PatchFaces)
     {
 
         //vcg::tri::UnMarkAll(mesh);
@@ -411,6 +413,19 @@ public:
         int GenusVal=vcg::tri::Clean<MeshType>::CountHoles(PatchMesh);
         return GenusVal;
     }
+
+    static int PatchGenus(MeshType &mesh,
+                          const std::vector<size_t> &PatchFaces,
+                          bool allowDarts,
+                          bool allowSelfGlued)
+    {
+
+        if ((allowDarts)||(allowSelfGlued))
+            return (PatchGenusCopyMesh(mesh,PatchFaces));
+        else
+            return FastPatchGenus(mesh,PatchFaces);
+    }
+
 
     static void ComputeUV(MeshType &mesh, ParamType &PType,bool fixSVert)
     {
@@ -1427,24 +1442,108 @@ public:
     }
 
 
-    static void LaplacianInternalStep(MeshType &mesh,//const std::vector<int>  &FacePatches,
-                                      typename MeshType::ScalarType Damp)//,bool FixV)
+//    static void LaplacianInternalStep(MeshType &mesh,//const std::vector<int>  &FacePatches,
+//                                      typename MeshType::ScalarType Damp)//,bool FixV)
+//    {
+//        //SelectVertOnMeshPatchBorders(mesh,FacePatches);
+//        std::vector<typename MeshType::CoordType> AvPos;
+//        LaplacianPos(mesh,AvPos,false);
+//        for (size_t i=0;i<mesh.vert.size();i++)
+//        {
+//            if (mesh.vert[i].IsS())continue;
+//            //if (mesh.vert[i].IsV() && FixV)continue;
+//            mesh.vert[i].P()=mesh.vert[i].P()*Damp+AvPos[i]*(1-Damp);
+//        }
+//    }
+//    static void SetVCornersFromEdgeSel()
+//    {
+
+//        for (size_t i=0;i<mesh.face.size();i++)
+//            for (size_t j=0;j<3;j++)
+//            {
+//                if (!mesh.face[i].IsFaceEdgeS(j))continue;
+//                size_t VInd0=vcg::tri::Index(mesh,mesh.face[i].V0(j));
+//                size_t VInd1=vcg::tri::Index(mesh,mesh.face[i].V1(j));
+//                mesh.vert[VInd0].SetV();
+//                mesh.vert[VInd1].SetV();
+//            }
+//    }
+
+    static void LaplacianNonSelectedEdgeStep(MeshType &mesh,//const std::vector<int>  &FacePatches,
+                                         typename MeshType::ScalarType Damp)//,bool FixV)
     {
         //SelectVertOnMeshPatchBorders(mesh,FacePatches);
         std::vector<typename MeshType::CoordType> AvPos;
         LaplacianPos(mesh,AvPos,false);
+        //mark the one not selected
+        vcg::tri::UpdateFlags<MeshType>::VertexClearV(mesh);
+        for (size_t i=0;i<mesh.face.size();i++)
+            for (size_t j=0;j<3;j++)
+            {
+                if (!mesh.face[i].IsFaceEdgeS(j))continue;
+                size_t VInd0=vcg::tri::Index(mesh,mesh.face[i].V0(j));
+                size_t VInd1=vcg::tri::Index(mesh,mesh.face[i].V1(j));
+                mesh.vert[VInd0].SetV();
+                mesh.vert[VInd1].SetV();
+            }
+
         for (size_t i=0;i<mesh.vert.size();i++)
         {
-            if (mesh.vert[i].IsS())continue;
+            if (mesh.vert[i].IsV())continue;
             //if (mesh.vert[i].IsV() && FixV)continue;
             mesh.vert[i].P()=mesh.vert[i].P()*Damp+AvPos[i]*(1-Damp);
         }
     }
 
+//    static void LaplacianSelectedEdgeStep(MeshType &mesh,
+//                                    //const std::vector<int>  &FacePatches,
+//                                      typename MeshType::ScalarType Damp)//,
+//    //bool FixV)
+//    {
 
-    static void LaplacianBorderStep(MeshType &mesh,
+//        //save previous selection
+
+//        typedef typename MeshType::CoordType CoordType;
+//        typedef typename MeshType::ScalarType ScalarType;
+//        //SelectMeshPatchBorders(mesh,FacePatches);
+
+//        std::vector<size_t> NumDiv(mesh.vert.size(),0);
+//        std::vector<typename MeshType::CoordType> AvPos(mesh.vert.size(),
+//                                                        CoordType(0,0,0));
+
+//        //smooth path
+//        for (size_t i=0;i<mesh.face.size();i++)
+//            for (size_t j=0;j<3;j++)
+//            {
+//                if (!mesh.face[i].IsFaceEdgeS(j))continue;
+//                size_t VInd0=vcg::tri::Index(mesh,mesh.face[i].V0(j));
+//                size_t VInd1=vcg::tri::Index(mesh,mesh.face[i].V1(j));
+
+//                CoordType Pos0=mesh.vert[VInd0].P();
+//                CoordType Pos1=mesh.vert[VInd1].P();
+
+//                AvPos[VInd0]+=Pos1;
+//                NumDiv[VInd0]++;
+//                AvPos[VInd1]+=Pos0;
+//                NumDiv[VInd1]++;
+//            }
+
+//        for (size_t i=0;i<mesh.vert.size();i++)
+//        {
+//            //no contributes
+//            if (NumDiv[i]==0)continue;
+//            CoordType TargetPos=AvPos[i]/(ScalarType)NumDiv[i];
+//            if (mesh.vert[i].IsB())continue;
+//            //if (mesh.vert[i].IsV()&&FixV)continue;
+//            mesh.vert[i].P()=mesh.vert[i].P()*Damp+TargetPos*(1-Damp);
+//        }
+//        //vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(mesh);
+//    }
+
+
+    static void LaplacianSelectedEdgeStep(MeshType &mesh,
                                     //const std::vector<int>  &FacePatches,
-                                    typename MeshType::ScalarType Damp)//,
+                                      typename MeshType::ScalarType Damp)//,
     //bool FixV)
     {
 
@@ -1466,6 +1565,11 @@ public:
                 size_t VInd0=vcg::tri::Index(mesh,mesh.face[i].V0(j));
                 size_t VInd1=vcg::tri::Index(mesh,mesh.face[i].V1(j));
 
+                bool AddV=false;
+                AddV|=(vcg::face::IsBorder(mesh.face[i],j));
+                AddV|=(VInd0<VInd1);
+
+                if (!AddV)continue;
                 CoordType Pos0=mesh.vert[VInd0].P();
                 CoordType Pos1=mesh.vert[VInd1].P();
 
@@ -1478,7 +1582,8 @@ public:
         for (size_t i=0;i<mesh.vert.size();i++)
         {
             //no contributes
-            if (NumDiv[i]==0)continue;
+            //if (NumDiv[i]==0)continue;
+            if (NumDiv[i]!=2)continue;
             CoordType TargetPos=AvPos[i]/(ScalarType)NumDiv[i];
             if (mesh.vert[i].IsB())continue;
             //if (mesh.vert[i].IsV()&&FixV)continue;
@@ -1486,7 +1591,6 @@ public:
         }
         //vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(mesh);
     }
-
 
     static void ReprojectOn(MeshType &mesh,MeshType &target,
                             vcg::GridStaticPtr<typename MeshType::FaceType,typename MeshType::ScalarType> &Gr)
@@ -1532,20 +1636,113 @@ public:
             }
     }
 
-    static void SmoothMeshPatches(MeshType &mesh,
-                                  const std::vector<int>  &FacePatches,
-                                  size_t Steps=3,
-                                  typename MeshType::ScalarType Damp=0.5,
-                                  typename MeshType::ScalarType MinQ=0.2)
+//    static void SmoothMeshPatches(MeshType &mesh,
+//                                  const std::vector<int>  &FacePatches,
+//                                  bool UsePredefinedSelE,
+//                                  size_t Steps,
+//                                  typename MeshType::ScalarType Damp,
+//                                  typename MeshType::ScalarType MinQ)
+//    {
+
+//        std::vector<std::vector<bool> > EdgeSel;
+
+//        //select borders
+//        if (!UsePredefinedSelE)
+//        {
+//            EdgeSel.resize(mesh.face.size(),std::vector<bool>(3,false));
+//            SaveEdgeSel(mesh,EdgeSel);
+//            SelectMeshPatchBorders(mesh,FacePatches);
+//        }
+
+//        SelectVertOnMeshPatchBorders(mesh,FacePatches);
+
+//        //init reprojection grid
+//        MeshType TargetMesh;
+//        vcg::tri::Append<MeshType,MeshType>::Mesh(TargetMesh,mesh);
+//        TargetMesh.UpdateAttributes();
+//        vcg::GridStaticPtr<FaceType,ScalarType> Gr;
+//        Gr.Set(TargetMesh.face.begin(),TargetMesh.face.end());
+
+//        //then for each smooth step
+//        for (size_t s=0;s<Steps;s++)
+//        {
+//            //save old position in case quality check is needed
+//            std::vector<CoordType> OldPos;
+//            if (MinQ>0)
+//            {
+//                for (size_t i=0;i<mesh.vert.size();i++)
+//                    OldPos.push_back(mesh.vert[i].P());
+//            }
+
+//            //save old normals
+//            vcg::tri::UpdateNormal<MeshType>::PerFaceNormalized(mesh);
+//            std::vector<CoordType> OldNorm;
+//            if (MinQ>0)
+//            {
+//                for (size_t i=0;i<mesh.face.size();i++)
+//                    OldNorm.push_back(mesh.face[i].N());
+//            }
+
+//            //PERFORM SMOOTHING
+//            LaplacianBorderStep(mesh,Damp);//,true);
+//            ReprojectOn(mesh,TargetMesh,Gr);
+//            LaplacianInternalStep(mesh,Damp);//,true);
+//            ReprojectOn(mesh,TargetMesh,Gr);
+
+//            //no quality check we are fine!
+//            if (MinQ<=0)continue;
+
+//            //check each face
+//            for (size_t i=0;i<mesh.face.size();i++)
+//            {
+//                //find the one that has 2 boder edges
+//                int indexE=-1;
+//                for (size_t j=0;j<3;j++)
+//                {
+//                    if (mesh.face[i].IsFaceEdgeS(j) &&
+//                            mesh.face[i].IsFaceEdgeS((j+1)%3))
+//                        indexE=j;
+//                }
+//                if (indexE==-1)continue;
+//                size_t IndexV=vcg::tri::Index(mesh,mesh.face[i].V(indexE));
+
+//                //if border not change
+//                if (mesh.vert[IndexV].IsB())continue;
+
+//                //check quality of the face
+//                bool IsOk=true;
+//                CoordType P0=mesh.face[i].P(0);
+//                CoordType P1=mesh.face[i].P(1);
+//                CoordType P2=mesh.face[i].P(2);
+//                CoordType NewNormF=vcg::Normal(P0,P1,P2);
+//                NewNormF.Normalize();
+//                CoordType OldNormF=OldNorm[i];
+//                if ((NewNormF*OldNormF)<0)
+//                    IsOk=false;
+//                ScalarType QFace=vcg::QualityRadii(P0,P1,P2);
+//                if (QFace<MinQ)
+//                    IsOk=false;
+
+//                //restore if not ok
+//                if (!IsOk)
+//                {
+//                    mesh.vert[IndexV].P()=OldPos[IndexV];
+//                }
+//            }
+//        }
+//        vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
+//        if (MinQ>0)
+//            SolveFolds(mesh,MinQ);
+
+//        if (!UsePredefinedSelE)
+//            RestoreEdgeSel(mesh,EdgeSel);
+//    }
+
+    static void SmoothMeshPatchesFromEdgeSel(MeshType &mesh,
+                                  size_t Steps,
+                                  typename MeshType::ScalarType Damp,
+                                  typename MeshType::ScalarType MinQ)
     {
-
-        std::vector<std::vector<bool> > EdgeSel;
-        EdgeSel.resize(mesh.face.size(),std::vector<bool>(3,false));
-        SaveEdgeSel(mesh,EdgeSel);
-
-        //select borders
-        SelectMeshPatchBorders(mesh,FacePatches);
-        SelectVertOnMeshPatchBorders(mesh,FacePatches);
 
         //init reprojection grid
         MeshType TargetMesh;
@@ -1575,9 +1772,9 @@ public:
             }
 
             //PERFORM SMOOTHING
-            LaplacianBorderStep(mesh,Damp);//,true);
+            LaplacianSelectedEdgeStep(mesh,Damp);//,true);
             ReprojectOn(mesh,TargetMesh,Gr);
-            LaplacianInternalStep(mesh,Damp);//,true);
+            LaplacianNonSelectedEdgeStep(mesh,Damp);//,true);
             ReprojectOn(mesh,TargetMesh,Gr);
 
             //no quality check we are fine!
@@ -1624,8 +1821,6 @@ public:
         vcg::tri::UpdateSelection<MeshType>::Clear(mesh);
         if (MinQ>0)
             SolveFolds(mesh,MinQ);
-
-        RestoreEdgeSel(mesh,EdgeSel);
     }
 
     static void PatchSideLenght(MeshType &mesh,
@@ -2083,52 +2278,43 @@ public:
 
             //if ((!AllowDarts)&&(!AllowSelfGluedPatches))
             //initialize genus by default
-            PInfo[i].Genus=PatchGenus(mesh,PatchFaces[i]);
+            PInfo[i].Genus=PatchGenus(mesh,PatchFaces[i],AllowDarts,AllowSelfGluedPatches);
 
-            //check if there is internal path not connected
-            if ((AllowDarts)&&(!AllowSelfGluedPatches))
-            {
-                //in such case check if there is no internal holes
-                //(but only if the mesh is not glued to itself)
-                if (PInfo[i].Genus==1)
-                {
-                    bool SingleHoles=SingleConnectedBorderFromEdgeS(mesh,PatchFaces[i]);
-                    if (SingleHoles)
-                        PInfo[i].Genus=1;
-                    else
-                        PInfo[i].Genus=2;
-                }
-            }
-//            if ((!AllowDarts)&&(!AllowSelfGluedPatches))
+//            //check if there is internal path not connected
+//            if ((AllowDarts)&&(!AllowSelfGluedPatches))
 //            {
-//                //in this case check if the borders is connected
+//                //in such case check if there is no internal holes
+//                //(but only if the mesh is not glued to itself)
+//                if (PInfo[i].Genus==1)
+//                {
+//                    bool SingleHoles=SingleConnectedBorderFromEdgeS(mesh,PatchFaces[i]);
+//                    if (SingleHoles)
+//                        PInfo[i].Genus=1;
+//                    else
+//                        PInfo[i].Genus=2;
+//                }
+//            }
+//            if ((!AllowDarts)&&(AllowSelfGluedPatches))
+//            {
+//                //only if self glue is allowed
 //                bool SingleHoles=SingleConnectedBorderFromEdgeS(mesh,PatchFaces[i]);
 //                if (SingleHoles)
 //                    PInfo[i].Genus=1;
 //                else
 //                    PInfo[i].Genus=2;
+//                //PInfo[i].Genus=PatchGenusCopyMesh(mesh,PatchFaces[i]);
 //            }
-            if ((!AllowDarts)&&(AllowSelfGluedPatches))
-            {
-                //only if self glue is allowed
-                bool SingleHoles=SingleConnectedBorderFromEdgeS(mesh,PatchFaces[i]);
-                if (SingleHoles)
-                    PInfo[i].Genus=1;
-                else
-                    PInfo[i].Genus=2;
-                //PInfo[i].Genus=PatchGenusCopyMesh(mesh,PatchFaces[i]);
-            }
 
-            if ((AllowDarts)&&(AllowSelfGluedPatches))
-            {
-                //only if self glue is allowed
-                bool SingleHoles=SingleConnectedBorderFromEdgeS(mesh,PatchFaces[i]);
-                if (SingleHoles)
-                    PInfo[i].Genus=1;
-                else
-                    PInfo[i].Genus=2;
-                //PInfo[i].Genus=PatchGenusCopyMesh(mesh,PatchFaces[i]);
-            }
+//            if ((AllowDarts)&&(AllowSelfGluedPatches))
+//            {
+//                //only if self glue is allowed
+//                bool SingleHoles=SingleConnectedBorderFromEdgeS(mesh,PatchFaces[i]);
+//                if (SingleHoles)
+//                    PInfo[i].Genus=1;
+//                else
+//                    PInfo[i].Genus=2;
+//                //PInfo[i].Genus=PatchGenusCopyMesh(mesh,PatchFaces[i]);
+//            }
 
 
             size_t t2=clock();
@@ -2760,6 +2946,129 @@ public:
 
         return SingleConn;
     }
+
+
+   static void GetFacesSurroundingUsingEdgeSel(MeshType &mesh,
+                                               std::vector<vcg::face::Pos<FaceType> > &StartPos,
+                                               std::vector<size_t> &IndedF)
+   {
+       vcg::tri::UpdateFlags<MeshType>::FaceClearV(mesh);
+
+       IndedF.clear();
+       std::vector<size_t> StackF;
+       for (size_t i=0;i<StartPos.size();i++)
+       {
+           FaceType *f0=StartPos[i].F();
+           FaceType *f1=StartPos[i].FFlip();
+           int IndexF0=vcg::tri::Index(mesh,f0);
+           int IndexF1=vcg::tri::Index(mesh,f1);
+           StackF.push_back(IndexF0);
+           StackF.push_back(IndexF1);
+           f0->SetV();
+           f1->SetV();
+       }
+
+       IndedF=StackF;
+       do{
+           size_t currF=StackF.back();
+           StackF.pop_back();
+           FaceType *f=&mesh.face[currF];
+           for (size_t i=0;i<3;i++)
+           {
+               if (vcg::face::IsBorder(*f,i))continue;
+               if (f->IsFaceEdgeS(i))continue;//in this case cannot go over
+
+               FaceType *fopp=f->FFp(i);
+               if (fopp->IsV())continue;
+
+               int IndexFopp=vcg::tri::Index(mesh,fopp);
+               IndedF.push_back(IndexFopp);
+               StackF.push_back(IndexFopp);
+               fopp->SetV();
+           }
+       }while (!StackF.empty());
+
+       std::sort(IndedF.begin(),IndedF.end());
+       std::vector<size_t>::iterator it;
+       it = std::unique (IndedF.begin(),IndedF.end());
+       IndedF.resize( std::distance(IndedF.begin(),it) );
+   }
+
+   static void GetSubMeshSurroundingUsingEdgeSel(MeshType &mesh,
+                                                 std::vector<vcg::face::Pos<FaceType> > &StartPos,
+                                                 MeshType &subMesh)
+   {
+       subMesh.Clear();
+
+       std::vector<size_t> IndedF;
+       GetFacesSurroundingUsingEdgeSel(mesh,StartPos,IndedF);
+       vcg::tri::UpdateSelection<MeshType>::VertexClear(mesh);
+       vcg::tri::UpdateSelection<MeshType>::FaceClear(mesh);
+
+       for (size_t i=0;i<IndedF.size();i++)
+           mesh.face[IndedF[i]].SetS();
+
+       vcg::tri::UpdateSelection<MeshType>::VertexFromFaceLoose(mesh);
+
+       //then copy the submesh
+       vcg::tri::Append<MeshType,MeshType>::Mesh(subMesh,mesh,true);
+
+       subMesh.UpdateAttributes();
+
+       //open if needed
+       //vcg::tri::CutMeshAlongSelectedFaceEdges(subMesh);
+       VertSplitter<MeshType>::SplitAlongEdgeSel(subMesh);
+
+       vcg::tri::Clean<MeshType>::RemoveUnreferencedVertex(subMesh);
+       vcg::tri::Allocator<MeshType>::CompactEveryVector(subMesh);
+       subMesh.UpdateAttributes();
+   }
+
+   static bool IntersectUVBorderE(FaceType &f0,FaceType &f1)
+   {
+       for (size_t i=0;i<3;i++)
+       {
+           if (!vcg::face::IsBorder(f0,i))continue;
+
+           vcg::Point2<ScalarType> P0UV=f0.V0(i)->T().P();
+           vcg::Point2<ScalarType> P1UV=f0.V1(i)->T().P();
+           vcg::Segment2<ScalarType> S0(P0UV,P1UV);
+
+           for (size_t j=0;j<3;j++)
+           {
+               if (!vcg::face::IsBorder(f1,j))continue;
+
+               vcg::Point2<ScalarType> P0UV=f1.V0(j)->T().P();
+               vcg::Point2<ScalarType> P1UV=f1.V1(j)->T().P();
+               vcg::Segment2<ScalarType> S1(P0UV,P1UV);
+
+               if (S0.P0()==S1.P0())continue;
+               if (S0.P0()==S1.P1())continue;
+               if (S0.P1()==S1.P0())continue;
+               if (S0.P1()==S1.P1())continue;
+
+               vcg::Point2<ScalarType> UVInt;
+               if (vcg::SegmentSegmentIntersection(S0,S1,UVInt))
+                   return true;
+           }
+       }
+       return false;
+   }
+
+   static bool SelfOverlapUV(MeshType &mesh)
+   {
+       for (size_t i=0;i<mesh.face.size()-1;i++)
+       {
+           FaceType *f0=&mesh.face[i];
+           for (size_t j=(i+1);j<mesh.face.size();j++)
+           {
+              FaceType *f1=&mesh.face[j];
+              if (IntersectUVBorderE(*f0,*f1))
+                  return true;
+           }
+       }
+       return false;
+   }
 };
 
 #endif

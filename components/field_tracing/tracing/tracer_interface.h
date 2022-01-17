@@ -461,6 +461,7 @@ void WriteUnsolvedStats(const std::vector<PatchType> &PatchTypes)
         }
     }
     std::cout<<"** UNSATISFIED PATCHES **"<<std::endl;
+    std::cout<<"*Num Patches:"<<numLow<<std::endl;
     std::cout<<"*Low Sides:"<<numLow<<std::endl;
     std::cout<<"*High Sides:"<<numHigh<<std::endl;
     std::cout<<"*Non Disks:"<<numNonDisk<<std::endl;
@@ -693,6 +694,7 @@ void RecursiveProcess(TracerType &PTr,
                       bool UseMetamesh=true,
                       bool ForceMultiSplit=false,
                       bool CheckSurfaceFolds=true,
+                      bool SmoothBeforeRemove=false,
                       bool DebugMsg=true)
 {
     typedef typename TracerType::ScalarType ScalarType;
@@ -729,7 +731,7 @@ void RecursiveProcess(TracerType &PTr,
     if ((NumE0==0)||(NumE1==0))
     {
         //PTr.DebugMsg=true;
-        PTr.BatchAddLoops(false,onlyneeded,false,false);   
+        PTr.BatchAddLoops(false,onlyneeded,false,false);
     }
     else
     {
@@ -746,23 +748,26 @@ void RecursiveProcess(TracerType &PTr,
     if (DebugMsg)
         std::cout<<"Updating Patches"<<std::endl;
 
-    PTr.UpdatePartitionsFromChoosen(true);
+    //THIS SHOULD SPEED UP
+    PTr.LazyUpdatePartitions();
+    //PTr.UpdatePartitionsFromChoosen(true);
 
     if (DebugMsg)
+    {
         std::cout<<"Updated"<<std::endl;
-
+    }
     //solve sub patches normally
     if (DebugMsg)
         std::cout<<"**** FIRST SUBTRACING STEP ****"<<std::endl;
 
     SolveSubPatches(PTr,onlyneeded,false,false,DebugMsg);
 
-
     //then check if there is some non-disk-like patches
     if (DebugMsg)
         std::cout<<"**** CHECK NO DISK ONES ****"<<std::endl;
 
     SolveSubPatches(PTr,onlyneeded,true,false,DebugMsg);
+
 
     if (DebugMsg)
         std::cout<<"**** FORCE SOLVING NO DISK ONES ****"<<std::endl;
@@ -781,6 +786,9 @@ void RecursiveProcess(TracerType &PTr,
 
     if (finalremoval)
     {
+        if (SmoothBeforeRemove)
+            PTr.SmoothPatches(3,0.5,CheckSurfaceFolds);
+
         if (DebugMsg)
             std::cout<<"**** FINAL REMOVAL ****"<<std::endl;
 
@@ -834,8 +842,12 @@ void RecursiveProcess(TracerType &PTr,
         std::cout<<"Updated"<<std::endl;
     }
 
-    //    std::cout<<"Smoothing"<<std::endl;
+    if (DebugMsg)
+        std::cout<<"Smoothing"<<std::endl;
     PTr.SmoothPatches(10,0.5,CheckSurfaceFolds);
+    if (DebugMsg)
+        std::cout<<"End Smoothing"<<std::endl;
+
     //    std::cout<<"Fix Valences"<<std::endl;
     PTr.FixValences();
 
@@ -889,26 +901,48 @@ void RecursiveProcessWithDarts(TracerType &PTr,
                                const typename TracerType::ScalarType Drift,
                                bool onlyneeded,
                                bool finalremoval,
-                               bool PreRemoveStep=true,
-                               bool UseMetamesh=true,
-                               bool ForceMultiSplit=false,
-                               bool CheckSurfaceFolds=true,
-                               bool DebugMsg=true)
+                               bool PreRemoveStep,
+                               bool UseMetamesh,
+                               bool ForceMultiSplit,
+                               bool CheckSurfaceFolds,
+                               const std::vector<typename TracerType::ScalarType> &DartPriority,
+                               bool SmoothBeforeRemove,
+                               bool DebugMsg)
 {
+    PTr.AllowDarts=false;
     RecursiveProcess(PTr,Drift,onlyneeded,finalremoval,PreRemoveStep,
-                     UseMetamesh,ForceMultiSplit,CheckSurfaceFolds,DebugMsg);
+                     UseMetamesh,ForceMultiSplit,CheckSurfaceFolds,SmoothBeforeRemove,DebugMsg);
 
-    //then make a remove step
-    //PTr.SplitIntoSubPaths();
-    PTr.SetAllRemovable();
-    PTr.AllowDarts=true;
-    PTr.AllowSelfGluedPatch=false;
-    PTr.MinVal=0;
-    PTr.split_on_removal=true;
-    PTr.match_valence=false;
-    PTr.CheckQuadrangulationLimits=false;
-    PTr.BatchRemovalOnMesh(true);
-    PTr.MergeContiguousPaths();
+    //    std::cout<<"DART STEP"<<std::endl;
+    if (finalremoval)
+    {
+        //in this case either remove all or none
+        if (!PTr.check_quality_functor)
+        {
+            PTr.SetAllRemovable();
+            PTr.AllowDarts=true;
+            PTr.MinVal=0;
+            PTr.split_on_removal=true;
+            PTr.CheckQuadrangulationLimits=false;
+            //split at intersectons
+            PTr.SetPriorityVect(DartPriority);
+            PTr.BatchRemovalOnMesh(true);
+            PTr.MergeContiguousPaths();
+        }
+        //in this case either remove gradually
+        else
+        {
+            PTr.SetAllRemovable();
+            PTr.AllowDarts=true;
+            PTr.MinVal=0;
+            PTr.split_on_removal=true;
+            PTr.CheckQuadrangulationLimits=false;
+            PTr.SetPriorityVect(DartPriority);
+            PTr.RemoveDarts();
+            PTr.ClearPriorityVect();
+            PTr.MergeContiguousPaths();
+        }
+    }
 }
 
 
@@ -917,26 +951,35 @@ void RecursiveProcessForTexturing(TracerType &PTr,
                                   const typename TracerType::ScalarType Drift,
                                   bool onlyneeded,
                                   bool finalremoval,
-                                  bool PreRemoveStep=true,
-                                  bool UseMetamesh=true,
-                                  bool ForceMultiSplit=false,
-                                  bool CheckSurfaceFolds=true,
-                                  bool DebugMsg=true)
+                                  bool PreRemoveStep,
+                                  bool UseMetamesh,
+                                  bool ForceMultiSplit,
+                                  bool CheckSurfaceFolds,
+                                  bool SmoothBeforeRemove,
+                                  bool DebugMsg)
 {
+    PTr.AllowDarts=false;
+    PTr.AllowSelfGluedPatch=true;
+    //    PTr.MinVal=0;
+    //    PTr.CheckQuadrangulationLimits=false;
+
     RecursiveProcess(PTr,Drift,onlyneeded,finalremoval,PreRemoveStep,
-                     UseMetamesh,ForceMultiSplit,CheckSurfaceFolds,DebugMsg);
+                     UseMetamesh,ForceMultiSplit,CheckSurfaceFolds,SmoothBeforeRemove,DebugMsg);
 
     //then make a remove step
     //PTr.SplitIntoSubPaths();
-    PTr.SetAllRemovable();
-    PTr.AllowDarts=false;
-    PTr.AllowSelfGluedPatch=true;
-    PTr.MinVal=0;
-    PTr.split_on_removal=true;
-    PTr.match_valence=false;
-    PTr.CheckQuadrangulationLimits=false;
-    PTr.BatchRemovalOnMesh(true);
-    PTr.MergeContiguousPaths();
+    if (finalremoval)
+    {
+        PTr.SetAllRemovable();
+        PTr.AllowDarts=false;
+        PTr.AllowSelfGluedPatch=true;
+        PTr.MinVal=0;
+        PTr.split_on_removal=true;
+        //PTr.match_valence=false;
+        PTr.CheckQuadrangulationLimits=false;
+        PTr.BatchRemovalOnMesh(true);
+        PTr.MergeContiguousPaths();
+    }
 }
 
 template <class TracerType>
@@ -944,30 +987,51 @@ void RecursiveProcessForTexturingWithDarts(TracerType &PTr,
                                            const typename TracerType::ScalarType Drift,
                                            bool onlyneeded,
                                            bool finalremoval,
-                                           bool PreRemoveStep=true,
-                                           bool UseMetamesh=true,
-                                           bool ForceMultiSplit=false,
-                                           bool CheckSurfaceFolds=true,
-                                           bool DebugMsg=true)
+                                           bool PreRemoveStep,
+                                           bool UseMetamesh,
+                                           bool ForceMultiSplit,
+                                           bool CheckSurfaceFolds,
+                                           const std::vector<typename TracerType::ScalarType> &DartPriority,
+                                           bool SmoothBeforeRemove,
+                                           bool DebugMsg)
 {
-    RecursiveProcess(PTr,Drift,onlyneeded,finalremoval,PreRemoveStep,
-                     UseMetamesh,ForceMultiSplit,CheckSurfaceFolds,DebugMsg);
 
-    //then make a remove step
-    //PTr.SplitIntoSubPaths();
-    PTr.SetAllRemovable();
-    PTr.AllowDarts=true;
+    //remove darts later
+    PTr.AllowDarts=false;
     PTr.AllowSelfGluedPatch=true;
-    PTr.MinVal=0;
-    PTr.split_on_removal=true;
-    PTr.match_valence=false;
-    PTr.CheckQuadrangulationLimits=false;
 
-    PTr.SplitIntoIntervals();
+    RecursiveProcess(PTr,Drift,onlyneeded,finalremoval,PreRemoveStep,
+                     UseMetamesh,ForceMultiSplit,CheckSurfaceFolds,SmoothBeforeRemove,DebugMsg);
 
-    PTr.BatchRemovalOnMesh(true);
-
-    PTr.MergeContiguousPaths();
+    if (finalremoval)
+    {
+        //in this case either remove all or none
+        if (!PTr.check_quality_functor)
+        {
+            PTr.SetAllRemovable();
+            PTr.AllowDarts=true;
+            PTr.MinVal=0;
+            PTr.split_on_removal=true;
+            PTr.CheckQuadrangulationLimits=false;
+            //split at intersectons
+            PTr.SetPriorityVect(DartPriority);
+            PTr.BatchRemovalOnMesh(true);
+            PTr.MergeContiguousPaths();
+        }
+        //in this case either remove gradually
+        else
+        {
+            PTr.SetAllRemovable();
+            PTr.AllowDarts=true;
+            PTr.MinVal=0;
+            PTr.split_on_removal=true;
+            PTr.CheckQuadrangulationLimits=false;
+            PTr.SetPriorityVect(DartPriority);
+            PTr.RemoveDarts();
+            PTr.ClearPriorityVect();
+            PTr.MergeContiguousPaths();
+        }
+    }
 }
 
 template <class MeshType>

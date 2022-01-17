@@ -51,6 +51,7 @@ size_t Time_Collapse_Step4=0;
 #include "patch_manager.h"
 #include "patch_subdivider.h"
 #include "edge_direction_table.h"
+//#include <vcg/complex/algorithms/crease_cut.h>
 
 
 //namespace std {
@@ -113,6 +114,7 @@ enum PatchType{LowCorners,HighCorners,NonDisk,
                HasEmitter,MaxCClarkability,NonMatchValence,
                NoQualityMatch,IsOK};//MoreSing,IsOK};
 
+enum PriorityMode{PrioModeLoop,PrioModBorder,PrioModBlend};
 
 template <class MeshType>
 void RetrievePatchFromSelEdges(MeshType &mesh,
@@ -795,6 +797,8 @@ public:
 
     bool split_on_removal;
     bool DebugMsg;
+    //bool FirstBorder;
+    PriorityMode PrioMode;
     //bool avoid_increase_valence;
     //bool avoid_collapse_irregular;
     bool away_from_singular;
@@ -811,6 +815,7 @@ public:
     size_t MaxVal;
     size_t Concave_Need;
     bool AllowDarts;
+    bool CheckUVIntersection;
     bool AllowSelfGluedPatch;
     bool CheckQuadrangulationLimits;
     bool AllowRemoveConcave;
@@ -844,6 +849,8 @@ private:
     std::vector<CandidateTrace> Candidates;
 
     std::vector<CandidateTrace> DiscardedCandidates;
+
+    std::vector<ScalarType> PrioVect;
 
 public:
 
@@ -1600,7 +1607,11 @@ private:
     {
         if (DebugMsg)
             std::cout<<"Updating Partitions Greedy Distance"<<std::endl;
-        UpdatePartitionsFromChoosen(true);
+
+        //THIS SHOULD SPEED UP
+        LazyUpdatePartitions();
+        //UpdatePartitionsFromChoosen(true);
+
         CurrNodeDist.clear();
         if (DebugMsg)
             std::cout<<"Init All Nodes Distance test"<<std::endl;
@@ -2481,7 +2492,7 @@ private:
             return;
         }
 
-        if (PatchInfos[Index].NumEmitters>0)
+        if (PatchInfos[Index].NumEmitters>0)//&&(!AllowRemoveConcave))
         {
             PartitionType[Index]=HasEmitter;
             return;
@@ -2511,11 +2522,24 @@ private:
             return;
         }
 
-        if ((check_quality_functor)&&(PatchInfos[Index].QualityFunctorValue>0))
+        if (check_quality_functor)
         {
-            PartitionType[Index]=NoQualityMatch;
-            return;
+            PatchQualityFunctor PFunct;
+            MeshType m;
+            bool UseInternalCuts=(AllowDarts||AllowSelfGluedPatch);
+            GetPatchMesh(Index,m,UseInternalCuts);
+            PatchInfos[Index].QualityFunctorValue=PFunct(m);
+            if (PatchInfos[Index].QualityFunctorValue>0)
+            {
+                PartitionType[Index]=NoQualityMatch;
+                return;
+            }
         }
+        //        if ((check_quality_functor)&&(PatchInfos[Index].QualityFunctorValue>0))
+        //        {
+        //            PartitionType[Index]=NoQualityMatch;
+        //            return;
+        //        }
         //        //optional QualityFunctor
         //        if (check_quality_functor)
         //        {
@@ -2555,18 +2579,19 @@ public:
                                              AllowDarts,AllowSelfGluedPatch,
                                              CheckQuadrangulationLimits);
         //update quality functor
-        if (check_quality_functor)
-        {
-            PatchQualityFunctor PFunct;
-            for (size_t i=0;i<Partitions.size();i++)
-            {
-                MeshType m;
-                bool UseInternalCuts=(AllowDarts||AllowSelfGluedPatch);
-                GetPatchMesh(i,m,UseInternalCuts);
-                PatchInfos[i].QualityFunctorValue=PFunct(m);
-            }
-        }
+        //        if (check_quality_functor)
+        //        {
+        //            PatchQualityFunctor PFunct;
+        //            for (size_t i=0;i<Partitions.size();i++)
+        //            {
+        //                MeshType m;
+        //                bool UseInternalCuts=(AllowDarts||AllowSelfGluedPatch);
+        //                GetPatchMesh(i,m,UseInternalCuts);
+        //                PatchInfos[i].QualityFunctorValue=PFunct(m);
+        //            }
+        //        }
         //int t2=clock();
+
         for (size_t i=0;i<Partitions.size();i++)
             UpdatePartitionType(i);
 
@@ -2723,7 +2748,15 @@ public:
 
     void UpdatePartitionsFromChoosen(bool UpdateType=true)
     {
+
         //std::cout<<"Updating Partitions"<<std::endl;
+        //        if ((UpdateType)&&
+        //            (EdgeSel0.size()==Mesh().face.size())&&
+        //            (this->FirstBorder))
+        //        {
+        //            LazyUpdatePartitions();
+        //            return;
+        //        }
 
         int t0=clock();
         //bool IsOk=SelectMeshPatchBorders(Mesh(),ChoosenPaths);//SelectBorders();
@@ -2763,6 +2796,8 @@ public:
         //WriteInfo();
         int t3=clock();
         Time_UpdatePartitionsTotal+=t3-t0;
+
+        //std::cout<<"Ended Updating Partitions"<<std::endl;
 
         //        std::cout<<"** Timing Update Partitions **"<<std::endl;
         //        std::cout<<"Time Derive Patch "<<(t1-t0)/(ScalarType)CLOCKS_PER_SEC<<std::endl;
@@ -2818,6 +2853,7 @@ private:
 
     bool PathHasConcaveNarrowVert(size_t IndexPath)
     {
+        //if (AllowRemoveConcave)return false;
         for (size_t j=0;j<ChoosenPaths[IndexPath].PathNodes.size();j++)
         {
             size_t IndexN=ChoosenPaths[IndexPath].PathNodes[j];
@@ -2864,6 +2900,8 @@ private:
             //if cross with a sharp feature then not check
             if (Mesh().vert[VertI].IsB())continue;
             if (DirV[CrossDir][VertI]==1)return true;
+            //next check not needed
+            if (AllowDarts)continue;
             if ((DirV[Dir][VertI]==2)&&(DirV[CrossDir][VertI]==0))return true;
         }
         return false;
@@ -2945,8 +2983,9 @@ private:
     size_t RMOutOfCornerNum;
     size_t RMNotProfitable;
 
-    bool RemoveIfPossible(size_t IndexPath,bool debubg_msg=false)
+    bool RemoveIfPossible(size_t IndexPath)//,bool Do_Really_Remove=true)
     {
+        //std::cout<<"0"<<std::endl;
         //int t0=clock();
         if (ChoosenPaths[IndexPath].PathNodes.size()==0)
         {
@@ -2970,12 +3009,15 @@ private:
         }
 
         //check if have t junction in the middle
-        if ((!AllowDarts) && PathHasTJunction(IndexPath))
+        if (PathHasTJunction(IndexPath))
+        //if (PathHasTJunction(IndexPath))
         {
             RMHasTJunction++;
             return false;
         }
         //}
+
+        //std::cout<<"1"<<std::endl;
 
         //CHECK ENDPOINTS!
         assert(IndexPath<ChoosenPaths.size());
@@ -2985,11 +3027,18 @@ private:
         VFGraph.GetNodesPos(ChoosenPaths[IndexPath].PathNodes,ChoosenPaths[IndexPath].IsLoop,FacesPath);
 
         //int t1=clock();
+        //first time no need to update the quality
+        bool swap_quality_funct=check_quality_functor;
+        check_quality_functor=false;
         UpdatePatchAround(FacesPath);
+        check_quality_functor=swap_quality_funct;
+
         //int t2=clock();
         //UpdatePartitionsFromChoosen(true);
         std::vector<PatchInfo<ScalarType> > PatchInfos0=PatchInfos;
         //std::vector<std::vector<size_t> > FacePatches0=Partitions;
+
+        //std::cout<<"2"<<std::endl;
 
         //test removal
         CandidateTrace OldTr=ChoosenPaths[IndexPath];
@@ -2997,6 +3046,7 @@ private:
         //remove from the table
         RemoveEdgeNodes<MeshType>(OldTr.PathNodes,OldTr.IsLoop,EDirTable);
 
+        //std::cout<<"3"<<std::endl;
         //check Tjunctions
         if ((!AllowDarts) && HasPathDeadEnd())
         {
@@ -3007,6 +3057,7 @@ private:
             AddEdgeNodes<MeshType>(OldTr.PathNodes,OldTr.IsLoop,EDirTable);
             return false;
         }
+
         //deselect
         Mesh().SelectPos(FacesPath,false);
 
@@ -3041,9 +3092,10 @@ private:
         CanRemove=PatchManager<MeshType>::BetterConfiguration(PatchInfos0,PatchInfos1,MinVal,
                                                               MaxVal,CClarkability,avgEdge,
                                                               match_valence,!AllowRemoveConcave,
-                                                              debubg_msg);
+                                                              DebugMsg);
 
         //int t6=clock();
+        //CanRemove&=Do_Really_Remove;
         if (!CanRemove)
         {
             //restore
@@ -3053,7 +3105,14 @@ private:
             AddEdgeNodes<MeshType>(OldTr.PathNodes,OldTr.IsLoop,EDirTable);
             return false;
         }
-
+        //        if (!Do_Really_Remove)
+        //        {
+        //            //restore
+        //            RMNotProfitable++;
+        //            ChoosenPaths[IndexPath]=OldTr;
+        //            Mesh().SelectPos(FacesPath,true);
+        //            AddEdgeNodes<MeshType>(OldTr.PathNodes,OldTr.IsLoop,EDirTable);
+        //        }
         //        //END DEBUG CODE, NOT USEFUL
 
         //        std::cout<<"T0: "<<t1-t0<<std::endl;
@@ -3111,6 +3170,188 @@ private:
 
         return HasRemoved;
     }
+
+    //    bool RemoveGraduallyDart()
+    //    {
+    //        CandidateTrace OldTr=ChoosenPaths[IndexPath];
+    //        ChoosenPaths[IndexPath].PathNodes.clear();
+
+    ////        //remove from the table
+    ////        RemoveEdgeNodes<MeshType>(OldTr.PathNodes,OldTr.IsLoop,EDirTable);
+
+
+    //        std::vector<vcg::face::Pos<FaceType> > FacesPath;
+    //        VFGraph.GetNodesPos(ChoosenPaths[IndexPath].PathNodes,ChoosenPaths[IndexPath].IsLoop,FacesPath);
+
+    //        //get the mesh
+    //        PatchQualityFunctor PFunct;
+    //        MeshType m;
+    //        GetPatchMesh(Index,m,true);
+    //        do
+    //        {
+
+    //            //compute the parametrization
+    //            ScalarType QVal=PFunct(m);
+    //            //evaluate the distortion
+
+    //        }
+    ////        PatchInfos[Index].QualityFunctorValue=PFunct(m);
+    ////        if (PatchInfos[Index].QualityFunctorValue>0)
+    ////        {
+    ////            PartitionType[Index]=NoQualityMatch;
+    ////            return;
+    ////        }
+    //    }
+
+
+    //    void GetNextEdgeFromDistortion(std::vector<vcg::face::Pos<FaceType> > &PathSeq,
+    //                                   std::vector<vcg::face::Pos<FaceType> > &Removed,
+    //                                   size_t IntSize=5)
+    //    {
+    //        //initial test, need to be substituted with distortion
+    //        if (PathSeq.size()<=IntSize)
+    //        {
+    //            Removed=IntSize;
+    //            PathSeq.clear();
+    //            return;
+    //        }
+
+    //        for (size_t i=0;i<IntSize;i++)
+    //        {
+    //            Removed.push_back(PathSeq.back());
+    //            PathSeq.pop_back();
+    //        }
+    //        assert(PathSeq.size()>0);
+    //        assert(Removed.size()==IntSize);
+    //    }
+
+    //    void SetFaceEdgeS(vcg::face::Pos<FaceType> &Pos,bool value)
+    //    {
+    //        assert(!Pos.IsBorder());
+    //        assert(!Pos.IsEdgeS());
+
+    //        FaceType *f=Pos.F();
+    //        int E=Pos.E();
+    //        assert(E>=0);
+    //        assert(E<3);
+    //        if (value)
+    //            f->SetFaceEdgeS(E);
+
+    //        //go on the other side
+    //        vcg::face::Pos<FaceType> Opp=Pos;
+    //        Opp.FlipF();
+    //        assert(!Opp.IsEdgeS());
+    //        f=Opp.F();
+    //        E=Opp.E();
+    //        assert(E>=0);
+    //        assert(E<3);
+
+    //        if (value)
+    //            f->SetFaceEdgeS(E);
+    //    }
+
+    //    void SelectFaceEdgeS(std::vector<vcg::face::Pos<FaceType> > &PosSeq,bool value)
+    //    {
+    //        for (size_t i=0;i<PosSeq.size();i++)
+    //          SetFaceEdgeS(PosSeq[i],value);
+    //    }
+
+
+
+    //    void RemoveGradually(MeshType &m,std::vector<vcg::face::Pos<FaceType> > &PathSeq)
+    //    {
+    //       //initial test, the sequence should not be selected
+    //       for (size_t i=0;i<PathSeq.size();i++)
+    //       {
+    //           assert(!PathSeq[i].IsBorder());
+    //           assert(!PathSeq[i].IsEdgeS());
+    //           //assert(!PathSeq[i].IsEdgeS());
+    //       }
+
+    //       std::vector<vcg::face::Pos<FaceType> > CurrSeq=PathSeq;
+    //       bool has_completed=false;
+    //       do{
+    //           //cut the mesh along selection
+    //           vcg::tri::CutMeshAlongSelectedFaceEdges(m);
+    //           //parametrize
+    //           ScalarType QVal=PFunct(m);
+    //           if (QVal==0)
+    //               has_completed=true;
+    //           else
+    //           {
+    //               std::vector<vcg::face::Pos<FaceType> > To_Select;
+    //               GetNextEdgeFromDistortion(CurrSeq,To_Select);
+    //               SelectFaceEdgeS(To_Select);
+    //           }
+    //           //in this case had completely re-added all the cut
+    //           if (CurrSeq.size()==0)
+    //               has_completed=true;
+    //       }while (!has_completed);
+
+    //    }
+
+    //    void RemoveGradually(size_t IndexPath)
+    //    {
+    //        //get the pos of the current Path
+    //        std::vector<vcg::face::Pos<FaceType> > FacesPath;
+    //        VFGraph.GetNodesPos(ChoosenPaths[IndexPath].PathNodes,ChoosenPaths[IndexPath].IsLoop,FacesPath);
+    //        SelectFaceEdgeS(FacesPath,false);
+    //        //to be continued
+
+    //        //then get the submesh
+
+    //    }
+
+
+    //    void RemoveDartIteration()
+    //    {
+    //        bool HasRemoved=false;
+    //        if (DebugMsg)
+    //            std::cout<<"REMOVING DART ITERATION"<<std::endl;
+
+    //        //InitEdgeL();
+
+    ////        //set to no test distortion
+    ////        this->check_quality_functor=false;
+    ////        for (int i=ChoosenPaths.size()-1;i>=0;i--)
+    ////        {
+    ////            //if (ChoosenPaths[i].IsLoop)continue;
+    ////             //bool CurrentRemoved=RemoveIfPossible(i,false);
+    ////            //HasRemoved|=CurrentRemoved;
+
+    ////            //if cannot be removed is because of topologycal condition so
+    ////            //do not worth to continue and split
+    //////            if (!CurrentRemoved)
+    //////                ChoosenPaths[i].Unremovable=true;
+    //////            else
+    //////            {
+    ////                std::cout<<"Possible to remove"<<std::endl;
+    ////                ChoosenPaths[i].Unremovable=false;
+    ////            //}
+
+    ////            //RemoveGradually(i);
+    ////        }
+
+    //        SetAllRemovable();
+
+    //        SplitIntoIntervals();
+
+    //        //set distortion again
+    //        //this->check_quality_functor=true;
+
+    //        //then try the removal
+    //        BatchRemovalOnMesh(false);
+
+    //        if (HasRemoved)
+    //        {
+    //            RemoveEmptyPaths();
+    //        }
+
+    //        if (DebugMsg)
+    //            std::cout<<"DONE!"<<std::endl;
+
+    //        //return HasRemoved;
+    //    }
 
     void SplitIntoSubPathsBySel(const CandidateTrace &ToSplit,
                                 std::vector<CandidateTrace> &Portions)
@@ -3243,47 +3484,54 @@ public:
             //std::cout<<ChoosenPaths[i].PathNodes.size()<<std::endl;
             assert(ChoosenPaths[i].PathNodes.size()>=2);
         }
+        //THIS SHOULD SPEED UP
+        UpdatePartitionsFromChoosen(false);
+        //UpdatePartitionsFromChoosen();
 
-        UpdatePartitionsFromChoosen();
         vcg::tri::UpdateSelection<MeshType>::Clear(Mesh());
         ColorByPartitions();
     }
 
-    void SplitIntoIntervals(size_t sizeEdges=5)
+    void SplitIntoIntervals(std::vector<CandidateTrace> &To_Split,
+                            size_t subInt=3)
     {
         //first split ito sub paths along the intersection
-        SplitIntoSubPaths();
+        //SplitIntoSubPaths();
 
         //then select each path every sizeEdges step
-        vcg::tri::UpdateSelection<MeshType>::VertexClear(Mesh());\
-        for (size_t i=0;i<ChoosenPaths.size();i++)
+        vcg::tri::UpdateSelection<MeshType>::VertexClear(Mesh());
+        for (size_t i=0;i<To_Split.size();i++)
         {
-            if (ChoosenPaths[i].PathNodes.size()<=sizeEdges)continue;
-            for (size_t j=0;j<ChoosenPaths[i].PathNodes.size();j+=sizeEdges)
+            size_t sizeEdges=floor(0.5+((ScalarType)To_Split[i].PathNodes.size())/(ScalarType)subInt);
+            //if (sizeEdges<=1)continue;
+            sizeEdges=std::max(sizeEdges,(size_t)1);
+            if (To_Split[i].Unremovable)continue;
+            if (To_Split[i].PathNodes.size()<=sizeEdges)continue;
+            for (size_t j=0;j<To_Split[i].PathNodes.size();j+=sizeEdges)
             {
-                size_t IndexV=VertexFieldGraph<MeshType>::NodeVertI(ChoosenPaths[i].PathNodes[j]);
+                size_t IndexV=VertexFieldGraph<MeshType>::NodeVertI(To_Split[i].PathNodes[j]);
                 Mesh().vert[IndexV].SetS();
             }
         }
 
         std::vector<CandidateTrace> NewTraces;
-        for (size_t i=0;i<ChoosenPaths.size();i++)
+        for (size_t i=0;i<To_Split.size();i++)
         {
             std::vector<CandidateTrace> Portions;
-            SplitIntoSubPathsBySel(ChoosenPaths[i],Portions);
+            SplitIntoSubPathsBySel(To_Split[i],Portions);
             NewTraces.insert(NewTraces.end(),Portions.begin(),Portions.end());
         }
 
-        ChoosenPaths.clear();
-        ChoosenPaths=NewTraces;
+        To_Split.clear();
+        To_Split=NewTraces;
 
-        for (size_t i=0;i<ChoosenPaths.size();i++)
-            assert(ChoosenPaths[i].PathNodes.size()>=2);
+        for (size_t i=0;i<To_Split.size();i++)
+            assert(To_Split[i].PathNodes.size()>=2);
 
 
-        UpdatePartitionsFromChoosen();
-        vcg::tri::UpdateSelection<MeshType>::Clear(Mesh());
-        ColorByPartitions();
+        //UpdatePartitionsFromChoosen(false);
+        vcg::tri::UpdateSelection<MeshType>::VertexClear(Mesh());
+        //ColorByPartitions();
     }
 
     void MergeContiguousPaths()
@@ -3385,9 +3633,12 @@ public:
     void SmoothPatches(size_t Steps=3,typename MeshType::ScalarType Damp=0.5,bool CheckSurfaceFolds=true)
     {
         if (CheckSurfaceFolds)
-            PatchManager<MeshType>::SmoothMeshPatches(Mesh(),FacePartitions,Steps,Damp);
+            PatchManager<MeshType>::SmoothMeshPatchesFromEdgeSel(Mesh(),Steps,Damp,0.2);
+        //PatchManager<MeshType>::SmoothMeshPatches(Mesh(),FacePartitions,Steps,Damp);
         else
-            PatchManager<MeshType>::SmoothMeshPatches(Mesh(),FacePartitions,Steps,Damp,-1);
+            PatchManager<MeshType>::SmoothMeshPatchesFromEdgeSel(Mesh(),Steps,Damp,-1);
+
+        //PatchManager<MeshType>::SmoothMeshPatches(Mesh(),FacePartitions,Steps,Damp,-1);
     }
 
     void SetAllUnRemoveable()
@@ -3402,8 +3653,62 @@ public:
             ChoosenPaths[i].Unremovable=false;
     }
 
+    //    ScalarType GetPriority(size_t IndexPath)
+    //    {
+    //        assert(PrioVect.size()==Mesh().vert.size());
+    //        ScalarType Avg=0;
+    //        for (size_t i=0;i<ChoosenPaths[IndexPath].PathNodes.size();i++)
+    //        {
+    //            size_t IndexV=VertexFieldGraph<MeshType>::NodeVertI(ChoosenPaths[IndexPath].PathNodes[i]);
+    //            assert(IndexV<PrioVect.size());
+    //            Avg+=PrioVect[IndexV];
+    //        }
+    //        Avg/=ChoosenPaths[IndexPath].PathNodes.size();
+    //        return Avg;
+    //    }
+
+    ScalarType GetPriority(CandidateTrace &CurrCand)
+    {
+        assert(PrioVect.size()==Mesh().vert.size());
+        ScalarType Avg=0;
+        for (size_t i=0;i<CurrCand.PathNodes.size();i++)
+        {
+            size_t IndexV=VertexFieldGraph<MeshType>::NodeVertI(CurrCand.PathNodes[i]);
+            assert(IndexV<PrioVect.size());
+            Avg+=PrioVect[IndexV];
+        }
+        Avg/=CurrCand.PathNodes.size();
+        return Avg;
+    }
+
+    void SortPathByPriority(std::vector<CandidateTrace> &To_Sort)
+    {
+        std::cout<<"Sorting By Priority"<<std::endl;
+        assert(PrioVect.size()==Mesh().vert.size());
+        std::vector<std::pair<ScalarType,int> > PathPrio;
+        for (size_t i=0;i<To_Sort.size();i++)
+        {
+            ScalarType currV=GetPriority(To_Sort[i]);
+            PathPrio.push_back(std::pair<ScalarType,int>(currV,i));
+        }
+
+        std::sort(PathPrio.begin(),PathPrio.end());
+        std::reverse(PathPrio.begin(),PathPrio.end());
+        std::vector<CandidateTrace> SwapPaths;
+        for (size_t i=0;i<PathPrio.size();i++)
+        {
+            int IndexP=PathPrio[i].second;
+            assert(IndexP<To_Sort.size());
+            SwapPaths.push_back(To_Sort[IndexP]);
+        }
+        To_Sort=SwapPaths;
+    }
+
     void RemovePaths()//bool DoSmooth=true)
     {
+        if (PrioVect.size()>0)
+            SortPathByPriority(ChoosenPaths);
+
         std::vector<std::vector<vcg::face::Pos<FaceType> > > PathPos;
 
         //select pos
@@ -3419,7 +3724,10 @@ public:
 
         //CutEarPath();
 
-        UpdatePartitionsFromChoosen(true);
+        //THIS SHOULD SPEED UP
+        //UpdatePartitionsFromChoosen(true);
+        UpdatePartitionsFromChoosen(false);
+
         //        ColorByPartitions();
 
         if (DebugMsg)
@@ -3956,6 +4264,7 @@ public:
                    bool UsePartitionNeeds=false)//,
     //bool checkOnlylastConfl=false)
     {
+
         Candidates.clear();
         DiscardedCandidates.clear();
 
@@ -3999,6 +4308,7 @@ public:
         //        if (DebugMsg)
         //            std::cout<<"After Expansion there are "<<Candidates.size()<<" candidates"<<std::endl;
 
+
         bool UseNodeVal=((FromType==TVNarrow)||(FromType==TVConcave));
         if (ChMode==Fartest)
             ChooseGreedyByDistance(UseNodeVal,UsePartitionNeeds);
@@ -4008,6 +4318,7 @@ public:
             //ChooseGreedyByLengthVertNeeds(UseNodeVal);
             ChooseGreedyByLength(UseNodeVal,UsePartitionNeeds);
         }
+
         //ChooseGreedyByLengthVertNeeds(false,checkOnlylastConfl);
 
         int size1=ChoosenPaths.size();
@@ -4330,6 +4641,19 @@ public:
         //        }
     }
 
+    size_t TraceBorderAndLoops(bool UsePartitionNeeds)
+    {
+        InitCandidates(TVInternal,TVInternal,TraceLoop);
+        //std::cout<<"TEST 0 There are "<<Candidates.size()<<"candidates"<<std::endl;
+
+        InitCandidates(TVFlat,TVFlat,TraceDirect);
+        //std::cout<<"TEST 1 There are "<<Candidates.size()<<"candidates"<<std::endl;
+
+        ChooseGreedyByDistance(false,UsePartitionNeeds);
+
+        //std::cout<<"Choosen "<<ChoosenPaths.size()<<"candidates"<<std::endl;
+
+    }
 
     size_t TraceLoops(bool UsePartitionNeeds)
     {
@@ -4389,6 +4713,190 @@ public:
         assert(Size1<=Size0);
         assert(Size3<=Size2);
         return ((Size0-Size1)+(Size2-Size3));
+    }
+
+    void SetPriorityVect(const std::vector<ScalarType> &Vect)
+    {
+        assert((Vect.size()==0)||(Vect.size()==Mesh().vert.size()));
+        PrioVect=Vect;
+    }
+
+    void ClearPriorityVect()
+    {
+        PrioVect.clear();
+    }
+
+//    void RemoveDarts0()//bool do_smooth=true)
+//    {
+//        std::cout<<"REMOVE DARTS"<<std::endl;
+//        std::vector<std::vector<vcg::face::Pos<FaceType> > > PathPos;
+
+//        //select pos
+//        //std::cout<<"a"<<std::endl;
+//        vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(Mesh());
+//        GetPathPos(VFGraph,ChoosenPaths,PathPos);
+//        Mesh().SelectPos(PathPos,true);
+
+//        if (DebugMsg)
+//            std::cout<<"Removing..."<<std::endl;
+
+//        //only makes sense if quality is on (usually distortion)
+//        assert(check_quality_functor);
+
+
+//        size_t NumRem=0;
+//        do{
+//            MergeContiguousPaths();
+//            SplitIntoSubPaths();
+//            SplitIntoIntervals(ChoosenPaths);
+
+//            int size0=ChoosenPaths.size();
+
+//            RemovePaths();
+//            RemoveEmptyPaths();
+
+//            int size1=ChoosenPaths.size();
+//            NumRem=size0-size1;
+//        }while (NumRem>0);
+
+//        std::cout<<"END REMOVE DARTS"<<std::endl;
+//        //        if (HasRemoved)
+//        //        {
+//        //            RemoveEmptyPaths();
+//        //        }
+
+//    }
+
+    void RemoveDarts()//bool do_smooth=true)
+    {
+        std::cout<<"REMOVE DARTS"<<std::endl;
+        std::vector<std::vector<vcg::face::Pos<FaceType> > > PathPos;
+
+        //select pos
+        vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(Mesh());
+        GetPathPos(VFGraph,ChoosenPaths,PathPos);
+        Mesh().SelectPos(PathPos,true);
+
+        //split in subpaths
+
+        bool Has_changed=false;
+        do{
+            RemoveEmptyPaths();
+            MergeContiguousPaths();
+            SplitIntoSubPaths();
+
+            //            vcg::tri::UpdateFlags<MeshType>::FaceClearFaceEdgeS(Mesh());
+            //            GetPathPos(VFGraph,ChoosenPaths,PathPos);
+            //            Mesh().SelectPos(PathPos,true);
+
+            //sort by priority globally
+            if (PrioVect.size()>0)
+                SortPathByPriority(ChoosenPaths);
+            if (DebugMsg)
+                std::cout<<"Removing..."<<std::endl;
+
+            //only makes sense if quality is on (usually distortion)
+            assert(check_quality_functor);
+            Has_changed=false;
+            for (int i=ChoosenPaths.size()-1;i>=0;i--)
+            {
+                //get the current Path
+                CandidateTrace CurrP=ChoosenPaths[i];
+
+                //save the path on the mesh
+                std::vector<vcg::face::Pos<FaceType> > CurrPos;
+                VFGraph.GetNodesPos(CurrP.PathNodes,CurrP.IsLoop,CurrPos);
+
+                CurrP.Unremovable=false;
+                std::vector<CandidateTrace> To_split;
+                //get the old patch index
+                To_split.push_back(CurrP);
+
+                //then split it
+                SplitIntoIntervals(To_split);
+
+                //sort by priority
+                SortPathByPriority(To_split);
+
+                //substitute paths
+                ChoosenPaths[i].PathNodes.clear();
+
+                //set the old one as non removeable
+                for (int j=0;j<ChoosenPaths.size();j++)
+                    ChoosenPaths[j].Unremovable=true;
+
+                //add the splitted one the vector
+                size_t num0=ChoosenPaths.size();
+                for (size_t j=0;j<To_split.size();j++)
+                {
+                    ChoosenPaths.push_back(To_split[j]);
+                    ChoosenPaths.back().Unremovable=false;
+                }
+
+                //then remove if possible the last substitution
+                bool Has_Rem=false;
+                bool Has_Removed_Once=false;
+                do{
+                    Has_Rem=false;
+                    for (int j=ChoosenPaths.size()-1;j>=num0;j--)
+                        Has_Rem|=RemoveIfPossible(j);
+                    Has_Removed_Once|=Has_Rem;
+
+                }while (Has_Rem);
+
+                if (!Has_Removed_Once)continue;
+
+                if (!CheckUVIntersection) continue;
+
+                MeshType SubMesh;
+                PatchManager<MeshType>::GetSubMeshSurroundingUsingEdgeSel(Mesh(),CurrPos,SubMesh);
+
+                //then apply the parametrizator
+                PatchQualityFunctor PFunct;
+                //vcg::tri::io::ExporterPLY<MeshType>::Save(SubMesh,"testSubM.ply");
+                ScalarType ValQ=PFunct(SubMesh);
+
+                //check the self Intersection
+                bool SelfInt=PatchManager<MeshType>::SelfOverlapUV(SubMesh);
+                if (SelfInt)
+                {
+                    //restore the old one
+                    ChoosenPaths[i]=CurrP;
+                    Mesh().SelectPos(CurrPos,true);
+                    //AddEdgeNodes<MeshType>(CurrP.PathNodes,CurrP.IsLoop,EDirTable);
+                    //cancel the split ones
+                    for (int j=ChoosenPaths.size()-1;j>=num0;j--)
+                        ChoosenPaths[j].PathNodes.clear();
+                }
+                else
+                {
+                    //in this case simply accept the modification
+                    Has_changed=true;
+                }
+                //assert(ValQ==0);
+
+                //then test self intersection
+
+//                //then save
+//                vcg::tri::io::ExporterPLY<MeshType>::Save(SubMesh,"testSubM.ply");
+//                exit(0);
+                //then check self intersection
+
+                //                if (!Has_Rem)continue;//nothing removed
+
+                //                Has_changed=true;
+                //            //HasRemoved|=RemoveIfPossible(i);
+                //            if (OnlyOne && HasRemoved)break;
+            }
+
+        }while (Has_changed);
+
+        RemoveEmptyPaths();
+        MergeContiguousPaths();
+
+        std::cout<<"END REMOVE DARTS"<<std::endl;
+
+
     }
 
     size_t BatchRemovalMetaMesh(bool PreRemoveStep=true)//bool do_smooth=true)
@@ -4661,28 +5169,65 @@ public:
             return;
 
         //        if (DebugMsg)
-        if (DebugMsg)
-            std::cout<<"**TRACING LOOPS ***"<<std::endl;
-        size_t numAddedLoops=TraceLoops(AddOnlyNeeded);
+        if (PrioMode==PrioModeLoop)
+        {
+            if (DebugMsg)
+                std::cout<<"**TRACING LOOPS ***"<<std::endl;
+            size_t numAddedLoops=TraceLoops(AddOnlyNeeded);
 
-        if (DebugMsg)
-            std::cout<<"done"<<std::endl;
-        //        size_t numRemoved=ChoosenPaths.size();
+            if (DebugMsg)
+                std::cout<<"done"<<std::endl;
 
-        //        if (InterleaveRemoval)
-        //            numRemoved=BatchRemoval();//SmoothOnRemoval);
+            if (DebugMsg)
+                std::cout<<"Num Chosen "<<ChoosenPaths.size()<<std::endl;
 
-        if (DebugMsg)
-            std::cout<<"Num Chosen "<<ChoosenPaths.size()<<std::endl;
+            if ((AddOnlyNeeded)&&(numAddedLoops>0))//||(numRemoved>0)))
+                //THIS SHOULD SPEED UP
+                LazyUpdatePartitions();
+            //UpdatePartitionsFromChoosen(true);
 
-        if ((AddOnlyNeeded)&&(numAddedLoops>0))//||(numRemoved>0)))
-            UpdatePartitionsFromChoosen(true);
+            if (DebugMsg)
+                std::cout<<"**TRACING BORDERS ***"<<std::endl;
+            JoinBoundaries(AddOnlyNeeded);
+            if (DebugMsg)
+                std::cout<<"done"<<std::endl;
+        }
 
-        if (DebugMsg)
-            std::cout<<"**TRACING BORDERS ***"<<std::endl;
-        JoinBoundaries(AddOnlyNeeded);
-        if (DebugMsg)
-            std::cout<<"done"<<std::endl;
+        if (PrioMode==PrioModBorder)
+        {
+
+            if (DebugMsg)
+                std::cout<<"**TRACING BORDERS ***"<<std::endl;
+            JoinBoundaries(AddOnlyNeeded);
+            if (DebugMsg)
+                std::cout<<"done"<<std::endl;
+
+            if (AddOnlyNeeded)//&&(numAddedLoops>0))//||(numRemoved>0)))
+                UpdatePartitionsFromChoosen(true);
+
+            if (DebugMsg)
+                std::cout<<"**TRACING LOOPS ***"<<std::endl;
+            TraceLoops(AddOnlyNeeded);
+
+            if (DebugMsg)
+                std::cout<<"done"<<std::endl;
+
+            if (DebugMsg)
+                std::cout<<"Num Chosen "<<ChoosenPaths.size()<<std::endl;
+
+        }
+
+        if (PrioMode==PrioModBlend)
+        {
+            TraceBorderAndLoops(AddOnlyNeeded);
+
+            if (DebugMsg)
+                std::cout<<"done"<<std::endl;
+
+            if (DebugMsg)
+                std::cout<<"Num Chosen "<<ChoosenPaths.size()<<std::endl;
+
+        }
 
         //restore the setup
         if (ForceReceivers && force_always)
@@ -4945,7 +5490,7 @@ public:
 
         for (size_t i=0;i<Partitions.size();i++)
         {
-            if (PatchManager<MeshType>::PatchGenus(Mesh(),Partitions[i])!=1)
+            if (PatchManager<MeshType>::PatchGenus(Mesh(),Partitions[i],AllowDarts,AllowSelfGluedPatch)!=1)
                 NonGenusPartitionIndex.push_back(i);
         }
     }
@@ -5224,7 +5769,10 @@ public:
         AllowDarts=false;
         AllowSelfGluedPatch=false;
         CheckQuadrangulationLimits=false;
+        //FirstBorder=false;
         AllowRemoveConcave=false;
+        PrioMode=PrioModeLoop;
+        CheckUVIntersection=false;
         //max_patch_area=MeshArea(Mesh())*0.5;
         //TraceLoopsBorders=true;
     }
