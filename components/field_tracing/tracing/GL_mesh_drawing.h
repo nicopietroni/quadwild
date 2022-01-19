@@ -37,6 +37,7 @@ class MeshDrawing
     typedef typename MeshType::VertexType VertexType;
     typedef typename MeshType::CoordType CoordType;
     typedef typename MeshType::ScalarType ScalarType;
+    typedef typename vcg::Point2<ScalarType> UVCoordType;
 
     static CoordType UVTo3DPos(const vcg::Point2<ScalarType> &UVPos)
     {
@@ -103,6 +104,52 @@ public:
             }
         }
         glEnd();
+        glPopMatrix();
+        glPopAttrib();
+    }
+
+    static void GLDrawUVPolylines(MeshType &m,
+                                  std::vector<std::vector<UVCoordType> > &UVPolyL,
+                                  std::vector<vcg::Color4b> &Color,
+                                  std::vector<UVCoordType> &Dots,
+                                  const vcg::Color4b &ColorDots)
+    {
+        glPushAttrib(GL_ALL_ATTRIB_BITS);
+        glPushMatrix();
+        vcg::Box2<ScalarType> uv_box=vcg::tri::UV_Utils<MeshType>::PerWedgeUVBox(m);
+        vcg::glScale(3.0f/uv_box.Diag());
+        //ScalarType UVScale=3.0f/uv_box.Diag();
+        vcg::glTranslate(CoordType(-uv_box.Center().X(),
+                                   -uv_box.Center().Y(),0));
+        glDisable(GL_LIGHTING);
+        glDisable(GL_LIGHT0);
+        glLineWidth(10);
+
+
+        for (size_t i=0;i<UVPolyL.size();i++)
+        {
+            glBegin(GL_LINES);
+
+            //std::cout<<"Size:"<<UVPolyL[i].size()<<std::endl;
+            vcg::glColor(Color[i]);
+            for (size_t j=0;j<UVPolyL[i].size()-1;j++)
+            {
+                CoordType P0(UVPolyL[i][j].X(),UVPolyL[i][j].Y(),0);
+                CoordType P1(UVPolyL[i][j+1].X(),UVPolyL[i][j+1].Y(),0);
+                vcg::glVertex(P0);
+                vcg::glVertex(P1);
+            }
+
+            glEnd();
+        }
+
+        glPointSize(30);
+        vcg::glColor(ColorDots);
+        glBegin(GL_POINTS);
+        for (size_t i=0;i<Dots.size();i++)
+            vcg::glVertex(Dots[i]);
+        glEnd();
+
         glPopMatrix();
         glPopAttrib();
     }

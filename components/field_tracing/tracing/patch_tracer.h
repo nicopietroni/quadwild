@@ -4641,13 +4641,15 @@ public:
         //        }
     }
 
-    size_t TraceBorderAndLoops(bool UsePartitionNeeds)
+    void TraceBorderAndLoops(bool UsePartitionNeeds)
     {
         InitCandidates(TVInternal,TVInternal,TraceLoop);
         //std::cout<<"TEST 0 There are "<<Candidates.size()<<"candidates"<<std::endl;
 
         InitCandidates(TVFlat,TVFlat,TraceDirect);
         //std::cout<<"TEST 1 There are "<<Candidates.size()<<"candidates"<<std::endl;
+
+        //UpdatePartitionsFromChoosen(true);
 
         ChooseGreedyByDistance(false,UsePartitionNeeds);
 
