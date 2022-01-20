@@ -2858,21 +2858,21 @@ private:
 
     bool PathHasConcaveNarrowVert(size_t IndexPath)
     {
-        if (AllowRemoveConcave)return false;
+        //if (AllowRemoveConcave)return false;
         for (size_t j=0;j<ChoosenPaths[IndexPath].PathNodes.size();j++)
         {
             size_t IndexN=ChoosenPaths[IndexPath].PathNodes[j];
             size_t IndexV=VertexFieldGraph<MeshType>::NodeVertI(IndexN);
-//            if (!AllowRemoveConcave)
-//            {
+            if (!AllowRemoveConcave)
+            {
                 if ((VertType[IndexV]==TVNarrow)||(VertType[IndexV]==TVConcave))
                     return true;
-//            }
-//            else
-//            {
-//                if (VertType[IndexV]==TVNarrow)
-//                    return true;
-//            }
+            }
+            else
+            {
+                if ((VertType[IndexV]==TVNarrow)&&(!AllowDarts))
+                    return true;
+            }
         }
         return false;
     }
