@@ -128,6 +128,8 @@ public:
 
         for (size_t i=0;i<UVPolyL.size();i++)
         {
+            if(UVPolyL[i].size()<2)continue;
+
             glBegin(GL_LINES);
 
             //std::cout<<"Size:"<<UVPolyL[i].size()<<std::endl;

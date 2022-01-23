@@ -997,14 +997,18 @@ void RecursiveProcessForTexturingWithDarts(TracerType &PTr,
 {
 
     //remove darts later
-    PTr.AllowDarts=false;
+    PTr.AllowDarts=true;
     PTr.AllowSelfGluedPatch=true;
+    PTr.CheckQuadrangulationLimits=false;
 
     RecursiveProcess(PTr,Drift,onlyneeded,finalremoval,PreRemoveStep,
                      UseMetamesh,ForceMultiSplit,CheckSurfaceFolds,SmoothBeforeRemove,DebugMsg);
 
     if (finalremoval)
     {
+        //size_t OldVal=PTr.MaxVal;
+        //PTr.MaxVal=PTr.MaxVal*2;
+        //PTr.MaxVal=PTr.MaxVal*2;
         //in this case either remove all or none
         if (!PTr.check_quality_functor)
         {
@@ -1012,7 +1016,7 @@ void RecursiveProcessForTexturingWithDarts(TracerType &PTr,
             PTr.AllowDarts=true;
             PTr.MinVal=0;
             PTr.split_on_removal=true;
-            PTr.CheckQuadrangulationLimits=false;
+
             //split at intersectons
             PTr.SetPriorityVect(DartPriority);
             PTr.BatchRemovalOnMesh(true);
@@ -1025,12 +1029,13 @@ void RecursiveProcessForTexturingWithDarts(TracerType &PTr,
             PTr.AllowDarts=true;
             PTr.MinVal=0;
             PTr.split_on_removal=true;
-            PTr.CheckQuadrangulationLimits=false;
+
             PTr.SetPriorityVect(DartPriority);
             PTr.RemoveDarts();
             PTr.ClearPriorityVect();
             PTr.MergeContiguousPaths();
         }
+        //PTr.MaxVal=OldVal;
     }
 }
 

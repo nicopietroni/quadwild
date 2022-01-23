@@ -260,7 +260,7 @@ public:
 
     void AddEdgeDir(const EdgeVert &EV,const size_t Dir)
     {
-        assert(EdgeMapDir.count(EV)==0);
+        //assert(EdgeMapDir.count(EV)==0);
         EdgeMapDir[EV]=Dir;
         //VertDirections[EV.CurrV].push_back(Dir);
     }

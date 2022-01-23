@@ -817,7 +817,7 @@ public:
     bool AllowDarts;
     bool CheckUVIntersection;
     bool ContinuosCheckUVInt;
-
+    bool CheckTJunction;
     bool AllowSelfGluedPatch;
     bool CheckQuadrangulationLimits;
     bool AllowRemoveConcave;
@@ -3014,7 +3014,7 @@ private:
         }
 
         //check if have t junction in the middle
-        if (PathHasTJunction(IndexPath))
+        if ((CheckTJunction)&&(PathHasTJunction(IndexPath)))
         //if (PathHasTJunction(IndexPath))
         {
             RMHasTJunction++;
@@ -3498,7 +3498,7 @@ public:
     }
 
     void SplitIntoIntervals(std::vector<CandidateTrace> &To_Split,
-                            size_t subInt=3)
+                            size_t subInt=6)
     {
         //first split ito sub paths along the intersection
         //SplitIntoSubPaths();
@@ -3507,7 +3507,7 @@ public:
         vcg::tri::UpdateSelection<MeshType>::VertexClear(Mesh());
         for (size_t i=0;i<To_Split.size();i++)
         {
-            size_t sizeEdges=floor(0.5+((ScalarType)To_Split[i].PathNodes.size())/(ScalarType)subInt);
+            size_t sizeEdges=floor(0.5+(((ScalarType)To_Split[i].PathNodes.size())/(ScalarType)subInt));
             //if (sizeEdges<=1)continue;
             sizeEdges=std::max(sizeEdges,(size_t)1);
             if (To_Split[i].Unremovable)continue;
@@ -3517,6 +3517,9 @@ public:
                 size_t IndexV=VertexFieldGraph<MeshType>::NodeVertI(To_Split[i].PathNodes[j]);
                 Mesh().vert[IndexV].SetS();
             }
+            //select the last one
+            size_t IndexV=VertexFieldGraph<MeshType>::NodeVertI(To_Split[i].PathNodes.back());
+            Mesh().vert[IndexV].SetS();
         }
 
         std::vector<CandidateTrace> NewTraces;
@@ -3698,12 +3701,12 @@ public:
         }
 
         std::sort(PathPrio.begin(),PathPrio.end());
-        std::reverse(PathPrio.begin(),PathPrio.end());
+        //std::reverse(PathPrio.begin(),PathPrio.end());
         std::vector<CandidateTrace> SwapPaths;
         for (size_t i=0;i<PathPrio.size();i++)
         {
             int IndexP=PathPrio[i].second;
-            assert(IndexP<To_Sort.size());
+            assert(IndexP<(int)To_Sort.size());
             SwapPaths.push_back(To_Sort[IndexP]);
         }
         To_Sort=SwapPaths;
@@ -3755,7 +3758,8 @@ public:
             std::vector<size_t> CornerValence;
             std::vector<size_t> NewCorners;
             PatchManager<MeshType>::GetCornerValuesFromInternalFeatures(Mesh(),Partitions[i],
-                                                                        PartitionCorners[i],CornerValence);
+                                                                        PartitionCorners[i],
+                                                                        CornerValence);
             assert(CornerValence.size()==PartitionCorners[i].size());
             for (size_t j=0;j<CornerValence.size();j++)
             {
@@ -4776,6 +4780,8 @@ public:
 
     void RemoveDarts()//bool do_smooth=true)
     {
+        UpdatePartitionsFromChoosen(true);
+
         std::cout<<"REMOVE DARTS"<<std::endl;
         std::vector<std::vector<vcg::face::Pos<FaceType> > > PathPos;
 
@@ -4805,7 +4811,8 @@ public:
             //only makes sense if quality is on (usually distortion)
             assert(check_quality_functor);
             Has_changed=false;
-            for (int i=ChoosenPaths.size()-1;i>=0;i--)
+            int InitialSize=ChoosenPaths.size();
+            for (int i=InitialSize-1;i>=0;i--)
             {
                 //get the current Path
                 CandidateTrace CurrP=ChoosenPaths[i];
@@ -4829,7 +4836,7 @@ public:
                 ChoosenPaths[i].PathNodes.clear();
 
                 //set the old one as non removeable
-                for (int j=0;j<ChoosenPaths.size();j++)
+                for (size_t j=0;j<ChoosenPaths.size();j++)
                     ChoosenPaths[j].Unremovable=true;
 
                 //add the splitted one the vector
@@ -4847,8 +4854,11 @@ public:
                 ContinuosCheckUVInt=false;
                 do{
                     Has_Rem=false;
-                    for (int j=ChoosenPaths.size()-1;j>=num0;j--)
+                    for (int j=(int)ChoosenPaths.size()-1;j>=num0;j--)
+                    {
+                        std::cout<<"Remove Attempt"<<std::endl;
                         Has_Rem|=RemoveIfPossible(j);
+                    }
                     Has_Removed_Once|=Has_Rem;
 
                 }while (Has_Rem);
@@ -4863,19 +4873,23 @@ public:
                 //then apply the parametrizator
                 PatchQualityFunctor PFunct;
                 PFunct.ContinuousCheckSelfInt()=false;
-                //vcg::tri::io::ExporterPLY<MeshType>::Save(SubMesh,"testSubM.ply");
+
+                //then make last check
                 ScalarType ValQ=PFunct(SubMesh);
 
                 //check the self Intersection
                 bool SelfInt=PatchManager<MeshType>::SelfOverlapUV(SubMesh);
                 if (SelfInt)
                 {
+                    std::cout<<"RESTORED FOR SELF INTERSECTION"<<std::endl;
                     //restore the old one
                     ChoosenPaths[i]=CurrP;
                     Mesh().SelectPos(CurrPos,true);
-                    //AddEdgeNodes<MeshType>(CurrP.PathNodes,CurrP.IsLoop,EDirTable);
+                    //first remove the splitted
+
+                    AddEdgeNodes<MeshType>(CurrP.PathNodes,CurrP.IsLoop,EDirTable);
                     //cancel the split ones
-                    for (int j=ChoosenPaths.size()-1;j>=num0;j--)
+                    for (int j=((int)ChoosenPaths.size()-1);j>=num0;j--)
                         ChoosenPaths[j].PathNodes.clear();
                 }
                 else
@@ -4883,27 +4897,15 @@ public:
                     //in this case simply accept the modification
                     Has_changed=true;
                 }
-                //assert(ValQ==0);
-
-                //then test self intersection
-
-//                //then save
-//                vcg::tri::io::ExporterPLY<MeshType>::Save(SubMesh,"testSubM.ply");
-//                exit(0);
-                //then check self intersection
-
-                //                if (!Has_Rem)continue;//nothing removed
-
-                //                Has_changed=true;
-                //            //HasRemoved|=RemoveIfPossible(i);
-                //            if (OnlyOne && HasRemoved)break;
             }
 
         }while (Has_changed);
         ContinuosCheckUVInt=true;
         RemoveEmptyPaths();
         MergeContiguousPaths();
-
+        std::cout<<"LAST REMOVAL OP"<<std::endl;
+        UpdatePartitionsFromChoosen(true);
+        WriteInfo();
         std::cout<<"END REMOVE DARTS"<<std::endl;
 
 
@@ -5784,6 +5786,7 @@ public:
         PrioMode=PrioModeLoop;
         CheckUVIntersection=false;
         ContinuosCheckUVInt=true;
+        CheckTJunction=true;
         //max_patch_area=MeshArea(Mesh())*0.5;
         //TraceLoopsBorders=true;
     }
