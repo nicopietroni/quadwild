@@ -814,6 +814,7 @@ public:
     size_t MinVal;
     size_t MaxVal;
     size_t Concave_Need;
+    size_t subInt;
     bool AllowDarts;
     bool CheckUVIntersection;
     bool ContinuosCheckUVInt;
@@ -3497,8 +3498,7 @@ public:
         ColorByPartitions();
     }
 
-    void SplitIntoIntervals(std::vector<CandidateTrace> &To_Split,
-                            size_t subInt=6)
+    void SplitIntoIntervals(std::vector<CandidateTrace> &To_Split)
     {
         //first split ito sub paths along the intersection
         //SplitIntoSubPaths();
@@ -3701,7 +3701,7 @@ public:
         }
 
         std::sort(PathPrio.begin(),PathPrio.end());
-        std::reverse(PathPrio.begin(),PathPrio.end());
+        //std::reverse(PathPrio.begin(),PathPrio.end());
         std::vector<CandidateTrace> SwapPaths;
         for (size_t i=0;i<PathPrio.size();i++)
         {
@@ -5787,6 +5787,7 @@ public:
         CheckUVIntersection=false;
         ContinuosCheckUVInt=true;
         CheckTJunction=true;
+        subInt=3;
         //max_patch_area=MeshArea(Mesh())*0.5;
         //TraceLoopsBorders=true;
     }

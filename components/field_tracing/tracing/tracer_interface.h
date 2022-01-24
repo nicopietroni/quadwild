@@ -909,7 +909,7 @@ void RecursiveProcessWithDarts(TracerType &PTr,
                                bool SmoothBeforeRemove,
                                bool DebugMsg)
 {
-    PTr.AllowDarts=false;
+    PTr.AllowDarts=true;
     RecursiveProcess(PTr,Drift,onlyneeded,finalremoval,PreRemoveStep,
                      UseMetamesh,ForceMultiSplit,CheckSurfaceFolds,SmoothBeforeRemove,DebugMsg);
 
@@ -997,6 +997,7 @@ void RecursiveProcessForTexturingWithDarts(TracerType &PTr,
 {
 
     //remove darts later
+    //PTr.AllowDarts=true;
     PTr.AllowDarts=true;
     PTr.AllowSelfGluedPatch=true;
     PTr.CheckQuadrangulationLimits=false;
