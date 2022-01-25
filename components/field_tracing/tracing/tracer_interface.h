@@ -997,8 +997,8 @@ void RecursiveProcessForTexturingWithDarts(TracerType &PTr,
 {
 
     //remove darts later
-    //PTr.AllowDarts=true;
     PTr.AllowDarts=true;
+    //PTr.AllowDarts=false;
     PTr.AllowSelfGluedPatch=true;
     PTr.CheckQuadrangulationLimits=false;
 

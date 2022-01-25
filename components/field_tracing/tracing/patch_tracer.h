@@ -3701,7 +3701,7 @@ public:
         }
 
         std::sort(PathPrio.begin(),PathPrio.end());
-        //std::reverse(PathPrio.begin(),PathPrio.end());
+        std::reverse(PathPrio.begin(),PathPrio.end());
         std::vector<CandidateTrace> SwapPaths;
         for (size_t i=0;i<PathPrio.size();i++)
         {
