@@ -182,6 +182,7 @@ private:
             numS++;
         }
         assert(0);
+        return 0;
     }
 
     void SideLenghts(const size_t indexMetaFace,

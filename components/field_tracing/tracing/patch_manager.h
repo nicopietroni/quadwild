@@ -882,6 +882,9 @@ public:
     {
         //size_t t0=clock();
 
+        //std::cout<<"Test C there are :"<<mesh.vert[0].FramePos.size()<<" frames"<<std::endl;
+
+
         PatchMesh.Clear();
         PatchMesh.face.reserve(Partition.size());
         PatchMesh.vert.reserve(Partition.size());
@@ -928,7 +931,9 @@ public:
         {
             size_t IndexV=GlobalV[i];
             VertexType *OrigV=&mesh.vert[IndexV];
+
             PatchMesh.vert[i].ImportData(*OrigV);
+
         }
 
         //then add faces
@@ -952,6 +957,9 @@ public:
         }
         PatchMesh.UpdateAttributes();
 
+
+        //std::cout<<"Test F there are :"<<PatchMesh.vert[0].FramePos.size()<<" frames"<<std::endl;
+
         if (InternalCuts)
         {
             //bool HasToSplit=false;
@@ -968,13 +976,25 @@ public:
             }
             //std::cout<<"Splitting Internal Cuts"<<std::endl;
             std::map<CoordType,ScalarType> VertQ;
+#ifdef MULTI_FRAME
+            std::map<CoordType,std::vector<CoordType> > PosFrameMap;
+#endif
             for (size_t i=0;i<PatchMesh.vert.size();i++)
+            {
                 VertQ[PatchMesh.vert[i].P()]=PatchMesh.vert[i].Q();
+
+#ifdef MULTI_FRAME
+                PosFrameMap[PatchMesh.vert[i].P()]=PatchMesh.vert[i].FramePos;
+#endif
+            }
             VertSplitter<MeshType>::SplitAlongEdgeSel(PatchMesh);
             for (size_t i=0;i<PatchMesh.vert.size();i++)
             {
                 assert(VertQ.count(PatchMesh.vert[i].P())>0);
                 PatchMesh.vert[i].Q()=VertQ[PatchMesh.vert[i].P()];
+#ifdef MULTI_FRAME
+                PatchMesh.vert[i].FramePos=PosFrameMap[PatchMesh.vert[i].P()];
+#endif
             }
             vcg::tri::Allocator<MeshType>::CompactEveryVector(PatchMesh);
 
@@ -986,10 +1006,12 @@ public:
 
             PatchMesh.UpdateAttributes();
         }
+        //std::cout<<"Test G there are :"<<PatchMesh.vert[0].FramePos.size()<<" frames"<<std::endl;
 
         //        size_t t1=clock();
         //        Time_InitSubPatches0_0+=t1-t0;
     }
+
 
 
     //    static void MeshDifference(MeshType &mesh0,

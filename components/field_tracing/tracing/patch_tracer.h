@@ -2532,9 +2532,9 @@ private:
             bool UseInternalCuts=(AllowDarts||AllowSelfGluedPatch);
             GetPatchMesh(Index,m,UseInternalCuts);
 
-            PFunct.ContinuousCheckSelfInt()=ContinuosCheckUVInt;
+            //PFunct.ContinuousCheckSelfInt()=ContinuosCheckUVInt;
             PatchInfos[Index].QualityFunctorValue=PFunct(m);
-            PFunct.ContinuousCheckSelfInt()=true;
+            //PFunct.ContinuousCheckSelfInt()=true;
             if (PatchInfos[Index].QualityFunctorValue>0)
             {
                 PartitionType[Index]=NoQualityMatch;
@@ -3746,6 +3746,7 @@ public:
                       MeshType &PatchMesh,
                       bool InternalCuts)
     {
+
         PatchManager<MeshType>::GetMeshFromPatch(Mesh(),IndexPatch,Partitions,PatchMesh,InternalCuts);
     }
 

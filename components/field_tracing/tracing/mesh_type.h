@@ -64,7 +64,9 @@ class TraceVertex : public vcg::Vertex< MyUsedTypes,
         vcg::vertex::CurvatureDird>
 {
 public:
-
+#ifdef MULTI_FRAME
+    std::vector<CoordType> FramePos;
+#endif
     CoordType RPos;
     size_t SingularityValence;
 
@@ -83,6 +85,10 @@ public:
 
         RPos=left.RPos;
         SingularityValence=left.SingularityValence;
+
+#ifdef MULTI_FRAME
+    FramePos=left.FramePos;
+#endif
     }
 
 };
