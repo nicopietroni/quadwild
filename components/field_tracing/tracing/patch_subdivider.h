@@ -741,7 +741,7 @@ public:
 
         assert(NewCorners.size()==NewFacePaches.size());
 
-        PreProcessMesh(tri_mesh);
+//        PreProcessMesh(tri_mesh);
 
         //                for (size_t i=0;i<tri_mesh.face.size();i++)
         //                    tri_mesh.face[i].C()=vcg::Color4b::Scatter(MaxPatchIndex,tri_mesh.face[i].Q());

@@ -985,11 +985,11 @@ void InitLoopBar(QWidget *w)
     TwAddVarRW(bar,"FinalRem",TW_TYPE_BOOLCPP,&final_removal,"label='Final removal'");
     TwAddVarRW(bar,"ForceSplit",TW_TYPE_BOOLCPP,&force_split,"label='Force split'");
     TwAddButton(bar,"RecursiveProcess",RecursiveProcess,0," label='Recursive Process' ");
-    //TwAddButton(bar,"Subdivide",SubdividePatches,0," label='Subdivide Patches' ");
+    TwAddButton(bar,"Subdivide",SubdividePatches,0," label='Subdivide Patches' ");
 
   //    TwAddSeparator(bar,NULL,NULL);
 
-//    TwAddButton(bar,"Subdivide",SubdividePatches,0," label='Subdivide Patches' ");
+    TwAddButton(bar,"Subdivide",SubdividePatches,0," label='Subdivide Patches' ");
 //    TwAddButton(bar,"ParametrizePatches",ParametrizePatches,0," label='Parametrize Patches' ");
 
 
