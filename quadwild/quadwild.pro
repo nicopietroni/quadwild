@@ -4,7 +4,11 @@ include(../libs/libs.pri)
 include($$QUADRETOPOLOGY_PATH/quadretopology.pri)
 
 SOURCES += \
+    functions.cpp \
     quadwild.cpp
+
+HEADERS += \
+    functions.h
 
 ############################ TARGET ############################
 
