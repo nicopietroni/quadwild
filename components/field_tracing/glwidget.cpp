@@ -989,7 +989,7 @@ void InitLoopBar(QWidget *w)
 
   //    TwAddSeparator(bar,NULL,NULL);
 
-//    TwAddButton(bar,"Subdivide",SubdividePatches,0," label='Subdivide Patches' ");
+    TwAddButton(bar,"Subdivide",SubdividePatches,0," label='Subdivide Patches' ");
 //    TwAddButton(bar,"ParametrizePatches",ParametrizePatches,0," label='Parametrize Patches' ");
 
 
