@@ -79,8 +79,8 @@ INCLUDEPATH += $$MESHFIELD_PATH
 INCLUDEPATH += $$MESHTRACE_PATH
 INCLUDEPATH += $$QUADRANGULATE_PATH
 
+#Comiso
 contains(DEFINES, COMISO_FIELD) {
-    #comiso
     LIBS += -L$$COMISO_PATH/build/Build/lib/CoMISo/ -lCoMISo
     INCLUDEPATH += $$COMISO_PATH/..
 
@@ -104,6 +104,9 @@ INCLUDEPATH += $$BOOST_PATH
 INCLUDEPATH += $$GUROBI_PATH/include
 LIBS += -L$$GUROBI_PATH/lib -l$$GUROBI_COMPILER -l$$GUROBI_LIB
 DEFINES += GUROBI_DEFINED
+
+#Field tracer
+INCLUDEPATH += $$XFIELDTRACER_PATH
 
 #Parallel computation (just in release)
 unix:!mac {

@@ -1,3 +1,6 @@
 [submodule "libs/vcglib"]
 	path = libs/vcglib
 	url = ../../cnr-isti-vclab/vcglib
+[submodule "libs/xfield_tracer"]
+	path = libs/xfield_tracer
+	url = https://github.com/nicopietroni/xfield_tracer

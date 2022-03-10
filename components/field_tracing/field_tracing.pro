@@ -4,10 +4,6 @@ include(../../libs/libs.pri)
 
 HEADERS = \
     glwidget.h \
-    tracing/vert_field_graph.h \
-    tracing/graph_query.h \
-    tracing/GL_vert_field_graph.h \
-    tracing/patch_tracer.h \
     mesh_type.h
 
 SOURCES = \
@@ -18,6 +14,8 @@ SOURCES = \
 DEFINES += GLEW_STATIC
 DEFINES += NO_PATCH_SIZING
 
+#Field tracer
+INCLUDEPATH += $$XFIELDTRACER_PATH
 
 ############################ TARGET ############################
 

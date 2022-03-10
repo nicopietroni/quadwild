@@ -7,6 +7,7 @@ DEFINES += COMISO_FIELD
 
 #Libraries
 QUADRETOPOLOGY_PATH = $$PWD/quadretopology/
+XFIELDTRACER_PATH   = $$PWD/xfield_tracer/
 LIBIGL_PATH         = $$PWD/libigl/
 VCGLIB_PATH         = $$PWD/vcglib/
 GLEW_PATH           = $$PWD/glew/
