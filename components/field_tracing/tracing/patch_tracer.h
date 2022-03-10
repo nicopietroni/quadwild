@@ -5781,7 +5781,7 @@ public:
         Concave_Need=1;
         AllowDarts=false;
         AllowSelfGluedPatch=false;
-        CheckQuadrangulationLimits=false;
+        CheckQuadrangulationLimits=true;
         //FirstBorder=false;
         AllowRemoveConcave=false;
         PrioMode=PrioModeLoop;

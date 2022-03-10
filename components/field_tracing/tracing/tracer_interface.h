@@ -702,7 +702,7 @@ void RecursiveProcess(TracerType &PTr,
     //cannot do metacollapse with the following conditions
     assert(!(PTr.AllowDarts && UseMetamesh));
     assert(!(PTr.AllowSelfGluedPatch && UseMetamesh));
-    assert(!(PTr.CheckQuadrangulationLimits && UseMetamesh));
+    assert(!((!PTr.CheckQuadrangulationLimits) && UseMetamesh));
     assert(!((PTr.MinVal<2) && UseMetamesh));
 
     Time_FirstTrace=0;
