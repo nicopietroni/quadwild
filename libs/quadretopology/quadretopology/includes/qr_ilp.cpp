@@ -319,6 +319,13 @@ inline void solveILP(
                                     }
                                     const ChartSide& adjOppositeSide = currentChart.chartSides[adjOppositeSideId];
 
+                                    if (adjOppositeSide.subsides.size() != 1) {
+                                        currentChartId = -1;
+                                        currentChartSideId = -1;
+                                        currentChartNSides = 0;
+                                        break;
+                                    }
+
                                     const std::array<int, 2>& incidentCharts = chartData.subsides[adjOppositeSide.subsides[0]].incidentCharts;
                                     const std::array<int, 2>& incidentChartSides = chartData.subsides[adjOppositeSide.subsides[0]].incidentChartSideId;
 
@@ -338,7 +345,12 @@ inline void solveILP(
 
                             } while (currentChartId != static_cast<int>(cId) && currentChartId > -1 && currentChartNSides == 4);
 
-                            if (currentChartId != static_cast<int>(cId) && currentChartId > -1 && (currentChartNSides == 3 || currentChartNSides == 5 || currentChartNSides == 6)) {
+
+                            if (currentChartId != static_cast<int>(cId)
+                                    && currentChartId > -1
+                                    && (currentChartNSides == 3 || currentChartNSides == 5 || currentChartNSides == 6)
+                                    && chartData.charts[currentChartId].chartSides[currentChartSideId].subsides.size() == 1)
+                            {
                                 bool currentComputable = true;
                                 for (size_t i = 0; i < chartData.charts[currentChartId].chartSubsides.size(); i++) {
                                     const size_t subsideId = chartData.charts[currentChartId].chartSubsides[i];
@@ -638,7 +650,14 @@ inline void solveILP(
                                         if (currentChartId != static_cast<int>(cId)) {
                                             adjOppositeSideId = (currentChartSideId + 2) % chartData.charts[currentChartId].chartSides.size();
                                         }
+
                                         const ChartSide& adjOppositeSide = currentChart.chartSides[adjOppositeSideId];
+                                        if (adjOppositeSide.subsides.size() != 1) {
+                                            currentChartId = -1;
+                                            currentChartSideId = -1;
+                                            currentChartNSides = 0;
+                                            break;
+                                        }
 
                                         const std::array<int, 2>& incidentCharts = chartData.subsides[adjOppositeSide.subsides[0]].incidentCharts;
                                         const std::array<int, 2>& incidentChartSides = chartData.subsides[adjOppositeSide.subsides[0]].incidentChartSideId;
@@ -659,7 +678,11 @@ inline void solveILP(
 
                                 } while (currentChartId != static_cast<int>(cId) && currentChartId > -1 && currentChartNSides == 4);
 
-                                if (currentChartId != static_cast<int>(cId) && currentChartId > -1 && (currentChartNSides == 3 || currentChartNSides == 5 || currentChartNSides == 6)) {
+                                if (currentChartId != static_cast<int>(cId)
+                                        && currentChartId > -1
+                                        && (currentChartNSides == 3 || currentChartNSides == 5 || currentChartNSides == 6)
+                                        && chartData.charts[currentChartId].chartSides[currentChartSideId].subsides.size() == 1)
+                                {
                                     bool currentComputable = true;
                                     for (size_t i = 0; i < chartData.charts[currentChartId].chartSubsides.size(); i++) {
                                         const size_t subsideId = chartData.charts[currentChartId].chartSubsides[i];
